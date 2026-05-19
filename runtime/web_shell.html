@@ -30,6 +30,10 @@
 	<script type='text/javascript'>
 		var canvasElement = document.getElementById('canvas');
 
+		if (!canvas.getContext('webgl2')) {
+			alert('Your browser does not support WebGL 2. Please try a different browser.');
+		}
+
 		// As a default initial behavior, pop up an alert when webgl context is lost. To make your
 		// application robust, you may want to override this behavior before shipping!
 		// See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
@@ -41,6 +45,9 @@
 		var Module = {
 			canvas: canvasElement,
 			totalDependencies: 0,
+			setStatus: (text) => {
+				if (text) console.log(text);
+			}
 		};
 		
 		window.onerror = (event) => {
