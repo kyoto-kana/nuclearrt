@@ -272,6 +272,10 @@ void Frame::DrawLayer(Layer& layer)
 				
 				DrawCounterNumbers(counter, value, instance->X - scrollXOffset, instance->Y - scrollYOffset);
 			}
+			else if (counter->DisplayType == 2 || counter->DisplayType == 3) // Bar
+			{
+				Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->X - scrollXOffset, instance->Y - scrollYOffset, (Counter*)counter);
+			}
 		}
 		else if (instance->Type == 0) // Quick backdrop
 		{

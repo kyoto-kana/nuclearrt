@@ -7,6 +7,7 @@
 #include "FontBank.h"
 #include "Bitmap.h"
 
+class Counter;
 class EffectInstance;
 class Shape;
 
@@ -26,6 +27,7 @@ public:
 	virtual void UnloadTexture(int id) {}
 	virtual void DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance = nullptr) {}
 	virtual void DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape) {}
+	virtual void DrawCounterBar(int x, int y, Counter* counter) {}
 	virtual void DrawBitmap(Bitmap& bitmap, int x, int y) {}
 	virtual void DrawEffectRect(int x, int y, int width, int height, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance) {}
 

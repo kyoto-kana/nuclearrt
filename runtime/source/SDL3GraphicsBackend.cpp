@@ -1048,6 +1048,81 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 	}
 }
 
+void SDL3GraphicsBackend::DrawCounterBar(int x, int y, Counter* counter)
+{
+	if (counter->Width <= 0 || counter->Height <= 0) {
+		return;
+	}
+
+	bool isVertical = counter->DisplayType == 2;
+
+	float fillPercent = counter->MaxValue > 0 ? static_cast<float>(counter->GetValue()) / static_cast<float>(counter->MaxValue) : 0.0f;
+	
+	int fillWidth = counter->Width;
+	int fillHeight = counter->Height;
+	int fillX = x;
+	int fillY = y;
+
+	if (isVertical) {
+		fillHeight = static_cast<int>(counter->Height * fillPercent);
+		if (counter->BarDirection == 1) {
+			fillY = y + (counter->Height - fillHeight);
+		}
+	} else {
+		fillWidth = static_cast<int>(counter->Width * fillPercent);
+		if (counter->BarDirection == 1) {
+			fillX = x + (counter->Width - fillWidth);
+		}
+	}
+
+	int color1 = counter->shape.Color1;
+	int color2 = counter->shape.FillType == 2 ? counter->shape.Color2 : color1;
+
+	if (counter->BarDirection)
+	{
+		int temp = color1;
+		color1 = color2;
+		color2 = temp;
+	}
+
+	float r1 = ((color1 >> 16) & 0xFF) / 255.0f;
+	float g1 = ((color1 >> 8) & 0xFF) / 255.0f;
+	float b1 = (color1 & 0xFF) / 255.0f;
+
+	float r2 = ((color2 >> 16) & 0xFF) / 255.0f;
+	float g2 = ((color2 >> 8) & 0xFF) / 255.0f;
+	float b2 = (color2 & 0xFF) / 255.0f;
+
+	float u0 = 0.0f;
+	float v0 = 0.0f;
+	float u1 = 1.0f;
+	float v1 = 1.0f;
+
+	if (isVertical) {
+		float fillRatio = counter->Height > 0 ? static_cast<float>(fillHeight) / static_cast<float>(counter->Height) : 0.0f;
+		if (counter->BarDirection == 1) {
+			v0 = 1.0f - fillRatio;
+		} else {
+			v1 = fillRatio;
+		}
+	} else {
+		float fillRatio = counter->Width > 0 ? static_cast<float>(fillWidth) / static_cast<float>(counter->Width) : 0.0f;
+		if (counter->BarDirection == 1) {
+			u0 = 1.0f - fillRatio;
+		} else {
+			u1 = fillRatio;
+		}
+	}
+	
+	glUseProgram(gradientShaderProgram);
+	currentEffect = -1;
+	glUniform4f(gradientShaderColor1Loc, r1, g1, b1, 1.0f);
+	glUniform4f(gradientShaderColor2Loc, r2, g2, b2, 1.0f);
+	glUniform1i(gradientShaderVerticalLoc, counter->shape.VerticalGradient ? 1 : 0);
+
+	RenderQuad(static_cast<float>(fillX), static_cast<float>(fillY), static_cast<float>(fillWidth), static_cast<float>(fillHeight), 0.0f, 0.0f, 0.0f, u0, v0, u1, v1);
+}
+
 void SDL3GraphicsBackend::DrawBitmap(Bitmap& bitmap, int x, int y)
 {
 	if (bitmap.GetWidth() <= 0 || bitmap.GetHeight() <= 0) {
