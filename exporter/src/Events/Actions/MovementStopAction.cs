@@ -6,7 +6,7 @@ using CTFAK.Utils;
 
 public class MovementStopAction : ActionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2, 7];
 	public override int Num { get; set; } = 4;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
@@ -22,9 +22,4 @@ public class MovementStopAction : ActionBase
 
 		return result.ToString();
 	}
-}
-
-public class CounterMovementStopAction : MovementStopAction
-{
-	public override int ObjectType { get; set; } = 7;
 }

@@ -4,7 +4,7 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class DisplayNextParagraphAction : ActionBase
 {
-	public override int ObjectType { get; set; } = 3;
+	public override int[] ObjectType { get; set; } = [3];
 	public override int Num { get; set; } = 86;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")

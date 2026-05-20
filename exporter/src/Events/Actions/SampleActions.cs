@@ -3,7 +3,7 @@ using CTFAK.CCN.Chunks.Frame;
 using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 public class PlaySample : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 0;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -16,7 +16,7 @@ public class PlaySample : ActionBase
 
 public class PlaySampleAllParameters : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 36;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -65,7 +65,7 @@ public class CheckType
 }
 public class PlaySampleChannel : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 11;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -78,7 +78,7 @@ public class PlaySampleChannel : ActionBase
 }
 public class PlayAndLoopSample : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = -2;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -89,7 +89,7 @@ public class PlayAndLoopSample : ActionBase
 }
 public class StopAnySample : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 1;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -98,7 +98,7 @@ public class StopAnySample : ActionBase
 }
 public class PlayAndLoopSampleAtChannel : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 12;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -110,7 +110,7 @@ public class PlayAndLoopSampleAtChannel : ActionBase
 }
 public class SetMainVolume : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 20;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -119,7 +119,7 @@ public class SetMainVolume : ActionBase
 }
 public class SetChannelVolume : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 17;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -128,7 +128,7 @@ public class SetChannelVolume : ActionBase
 }
 public class SetSampleVolume : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 21;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -137,7 +137,7 @@ public class SetSampleVolume : ActionBase
 }
 public class PauseSpecificSample : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 7;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -151,7 +151,7 @@ public class ResumeSpecificSample : PauseSpecificSample
 }
 public class PauseChannel : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 13;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -165,7 +165,7 @@ public class ResumeChannel : PauseChannel
 public class PauseAllSamples : ActionBase
 {
 	public override int Num { get; set; } = 24;
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
 		return $"Application::Instance().GetBackend()->audio->PauseSample(-1, false, {(eventBase.Num == 24 ? "true" : "false")});";
@@ -177,7 +177,7 @@ public class ResumeAllSamples : PauseAllSamples
 }
 public class UnlockChannel : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 30;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -190,7 +190,7 @@ public class LockChannel : UnlockChannel
 }
 public class SetMainPan : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 22;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -199,7 +199,7 @@ public class SetMainPan : ActionBase
 }
 public class SetSamplePan : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 23;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -209,7 +209,7 @@ public class SetSamplePan : ActionBase
 
 public class SetChannelPan : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 18;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -218,7 +218,7 @@ public class SetChannelPan : ActionBase
 }
 public class SetSampleFrequency : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 33;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -227,7 +227,7 @@ public class SetSampleFrequency : ActionBase
 }
 public class SetChannelFrequency : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 32;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -236,7 +236,7 @@ public class SetChannelFrequency : ActionBase
 }
 public class SetChannelPos : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 16;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -245,7 +245,7 @@ public class SetChannelPos : ActionBase
 }
 public class SetSamplePos : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 19;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -254,7 +254,7 @@ public class SetSamplePos : ActionBase
 }
 public class PreloadSampleFile : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 34;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -267,7 +267,7 @@ public class DiscardSampleFile : PreloadSampleFile
 }
 public class PlaySampleFileChannel : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 28;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -279,7 +279,7 @@ public class PlaySampleFileChannel : ActionBase
 }
 public class PlaySampleFileChannelLoop : ActionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = 29;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{

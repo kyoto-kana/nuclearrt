@@ -79,7 +79,7 @@ public class EventProcessor
 				{
 					if (IsTimerEvent(evt) || IsAnimationEvent(evt)) continue;
 				}
-				
+
 				result.Append($"{eventName}();\n");
 			}
 		}
@@ -125,7 +125,7 @@ public class EventProcessor
 				var acBaseType = acBaseTypes.FirstOrDefault(t =>
 				{
 					var instance = Activator.CreateInstance(t) as ConditionBase;
-					return (instance?.ObjectType == condition.ObjectType || condition.ObjectType >= 32 && instance?.ObjectType >= 32) && instance?.Num == condition.Num;
+					return instance != null && (instance.ObjectType.Contains(condition.ObjectType) || (condition.ObjectType >= 32 && instance.ObjectType.Any(x => x >= 32))) && instance.Num == condition.Num;
 				});
 
 				if (acBaseType == null && condition.ObjectType >= 32)
@@ -179,7 +179,7 @@ public class EventProcessor
 				var acBaseType = acBaseTypes.FirstOrDefault(t =>
 				{
 					var instance = Activator.CreateInstance(t) as ActionBase;
-					return (instance?.ObjectType == action.ObjectType || action.ObjectType >= 32 && instance?.ObjectType >= 32) && instance?.Num == action.Num;
+					return instance != null && (instance.ObjectType.Contains(action.ObjectType) || (action.ObjectType >= 32 && instance.ObjectType.Any(x => x >= 32))) && instance.Num == action.Num;
 				});
 
 				if (acBaseType == null && action.ObjectType >= 32)
@@ -343,7 +343,7 @@ public class EventProcessor
 						{
 							qualifierName = Utilities.GetQualifierName(systemQualifier, objectType - 1);
 						}
-						
+
 						relevantObjectInfos.Add(new Tuple<int, string>(short.MaxValue + systemQualifier + 1, qualifierName));
 						break;
 					}

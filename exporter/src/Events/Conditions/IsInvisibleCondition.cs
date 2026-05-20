@@ -3,7 +3,7 @@ using CTFAK.CCN.Chunks.Frame;
 
 public class IsInvisibleCondition : ConditionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2, 3, 32];
 	public override int Num { get; set; } = -28;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
@@ -20,14 +20,4 @@ public class IsInvisibleCondition : ConditionBase
 
 		return result.ToString();
 	}
-}
-
-public class IsInvisibleConditionString : IsInvisibleCondition
-{
-	public override int ObjectType { get; set; } = 3;
-}
-
-public class IsInvisibleConditionExtension : IsInvisibleCondition
-{
-	public override int ObjectType { get; set; } = 32;
 }

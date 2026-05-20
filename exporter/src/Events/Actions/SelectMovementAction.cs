@@ -4,7 +4,7 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class SelectMovementAction : ActionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2, 7];
 	public override int Num { get; set; } = 13;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
@@ -28,9 +28,4 @@ public class SelectMovementAction : ActionBase
 		result.AppendLine("}");
 		return result.ToString();
 	}
-}
-
-public class CounterSelectMovementAction : SelectMovementAction
-{
-	public override int ObjectType { get; set; } = 7;
 }

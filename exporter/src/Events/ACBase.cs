@@ -2,7 +2,7 @@ using CTFAK.CCN.Chunks.Frame;
 
 public class ACBase
 {
-	public virtual int ObjectType { get; set; }
+	public virtual int[] ObjectType { get; set; } = [];
 	public virtual int Num { get; set; }
 
 	public virtual bool IsGlobal { get; set; } = false;
@@ -23,7 +23,7 @@ public class ACBase
 		if (obj.GetType().IsSubclassOf(typeof(EventBase)))
 		{
 			EventBase eventBase = obj as EventBase;
-			return (eventBase.ObjectType == ObjectType || eventBase.ObjectType >= 32 && ObjectType >= 32) && eventBase.Num == Num;
+			return (ObjectType.Contains(eventBase.ObjectType) || (eventBase.ObjectType >= 32 && ObjectType.Any(x => x >= 32))) && eventBase.Num == Num;
 		}
 		return base.Equals(obj);
 	}

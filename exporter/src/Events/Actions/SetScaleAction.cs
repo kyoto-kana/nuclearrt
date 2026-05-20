@@ -4,7 +4,7 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class SetScaleAction : ActionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2];
 	public override int Num { get; set; } = 85;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
@@ -27,7 +27,7 @@ public class SetScaleAction : ActionBase
 
 public class SetXScaleAction : ActionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2];
 	public override int Num { get; set; } = 86;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
@@ -45,7 +45,7 @@ public class SetXScaleAction : ActionBase
 
 public class SetYScaleAction : ActionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2];
 	public override int Num { get; set; } = 87;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")

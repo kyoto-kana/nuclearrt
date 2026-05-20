@@ -2,7 +2,7 @@ using CTFAK.CCN.Chunks.Frame;
 using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 public class NoSamplePlaying : ConditionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = -3;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -11,7 +11,7 @@ public class NoSamplePlaying : ConditionBase
 }
 public class SpecificSampleNotPlaying : ConditionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = -1;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -20,7 +20,7 @@ public class SpecificSampleNotPlaying : ConditionBase
 }
 public class SpecificSamplePaused : ConditionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = -6;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -29,7 +29,7 @@ public class SpecificSamplePaused : ConditionBase
 }
 public class ChannelNotPlaying : ConditionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = -8;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -38,7 +38,7 @@ public class ChannelNotPlaying : ConditionBase
 }
 public class ChannelPaused : ConditionBase
 {
-	public override int ObjectType { get; set; } = -2;
+	public override int[] ObjectType { get; set; } = [-2];
 	public override int Num { get; set; } = -9;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{

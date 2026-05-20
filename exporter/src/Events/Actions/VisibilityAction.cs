@@ -4,7 +4,7 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class MakeInvisibleAction : ActionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2, 3, 7, 32];
 	public override int Num { get; set; } = 26;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
@@ -23,34 +23,4 @@ public class MakeInvisibleAction : ActionBase
 public class ReappearAction : MakeInvisibleAction
 {
 	public override int Num { get; set; } = 27;
-}
-
-public class CounterMakeInvisibleAction : MakeInvisibleAction
-{
-	public override int ObjectType { get; set; } = 7;
-}
-
-public class CounterReappearAction : ReappearAction
-{
-	public override int ObjectType { get; set; } = 7;
-}
-
-public class StringMakeInvisibleAction : MakeInvisibleAction
-{
-	public override int ObjectType { get; set; } = 3;
-}
-
-public class StringReappearAction : ReappearAction
-{
-	public override int ObjectType { get; set; } = 3;
-}
-
-public class ExtensionMakeInvisibleAction : MakeInvisibleAction
-{
-	public override int ObjectType { get; set; } = 32;
-}
-
-public class ExtensionReappearAction : ReappearAction
-{
-	public override int ObjectType { get; set; } = 32;
 }

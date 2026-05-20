@@ -4,7 +4,7 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class XComparisonCondition : ConditionBase
 {
-	public override int ObjectType { get; set; } = 2;
+	public override int[] ObjectType { get; set; } = [2, 7];
 	public override int Num { get; set; } = -17;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
@@ -26,14 +26,4 @@ public class XComparisonCondition : ConditionBase
 public class YComparisonCondition : XComparisonCondition
 {
 	public override int Num { get; set; } = -16;
-}
-
-public class CounterXComparisonCondition : XComparisonCondition
-{
-	public override int ObjectType { get; set; } = 7;
-}
-
-public class CounterYComparisonCondition : YComparisonCondition
-{
-	public override int ObjectType { get; set; } = 7;
 }
