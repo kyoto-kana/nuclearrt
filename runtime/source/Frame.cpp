@@ -421,8 +421,7 @@ void Frame::DrawCounterNumbers(CounterBase *counter, int value, int x, int y)
 		{
 			Application::Instance().GetBackend()->graphics->DrawTexture(
 				counter->Frames[imageIndex], currentX, y - MaxHeight,
-				0, 0, 
-				0, 1.0f, 1.0f, 0xFFFFFFFF, 0, 0);
+				0, 0, 0, 1.0f, 1.0f, counter->RGBCoefficient, counter->Effect, counter->GetEffectParameter(), counter->effectInstance);
 			currentX += imageInfo->Width;
 		}
 	}
