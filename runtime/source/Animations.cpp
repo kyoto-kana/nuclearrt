@@ -81,11 +81,11 @@ unsigned int Animations::GetCurrentSequenceIndex() const {
 }
 
 unsigned int Animations::GetCurrentDirection() const {
-	return CurrentDirection;
+	return forcedDirection != -1 ? forcedDirection : CurrentDirection;
 }
 
 unsigned int Animations::GetCurrentFrameIndex() const {
-	return CurrentFrameIndex;
+	return forcedFrame != -1 ? forcedFrame : CurrentFrameIndex;
 }
 
 int Animations::GetAutomaticRotationDirection() const {
@@ -165,23 +165,12 @@ void Animations::SetCurrentDirection(int index) {
 	}
 }
 
-void Animations::SetCurrentFrameIndex(int index) {
-	if (index == CurrentFrameIndex) {
-		return;
-	}
-
-	auto currentDirection = Sequences.at(CurrentSequenceIndex)->Directions.find(CurrentDirection);
-	if (index >= 0 && currentDirection != Sequences.at(CurrentSequenceIndex)->Directions.end() && index < static_cast<int>(currentDirection->second->Frames.size())) {
-		CurrentFrameIndex = index;
-		CurrentFrameTime = 0.0f; // Reset frame time
-	}
-}
-
-void Animations::SetForcedSequence(int sequence) {
-	forcedSequence = sequence;
-}
-
 void Animations::SetForcedFrame(int frame) {
+	if (forcedFrame == frame) return;
+	
+	auto& direction = Sequences.at(CurrentSequenceIndex)->Directions.at(CurrentDirection);
+
+	frame = std::clamp(frame, 0, static_cast<int>(direction->Frames.size() - 1));
 	forcedFrame = frame;
 }
 

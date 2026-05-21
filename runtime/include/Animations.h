@@ -34,9 +34,7 @@ public:
 
 	void SetCurrentSequenceIndex(int index);
 	void SetCurrentDirection(int index);
-	void SetCurrentFrameIndex(int index);
 
-	void SetForcedSequence(int sequence);
 	void SetForcedFrame(int frame);
 	void SetForcedDirection(int directionMask);
 
