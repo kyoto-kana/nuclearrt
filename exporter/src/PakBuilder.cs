@@ -8,9 +8,33 @@ public class PakBuilder
 {
 	public void Build(CCNFileReader ccnReader, MFAFileReader mfaReader, DirectoryInfo outputPath)
 	{
-		//read the game data
+		BuildMainPak(ccnReader, mfaReader, outputPath);
+		BuildShaderPak(outputPath);
+	}
+
+	void BuildMainPak(CCNFileReader ccnReader, MFAFileReader mfaReader, DirectoryInfo outputPath)
+	{
 		var gameData = ccnReader.getGameData();
 		var mfaData = mfaReader.getMfaData();
+
+		string curHash = GetMainBankHash(ccnReader, mfaReader);
+
+		string oldHash = "";
+		var hashFile = new FileInfo(Path.Combine(outputPath.FullName, ".assets.hash"));
+		if (hashFile.Exists)
+		{
+			oldHash = File.ReadAllText(hashFile.FullName);
+		}
+
+		if (curHash == oldHash)
+		{
+			Logger.Log("Assets have not changed, skipping main pak rebuild.");
+			return;
+		}
+		else
+		{
+			Logger.Log("Assets have changed, rebuilding main pak.");
+		}
 
 		PakFile mainPak = new PakFile();
 
@@ -82,6 +106,28 @@ public class PakBuilder
 			}
 		}
 
+		//write out hash
+		File.WriteAllText(Path.Combine(outputPath.FullName, ".assets.hash"), GetMainBankHash(ccnReader, mfaReader));
+
+		mainPak.Save(Path.Combine(outputPath.FullName, "copy", "all", "assets.pak"));
+	}
+
+	public string GetMainBankHash(CCNFileReader ccnReader, MFAFileReader mfaReader)
+	{
+		var gameData = ccnReader.getGameData();
+		var mfaData = mfaReader.getMfaData();
+
+		string hash = "";
+
+		hash += gameData.Images.bankHash;
+		hash += mfaData.Sounds.bankHash;
+		hash += gameData.Fonts.bankHash;
+
+		return hash;
+	}
+
+	void BuildShaderPak(DirectoryInfo outputPath)
+	{
 		Dictionary<Tuple<string, string>, PakFile> shaderVersions = new Dictionary<Tuple<string, string>, PakFile>() {
 			{ Tuple.Create("gles300", "web"), new PakFile() },
 			{ Tuple.Create("gl330", "desktop"), new PakFile() }
@@ -120,7 +166,6 @@ public class PakBuilder
 
 		Directory.Delete(Path.Combine(outputPath.FullName, "shaders"), true);
 
-		mainPak.Save(Path.Combine(outputPath.FullName, "copy", "all", "assets.pak"));
 		foreach (var kv in shaderVersions)
 		{
 			kv.Value.Save(Path.Combine(outputPath.FullName, "copy", kv.Key.Item2, $"shaders-{kv.Key.Item1}.pak"));
