@@ -179,43 +179,9 @@ std::string IniPlusPlusExtension::GetItemString(const std::string &group, const 
 
 std::filesystem::path IniPlusPlusExtension::GetBaseSaveDirectory(int8_t baseFolder, const std::string &defaultFilePath)
 {
-#if defined(PLATFORM_WINDOWS)
-	PWSTR path_tmp = nullptr;
-	HRESULT hres = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &path_tmp);
-
-	if (SUCCEEDED(hres))
-	{
-		std::wstring appdata_path_w(path_tmp);
-		CoTaskMemFree(path_tmp);
-		return std::filesystem::path(appdata_path_w) / "NuclearApplications" / defaultFilePath;
-	}
-	else
-	{
-		return std::filesystem::path();
-	}
-#elif defined(PLATFORM_MACOS)
-	const char* home = std::getenv("HOME");
-	if (home)
-	{
-		return std::filesystem::path(home) / "Library" / "Application Support" / "NuclearApplications" / defaultFilePath;
-	}
-	return std::filesystem::path();
-#elif defined(PLATFORM_LINUX)
-	const char* xdg_data_home = std::getenv("XDG_DATA_HOME");
-	if (xdg_data_home)
-	{
-		return std::filesystem::path(xdg_data_home) / "NuclearApplications" / defaultFilePath;
-	}
-	
-	const char* home = std::getenv("HOME");
-	if (home)
-	{
-		return std::filesystem::path(home) / ".local" / "share" / "NuclearApplications" / defaultFilePath;
-	}
-	return std::filesystem::path();
-#elif defined(PLATFORM_WEB)
-	return std::filesystem::path("/disk/AppData/Roaming/NuclearApplications") / defaultFilePath;
+#if defined (PLATFORM_WEB)
+	return std::filesystem::path("/disk/") / defaultFilePath;
 #else
-	return std::filesystem::path();
+	return std::filesystem::path(defaultFilePath);
 #endif
 }
