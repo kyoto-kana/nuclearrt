@@ -209,7 +209,12 @@ public class ExpressionConverter
 		switch (expression.Num)
 		{
 			case 12: // Fixed Value
-				return stringBuilder.Append("0"); // TODO
+				{
+					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						return stringBuilder.Append("instance->FixedValue");
+					else
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->FixedValue : 0)");
+				}
 			case 15: // NObjects (number of this object)
 				return stringBuilder.Append($"{objectSelector}->Size()");
 			case 45: // NSelectedObjects (number of selected objects)
@@ -694,7 +699,7 @@ public class ExpressionConverter
 			{
 				objectName = Utilities.GetQualifierName(systemQualifier, objectType - 1);
 			}
-			
+
 			objectInfo = short.MaxValue + systemQualifier + 1;
 		}
 

@@ -21,6 +21,7 @@ public:
     unsigned int Type = 0;
     unsigned int ObjectInfoHandle = 0;
 	unsigned int Layer = 0;
+    unsigned int FixedValue = 0;
 private:
     unsigned int Angle = 0;
 public:

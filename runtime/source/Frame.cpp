@@ -462,6 +462,7 @@ ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, 
 	createdInstance->InstanceValue = instanceValue;
 	createdInstance->ObjectInfoHandle = objectInfoHandle;
 	createdInstance->SetAngle(angle);
+	createdInstance->FixedValue = (createdInstance->Handle << 16) | ((createdInstance->Handle-1) & 0xFFFF);
 
 	//TODO: move this to a separate function
 	// Load any textures needed for this instance
