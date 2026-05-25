@@ -35,8 +35,8 @@ LPCWSTR BUILD_NAMES[] = {
     L"NuclearRT (Source + PSP)",
     L"NuclearRT (Source + Vita)",
     L"NuclearRT (Source + Wii)",
-    L"NuclearRT (Source + Wii U)",
     L"NuclearRT (Source + 3DS)",
+    L"NuclearRT (Source + Wii U)"
 };
 
 LPCWSTR BUILD_FILTERS[] = {
@@ -61,8 +61,8 @@ LPCWSTR SELECTOR_TITLES[] = {
     L"Save as NuclearRT (Source + PSP)",
     L"Save as NuclearRT (Source + Vita)",
     L"Save as NuclearRT (Source + Wii)",
-    L"Save as NuclearRT (Source + 3DS)",
     L"Save as NuclearRT (Source + Wii U)",
+    L"Save as NuclearRT (Source + 3DS)"
 };
 
 LPCWSTR DEFAULT_EXTENSIONS[] = {
