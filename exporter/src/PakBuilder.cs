@@ -38,12 +38,26 @@ public class PakBuilder
 
 		PakFile mainPak = new PakFile();
 
-		//images
+		// images
 		foreach (var image in gameData.Images.Items.Values)
 		{
 			var entry = new PakEntry { Path = $"images/{image.Handle}.png" };
 			using var imageStream = new MemoryStream();
-			image.bitmap.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
+			// TODO: Replace this with a system that works based off the target platform's resolution and the Application's resolution, instead of hardcoding it like this.
+			float multiplier = 1.00f;
+			if (multiplier < 1.0f && multiplier > 0.0f)
+			{
+				int newW = Math.Max(1, (int)(image.bitmap.Width * multiplier));
+				int newH = Math.Max(1, (int)(image.bitmap.Height * multiplier));
+
+				using var scaled = new System.Drawing.Bitmap(image.bitmap, newW, newH);
+				scaled.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
+			}
+			else
+			{
+				image.bitmap.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
+			}
+
 			entry.Size = (uint)imageStream.Length;
 			entry.Data = imageStream.ToArray();
 			mainPak.AddEntry(entry);

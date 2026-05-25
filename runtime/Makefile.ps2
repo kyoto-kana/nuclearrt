@@ -1,0 +1,133 @@
+.SUFFIXES:
+
+PS2DEV ?= /usr/local/ps2dev
+PS2SDK ?= $(PS2DEV)/ps2sdk
+GSKIT  ?= $(PS2DEV)/gsKit
+
+ifeq ($(strip $(PS2DEV)),)
+$(error "Please set PS2DEV")
+endif
+
+ifeq ($(strip $(PS2SDK)),)
+$(error "Please set PS2SDK")
+endif
+
+TARGET   := nuclearrt-runtime
+BUILD    := build_ps2
+SOURCES  := source
+DATA     := data
+INCLUDES := include
+PAK_FILE := copy/all/assets.pak
+
+PREFIX := mips64r5900el-ps2-elf-
+CC     := $(PREFIX)gcc
+CXX    := $(PREFIX)g++
+
+
+PKG_CONFIG := $(PS2SDK)/bin/mips64r5900el-ps2-elf-pkg-config
+
+CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl2 SDL2_image SDL2_ttf) \
+          -Wall -Wno-unused -g3 -Og \
+          -G0 -fno-common \
+          -D_EE \
+          -DPLATFORM_PS2 -DNUCLEAR_BACKEND_SDL2 -D__PS2__
+
+CXXFLAGS := $(CFLAGS) -std=c++17 -fno-exceptions -fno-rtti
+
+
+LDFLAGS := -G0 -T$(PS2SDK)/ee/startup/linkfile
+
+LIBS := $(shell $(PKG_CONFIG) --libs sdl2 SDL2_image SDL2_ttf) \
+        -ldebug \
+        -lpatches \
+        -lpad \
+        -lc \
+        -lkernel \
+        -lm
+
+
+LIBDIRS := \
+	$(PS2SDK) \
+	$(PS2SDK)/common \
+	$(PS2SDK)/ports \
+	$(PS2SDK)/ee \
+	$(PS2DEV)/gsKit \
+	$(PS2DEV)/dmaKit
+
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+
+export OUTPUT := $(CURDIR)/$(TARGET)
+export TOPDIR := $(CURDIR)
+
+export VPATH := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+                $(foreach dir,$(DATA),$(CURDIR)/$(dir))
+
+export DEPSDIR := $(CURDIR)/$(BUILD)
+
+CFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES := $(filter-out SDL3%.cpp SDL2WiiU%.cpp, $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
+SFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+BINFILES := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+
+export LD := $(CXX)
+
+export OFILES_BIN := $(addsuffix .o,$(BINFILES))
+export OFILES_SRC := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+export OFILES     := $(OFILES_BIN) $(OFILES_SRC)
+export HFILES_BIN := $(addsuffix .h,$(subst .,_,$(BINFILES)))
+
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+                  $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+                  -I$(CURDIR)/$(BUILD)
+
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+
+.PHONY: all clean $(BUILD)
+
+all: $(BUILD)
+
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile.ps2
+
+clean:
+	@echo clean ...
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET)_package
+
+else
+
+.PHONY: all package_dir
+
+DEPENDS := $(addprefix $(DEPSDIR)/,$(OFILES_SRC:.o=.d))
+
+all: $(OUTPUT).elf package_dir
+
+$(OUTPUT).elf: $(OFILES)
+	$(LD) $(LDFLAGS) $(LIBPATHS) $(OFILES) $(LIBS) -o $@
+
+$(OFILES_SRC): $(HFILES_BIN)
+
+PACKAGE_DIR := $(OUTPUT)_package
+
+package_dir: $(OUTPUT).elf
+	@mkdir -p "$(PACKAGE_DIR)"
+	@cp "$(OUTPUT).elf" "$(PACKAGE_DIR)/nuclearrt-runtime.elf"
+	@if [ -f "$(TOPDIR)/$(PAK_FILE)" ]; then \
+		cp "$(TOPDIR)/$(PAK_FILE)" "$(PACKAGE_DIR)/assets.pak"; \
+	fi
+
+%.bin.o %_bin.h: %.bin
+	@echo $(notdir $<)
+	@$(bin2o)
+
+%.o: %.cpp
+	@echo $(notdir $<)
+	$(CXX) -MMD -MP -MF $(DEPSDIR)/$*.d $(CXXFLAGS) $(INCLUDE) -c $< -o $@
+
+%.o: %.c
+	@echo $(notdir $<)
+	$(CC) -MMD -MP -MF $(DEPSDIR)/$*.d $(CFLAGS) $(INCLUDE) -c $< -o $@
+
+-include $(DEPENDS)
+
+endif

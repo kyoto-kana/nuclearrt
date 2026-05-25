@@ -1,4 +1,23 @@
-# NuclearRT
+Trying to get NuclearRT running on as many platforms as i can. (sorry about any messy code and lack of documentation ;v;)
+
+Currently supported platforms:
+
+| PSP | PS2 | PS Vita | Nintendo Wii | Nintendo 3DS | Nintendo Wii U |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| <img src="assets/psp_emulated.png" width="220"> | <img src="assets/ps2_emulated.png" width="220"> | <img src="assets/vita_emulated.png" width="220"> | <img src="assets/wii_emulated.png" width="220"> | <img src="assets/3ds_emulated.png" width="220"> | <img src="assets/wiiu_emulated.png" width="220"> |
+
+## Port Status
+
+| Platform | Status | Notes | SDK |
+| :--- | :---: | :--- | :--- |
+| PSP | ✅ Working | Slow with large projects, but it runs well. | PSPDEV |
+| PS Vita | 🟠 Experimental | It should *work* in theory, but for some reason, the audio streaming system causes it to crash, and I'm not sure why. It's the only platform on the list to have any proper input support (touch as mouse input) however. | Vita SDK |
+| Nintendo Wii | ✅ Working | The aspect ratio doesn't quite work correctly for 16:9 games, but it runs. | devkitPro |
+| Nintendo Wii U | ✅ Working | I can't remember any big errors or crashes with Wii U. | devkitPro |
+| Nintendo 3DS | 🟠 Experimental | Uses software rendering, would likely need to have a 3DS-specific renderer created for best performance. Playing sounds will crash the system. Doesn't support the Ini Extension as of now.| devkitPro |
+| PS2 | 🟠 Experimental | It chugs heavily with higher-resolution games. Sound doesn't work, and I'm not sure why. Also, there's an issue with SDL2, that results in the colors being blown out, it's only fixed in SDL3. | ps2dev |
+
+# 
 
 NuclearRT is a fast, open-source, cross-platform C++ runtime for Clickteam Fusion 2.5.
 

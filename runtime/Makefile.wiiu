@@ -1,0 +1,152 @@
+.SUFFIXES:
+
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO")
+endif
+
+ifeq ($(strip $(DEVKITPPC)),)
+$(error "Please set DEVKITPPC")
+endif
+
+include $(DEVKITPRO)/wut/share/wut_rules
+
+TARGET      := nuclearrt-runtime
+BUILD       := build_wiiu
+SOURCES     := source
+DATA        := data
+INCLUDES    := include
+PAK_FILE    := copy/all/assets.pak
+CONTENT     := wuhb_content
+APP_TITLE   := NuclearRT Runtime
+APP_AUTHOR  := shishkabob
+APP_VERSION := 1.0
+
+APP_NAME      := $(APP_TITLE)
+APP_SHORTNAME := NuclearRT
+
+# FIX: point these to actual image assets or default files
+ICON       := $(CURDIR)/wuhb/icon.png
+TV_SPLASH  := $(CURDIR)/wuhb/tv_splash.png
+DRC_SPLASH := $(CURDIR)/wuhb/drc_splash.png
+
+# REMOVED: "CONTENT :=" which was overriding your setting to empty!
+
+PREFIX  := powerpc-eabi-
+CC      := $(PREFIX)gcc
+CXX     := $(PREFIX)g++
+AR      := $(PREFIX)ar
+STRIP   := $(PREFIX)strip
+
+PKG_CONFIG := $(DEVKITPRO)/portlibs/wiiu/bin/powerpc-eabi-pkg-config
+
+CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl2 SDL2_image SDL2_ttf) \
+          -Wall -Wno-unused -g3 -Og \
+          -ffunction-sections -fdata-sections \
+          $(MACHDEP) \
+          -DPLATFORM_WIIU -DNUCLEAR_BACKEND_SDL2 -D__WIIU__
+
+CXXFLAGS := $(CFLAGS) -std=c++17
+
+LDFLAGS := -g $(ARCH) $(RPXSPECS) \
+           -Wl,-Map,$(notdir $*.map) \
+           -Wl,--gc-sections
+
+LIBS := $(shell $(PKG_CONFIG) --libs sdl2 SDL2_image SDL2_ttf) \
+        -lwut \
+        -lm
+
+#---------------------------------------------------------------------------------
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+
+# FIX: Export variables inside this block so the child build process sees them
+export OUTPUT   := $(CURDIR)/$(TARGET)
+export TOPDIR   := $(CURDIR)
+export APP_CONTENT := $(CURDIR)/$(CONTENT)
+
+export VPATH    := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+                   $(foreach dir,$(DATA),$(CURDIR)/$(dir))
+
+export DEPSDIR  := $(CURDIR)/$(BUILD)
+
+CFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES := $(filter-out SDL3%.cpp, $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
+SFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+BINFILES := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+
+export LD := $(CXX)
+
+export OFILES_BIN := $(addsuffix .o,$(BINFILES))
+export OFILES_SRC := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+export OFILES     := $(OFILES_BIN) $(OFILES_SRC)
+export HFILES_BIN := $(addsuffix .h,$(subst .,_,$(BINFILES)))
+
+LIBDIRS := $(PORTLIBS) $(WUT_ROOT)
+
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+                  $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+                  -I$(CURDIR)/$(BUILD)
+
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+
+.PHONY: all clean $(BUILD)
+
+all: $(BUILD)
+
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile.wiiu
+
+clean:
+	@echo clean ...
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).rpx $(TARGET).wuhb $(TARGET)_package
+
+#---------------------------------------------------------------------------------
+else
+
+DEPENDS := $(OFILES:.o=.d)
+
+.PHONY: all prepare_content package_dir
+
+# FIX: Build targets must go through prepare_content before producing outputs
+all: prepare_content $(OUTPUT).wuhb package_dir
+
+prepare_content:
+	@mkdir -p "$(APP_CONTENT)"
+	@if [ -f "$(TOPDIR)/$(PAK_FILE)" ]; then \
+		cp "$(TOPDIR)/$(PAK_FILE)" "$(APP_CONTENT)/assets.pak"; \
+	fi
+
+$(OUTPUT).wuhb: $(OUTPUT).rpx
+$(OUTPUT).rpx: $(OUTPUT).elf
+$(OUTPUT).elf: $(OFILES)
+
+$(OFILES_SRC): $(HFILES_BIN)
+
+PACKAGE_DIR := $(OUTPUT)_package
+
+package_dir: $(OUTPUT).rpx
+	@mkdir -p $(PACKAGE_DIR)/code
+	@mkdir -p $(PACKAGE_DIR)/content
+	@mkdir -p $(PACKAGE_DIR)/meta
+
+	@cp $(OUTPUT).rpx $(PACKAGE_DIR)/code/app.rpx
+
+	@if [ -f "$(TOPDIR)/$(PAK_FILE)" ]; then \
+		cp "$(TOPDIR)/$(PAK_FILE)" "$(PACKAGE_DIR)/content/assets.pak"; \
+	fi
+
+%.bin.o %_bin.h: %.bin
+	@echo $(notdir $<)
+	@$(bin2o)
+
+%.o: %.cpp
+	@echo $(notdir $<)
+	$(CXX) -MMD -MP -MF $(DEPSDIR)/$*.d $(CXXFLAGS) $(INCLUDE) -c $< -o $@
+
+%.o: %.c
+	@echo $(notdir $<)
+	$(CC) -MMD -MP -MF $(DEPSDIR)/$*.d $(CFLAGS) $(INCLUDE) -c $< -o $@
+
+-include $(DEPENDS)
+
+endif

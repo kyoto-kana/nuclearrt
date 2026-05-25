@@ -453,9 +453,42 @@ std::vector<unsigned int> Frame::GetFontsUsed()
 	return fontsUsed;
 }
 
-ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, bool postInitialize, ObjectInstance* parentInstance)
+ObjectInstance* Frame::CreateInstance(
+	ObjectInstance* createdInstance,
+	short x,
+	short y,
+	unsigned int layer,
+	short instanceValue,
+	unsigned int objectInfoHandle,
+	short angle,
+	bool postInitialize,
+	ObjectInstance* parentInstance)
 {
+	auto backend = Application::Instance().GetBackend();
+
+	backend->platform->Log("CreateInstance: ENTER " + createdInstance->Name);
+
+	if (createdInstance == nullptr)
+	{
+		backend->platform->Log("CreateInstance ERROR: createdInstance == nullptr");
+		return nullptr;
+	}
+
+	backend->platform->Log(
+		"CreateInstance: Type=" + std::to_string(createdInstance->Type) +
+		" OI=" + std::to_string(objectInfoHandle) +
+		" Layer=" + std::to_string(layer) +
+		" X=" + std::to_string(x) +
+		" Y=" + std::to_string(y)
+	);
+
 	createdInstance->Handle = ++MaxObjectInstanceHandle;
+
+	backend->platform->Log(
+		"CreateInstance: Assigned Handle=" +
+		std::to_string(createdInstance->Handle)
+	);
+
 	createdInstance->X = x;
 	createdInstance->Y = y;
 	createdInstance->Layer = layer;
@@ -463,53 +496,197 @@ ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, 
 	createdInstance->ObjectInfoHandle = objectInfoHandle;
 	createdInstance->SetAngle(angle);
 
-	//TODO: move this to a separate function
-	// Load any textures needed for this instance
-	if (postInitialize) // objs created on init have textures loaded in application
+	backend->platform->Log("CreateInstance: Basic fields assigned");
+
+	// Load textures
+	if (postInitialize)
 	{
-		std::vector<unsigned int> texturesToLoad = createdInstance->GetImagesUsed();
-		auto backend = Application::Instance().GetBackend();
-		for (unsigned int textureId : texturesToLoad) {
+		backend->platform->Log("CreateInstance: postInitialize=true");
+
+		std::vector<unsigned int> texturesToLoad =
+			createdInstance->GetImagesUsed();
+
+		backend->platform->Log(
+			"CreateInstance: texturesToLoad count=" +
+			std::to_string(texturesToLoad.size())
+		);
+
+		for (unsigned int textureId : texturesToLoad)
+		{
+			backend->platform->Log(
+				"CreateInstance: Loading texture " +
+				std::to_string(textureId)
+			);
+
 			backend->graphics->LoadTexture(textureId);
+
+			backend->platform->Log(
+				"CreateInstance: Loaded texture " +
+				std::to_string(textureId)
+			);
 		}
 	}
-	
+	else
+	{
+		backend->platform->Log("CreateInstance: postInitialize=false");
+	}
+
+	backend->platform->Log("CreateInstance: inserting into ObjectInstances");
+
 	ObjectInstances[createdInstance->Handle] = createdInstance;
-	if (parentInstance) {
+
+	backend->platform->Log("CreateInstance: inserted into ObjectInstances");
+
+	if (parentInstance)
+	{
+		backend->platform->Log(
+			"CreateInstance: parentInstance handle=" +
+			std::to_string(parentInstance->Handle)
+		);
+
 		createdInstance->X += parentInstance->X;
 		createdInstance->Y += parentInstance->Y;
 		createdInstance->Layer = parentInstance->Layer;
+
+		backend->platform->Log("CreateInstance: applied parent transform");
 	}
 
-	//init movement and extensions
-	if (createdInstance->Type == 2) // Common object
-	{
-		for (auto& [handle, movement] : ((Active*)createdInstance)->movements.items)
-		{
-			movement->Instance = createdInstance;
-			movement->Initialize();
+	backend->platform->Log(
+		"CreateInstance: Type dispatch=" +
+		std::to_string(createdInstance->Type)
+	);
 
-			if (handle == 0) movement->OnEnabled();
+	// Common object
+	if (createdInstance->Type == 2)
+	{
+		backend->platform->Log("CreateInstance: Common object init");
+
+		auto* active = (Active*)createdInstance;
+
+		backend->platform->Log(
+			"CreateInstance: movement count=" +
+			std::to_string(active->movements.items.size())
+		);
+
+		for (auto& [handle, movement] : active->movements.items)
+		{
+			backend->platform->Log(
+				"CreateInstance: movement handle=" +
+				std::to_string(handle)
+			);
+
+			if (movement == nullptr)
+			{
+				backend->platform->Log(
+					"CreateInstance ERROR: movement nullptr"
+				);
+				continue;
+			}
+
+			movement->Instance = createdInstance;
+
+			backend->platform->Log("CreateInstance: before movement->Initialize()");
+			movement->Initialize();
+			backend->platform->Log("CreateInstance: after movement->Initialize()");
+
+			if (handle == 0)
+			{
+				backend->platform->Log("CreateInstance: before movement->OnEnabled()");
+				movement->OnEnabled();
+				backend->platform->Log("CreateInstance: after movement->OnEnabled()");
+			}
 		}
 
-		((Active*)createdInstance)->animations.AutomaticRotation = ((Active*)createdInstance)->AutomaticRotation;
+		backend->platform->Log("CreateInstance: setting AutomaticRotation");
+
+		active->animations.AutomaticRotation =
+			active->AutomaticRotation;
+
+		backend->platform->Log("CreateInstance: Common object init complete");
 	}
-	else if (createdInstance->Type == 5 || createdInstance->Type == 6 || createdInstance->Type == 7) // Counter
+	// Counter
+	else if (
+		createdInstance->Type == 5 ||
+		createdInstance->Type == 6 ||
+		createdInstance->Type == 7)
 	{
-		for (auto& [handle, movement] : ((CounterBase*)createdInstance)->movements.items)
+		backend->platform->Log("CreateInstance: Counter init");
+
+		auto* counter = (CounterBase*)createdInstance;
+
+		backend->platform->Log(
+			"CreateInstance: counter movement count=" +
+			std::to_string(counter->movements.items.size())
+		);
+
+		for (auto& [handle, movement] : counter->movements.items)
 		{
+			backend->platform->Log(
+				"CreateInstance: counter movement handle=" +
+				std::to_string(handle)
+			);
+
+			if (movement == nullptr)
+			{
+				backend->platform->Log(
+					"CreateInstance ERROR: counter movement nullptr"
+				);
+				continue;
+			}
+
 			movement->Instance = createdInstance;
+
+			backend->platform->Log(
+				"CreateInstance: before counter movement Initialize"
+			);
+
 			movement->Initialize();
 
-			if (handle == 0) movement->OnEnabled();
+			backend->platform->Log(
+				"CreateInstance: after counter movement Initialize"
+			);
+
+			if (handle == 0)
+			{
+				backend->platform->Log(
+					"CreateInstance: before counter movement OnEnabled"
+				);
+
+				movement->OnEnabled();
+
+				backend->platform->Log(
+					"CreateInstance: after counter movement OnEnabled"
+				);
+			}
 		}
+
+		backend->platform->Log("CreateInstance: Counter init complete");
 	}
-	else if (createdInstance->Type >= 32) // Extension
+	// Extension
+	else if (createdInstance->Type >= 32)
 	{
-		((Extension*)createdInstance)->Initialize();
+		backend->platform->Log("CreateInstance: Extension init: " + createdInstance->Name);
+
+		auto* ext = (Extension*)createdInstance;
+
+		backend->platform->Log("CreateInstance: before Extension::Initialize()");
+		ext->Initialize();
+		backend->platform->Log("CreateInstance: after Extension::Initialize()");
 	}
+
+	backend->platform->Log(
+		"CreateInstance: adding to layer " +
+		std::to_string(createdInstance->Layer)
+	);
 
 	Layers[createdInstance->Layer].instances.push_back(createdInstance);
+
+	backend->platform->Log("CreateInstance: added to layer");
+
+	backend->platform->Log(
+		"CreateInstance: SUCCESS handle=" +
+		std::to_string(createdInstance->Handle)
+	);
 
 	return createdInstance;
 }

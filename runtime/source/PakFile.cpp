@@ -4,6 +4,21 @@
 #include <algorithm>
 #include <cctype>
 
+
+#include <cstdint>
+
+// Swap bytes as some platforms will not function without this
+static uint32_t SwapBytes32(uint32_t val) {
+#if defined(PLATFORM_WIIU) || defined(PLATFORM_WII)
+    // Swap bytes for big endian platforms like Wii U
+    return __builtin_bswap32(val);
+#else
+    // Leave other platforms as-is :D
+    return val;
+#endif
+}
+
+
 bool PakFile::Load(const std::string& directoryPath) {
 	pakStreams.clear();
 	entries.clear();
@@ -54,6 +69,9 @@ bool PakFile::AppendPak(const std::filesystem::path& filepath) {
 	stream.read(reinterpret_cast<char*>(&dirOffset), 4);
 	stream.read(reinterpret_cast<char*>(&dirSize), 4);
 
+    dirOffset = SwapBytes32(dirOffset);
+    dirSize   = SwapBytes32(dirSize);
+
 	stream.seekg(dirOffset);
 	const std::size_t streamIndex = pakStreams.size() - 1;
 	return ReadDirectory(streamIndex);
@@ -92,6 +110,9 @@ bool PakFile::ReadDirectory(std::size_t streamIndex) {
 		unsigned int size = 0;
 		pakStream.read(reinterpret_cast<char*>(&offset), 4);
 		pakStream.read(reinterpret_cast<char*>(&size), 4);
+
+        offset = SwapBytes32(offset);
+        size   = SwapBytes32(size);
 
 		PakEntry entry;
 		entry.offset = offset;

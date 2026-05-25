@@ -3,111 +3,164 @@
 #ifdef NUCLEAR_BACKEND_SDL2
 
 #include "Backend.h"
-#include <unordered_map>
+#include "SDL2PlatformBackend.h"
+#include "SDL2GraphicsBackend.h"
+#include "SDL2AudioBackend.h"
+#include "SDL2InputBackend.h"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL_image.h>
+#include <SDL_ttf.h>
 
-#ifdef _DEBUG
-#include "DebugUI.h"
+
+#ifdef PLATFORM_3DS
+    #include <3ds.h>
 #endif
 
-#ifdef __SWITCH__
-#define INPUT_TOUCH
+#ifdef PLATFORM_SWITCH
+    #include <switch.h>
 #endif
+
+#ifdef PLATFORM_WII
+	#include <fat.h>
+#endif
+
+#include "Application.h"
 
 class SDL2Backend : public Backend {
 public:
-	SDL2Backend();
-	~SDL2Backend() override;
+	SDL2Backend() {
+		int logicalWidth  = Application::Instance().GetAppData()->GetWindowWidth();
+		int logicalHeight = Application::Instance().GetAppData()->GetWindowHeight();
 
-	std::string GetName() const override { return "SDL2"; }
+		int outputWidth  = logicalWidth;
+		int outputHeight = logicalHeight;
 
-	void Initialize() override;
-	void Deinitialize() override;
+		#ifdef PLATFORM_VITA
+		outputWidth  = 960;
+		outputHeight = 544;
+		#elif defined(PLATFORM_PSP)
+		outputWidth  = 480;
+		outputHeight = 272;
+		#elif defined(PLATFORM_PS2)
+		outputWidth  = 640;
+		outputHeight = 480;
+		#elif defined(PLATFORM_3DS)
+		outputWidth  = 400;
+		outputHeight = 240;
+		#elif defined(PLATFORM_WIIU)
+		outputWidth  = 1280;
+		outputHeight = 720;
+		#elif defined(PLATFORM_WII)
+		outputWidth  = 640;
+		outputHeight = 528;
+		#endif
 
-	bool ShouldQuit() override;
+		std::string windowTitle = Application::Instance().GetAppData()->GetAppName();
 
-	std::string GetPlatformName() override;
-	std::string GetAssetsFileName() override;
-
-	void BeginDrawing() override;
-	void EndDrawing() override;
-	void Clear(int color) override;
-
-	void LoadTexture(int id) override;
-	void UnloadTexture(int id) override;
-	void DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance = nullptr) override;
-	void DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape) override;
-	
-	void DrawRectangle(int x, int y, int width, int height, int color) override;
-	void DrawRectangleLines(int x, int y, int width, int height, int color) override;
-	void DrawLine(int x1, int y1, int x2, int y2, int color) override;
-	void DrawPixel(int x, int y, int color) override;
-
-	void LoadFont(int id) override;
-	void UnloadFont(int id) override;
-	void DrawText(FontInfo* fontInfo, int x, int y, int color, const std::string& text, int objectHandle = -1, int rgbCoefficient = 0xFFFFFF, int effect = 0, unsigned char effectParameter = 0, EffectInstance* effectInstance = nullptr) override;
-	// Sample Start
-	bool LoadSample(int id, int channel) override {return false;}
-	bool LoadSampleFile(std::string path) override {return false;}
-	void PlaySample(int id, int channel, int loops, int freq, bool uninterruptable, float volume, float pan) override {}
-	void PlaySampleFile(std::string path, int channel, int loops) override {}
-	void DiscardSampleFile(std::string path) override {}
-	void StopSample(int id, bool channel) override {}
-	int FindSample(std::string name) override {return -1;}
-	void SetSampleVolume(float volume, int id, bool channel) override {}
-	void UpdateSample() override {}
-	int GetSampleVolume(int id, bool channel) override {return 0;}
-	std::string GetChannelName(int channel) override {return "";}
-	void LockChannel(int channel, bool unlock) override {}
-	void SetSamplePan(float pan, int id, bool channel) override {}
-	int GetSamplePan(int id, bool channel) override {return 0;}
-	void SetSampleFreq(int freq, int id, bool channel) override {}
-	int GetSampleFreq(int id, bool channel) override {return 0;}
-	int GetSampleDuration(int id, bool channel) override {return 0;}
-	int GetSamplePos(int id, bool channel) override {return 0;}
-	void SetSamplePos(int pos, int id, bool channel) override {}
-	void UpdateSample() override {}
-	bool SampleState(int id, bool channel, bool pauseOrStop) override {return false;}
-	// Sample End
-	void GetKeyboardState(uint8_t* outBuffer) override;
-
-	int GetMouseX() override;
-	int GetMouseY() override;
-	int GetMouseWheelMove() override;
-	uint32_t GetMouseState() override;
-	void HideMouseCursor() override;
-	void ShowMouseCursor() override;
-
-	unsigned int GetTicks() override { return SDL_GetTicks(); }
-	float GetTimeDelta() override;
-	void Delay(unsigned int ms) override;
-
-#ifdef _DEBUG
-	void ToggleDebugUI() { DEBUG_UI.ToggleEnabled(); }
-	bool IsDebugUIEnabled() { return DEBUG_UI.IsEnabled(); }
+#if defined(PLATFORM_SWITCH) || defined(PLATFORM_3DS)
+   		romfsInit();
 #endif
 
-private:
-	SDL_Window* window;
-	SDL_Renderer* renderer;
 
-	SDL_Colour RGBToSDLColor(int color);
-	SDL_Colour RGBAToSDLColor(int color);
 
-	std::unordered_map<int, SDL_Texture*> textures;
-
-	std::unordered_map<int, TTF_Font*> fonts;
-	std::unordered_map<std::string, std::shared_ptr<std::vector<uint8_t>>> fontBuffers;
-
-	int FusionToSDLKey(short key);
-
-#ifdef INPUT_TOUCH
-	int touchX = 0;
-	int touchY = 0;
-	bool touchDown = false;
+#ifdef PLATFORM_WII
+		if (!fatInitDefault()) {
+			printf("Unable to initialize libfat!\n");
+			return;
+		}
 #endif
-}; 
+
+
+#ifdef PLATFORM_PS2 // audio doesnt work for some reason
+		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+#else
+		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+#endif
+			SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+			return;
+		}
+
+		if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) != IMG_INIT_PNG) {
+			SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+			return;
+		}
+		if (TTF_Init() == -1) {
+			SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+			return;
+		}
+
+		SDL_Window* win = SDL_CreateWindow(
+			windowTitle.c_str(),
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    		outputWidth, outputHeight,
+			SDL_WINDOW_SHOWN
+		);
+
+		SDL_Renderer* ren = SDL_CreateRenderer(
+			win,
+			-1,
+		#ifdef PLATFORM_3DS
+			SDL_RENDERER_SOFTWARE
+		#else
+			SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+		#endif
+		);
+
+
+		#ifdef PLATFORM_WII
+			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+
+			SDL_RenderSetLogicalSize(ren, logicalWidth, logicalHeight);
+
+		#else
+			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+			SDL_RenderSetLogicalSize(ren, logicalWidth, logicalHeight);
+		#endif
+
+
+		auto* plt = new SDL2PlatformBackend();
+		auto* gfx = new SDL2GraphicsBackend();
+		auto* aud = new SDL2AudioBackend();
+		auto* inp = new SDL2InputBackend();
+
+		plt->SetBackend(this);
+		gfx->SetBackend(this);
+		aud->SetBackend(this);
+		inp->SetBackend(this);
+
+		gfx->SetWindowAndRenderer(win, ren);
+
+		if (!plt->GetPakFile().Load(plt->GetAssetsDirectory())) {
+			plt->Log("PakFile::Load Error: Failed to load pak directory");
+		}
+
+		platform = plt;
+		graphics = gfx;
+		audio    = aud;
+		input    = inp;
+
+		platform->Initialize();
+		graphics->Initialize();
+		audio->Initialize();
+		input->Initialize();
+	}
+
+	~SDL2Backend() {
+		delete input;
+		delete audio;
+		delete graphics;
+		delete platform;
+
+		TTF_Quit();
+		IMG_Quit();
+		SDL_Quit();
+	}
+
+	SDL2GraphicsBackend* GetGraphics() const { return static_cast<SDL2GraphicsBackend*>(graphics); }
+	SDL2AudioBackend*    GetAudio()    const { return static_cast<SDL2AudioBackend*>(audio); }
+	SDL2InputBackend*    GetInput()    const { return static_cast<SDL2InputBackend*>(input); }
+	SDL2PlatformBackend* GetPlatform() const { return static_cast<SDL2PlatformBackend*>(platform); }
+};
 
 #endif

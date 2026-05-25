@@ -192,6 +192,12 @@ std::filesystem::path IniExtension::GetPlatformSaveDirectory()
 	return std::filesystem::path();
 #elif defined(PLATFORM_WEB)
 	return std::filesystem::path("/disk/AppData/Roaming/NuclearApplications");
+#elif defined(PLATFORM_PSP)
+	return std::filesystem::path("ms0:/PSP/NuclearApplications");
+#elif defined(PLATFORM_VITA)
+	return std::filesystem::path("ux0:/data/NuclearApplications");
+#elif defined(PLATFORM_WIIU)
+	return std::filesystem::path("/vol/external01/wiiu/NuclearApplications");
 #else
 	return std::filesystem::path();
 #endif

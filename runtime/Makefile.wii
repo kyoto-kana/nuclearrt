@@ -1,0 +1,125 @@
+.SUFFIXES:
+
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO")
+endif
+
+ifeq ($(strip $(DEVKITPPC)),)
+$(error "Please set DEVKITPPC")
+endif
+
+include $(DEVKITPPC)/wii_rules
+
+TARGET   := nuclearrt-runtime
+BUILD    := build_wii
+SOURCES  := source
+DATA     := data
+INCLUDES := include
+PAK_FILE := copy/all/assets.pak
+
+PREFIX := powerpc-eabi-
+CC     := $(PREFIX)gcc
+CXX    := $(PREFIX)g++
+
+PKG_CONFIG := $(DEVKITPRO)/portlibs/wii/bin/powerpc-eabi-pkg-config
+
+CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl2 SDL2_image SDL2_ttf) \
+          -Wall -Wno-unused -g3 -Og \
+          -ffunction-sections -fdata-sections \
+          $(MACHDEP) \
+          -DPLATFORM_WII -DNUCLEAR_BACKEND_SDL2 -D__WII__
+
+CXXFLAGS := $(CFLAGS) -std=c++17
+
+LDFLAGS := -g $(MACHDEP) -Wl,-Map,$(notdir $*.map) -Wl,--gc-sections
+
+LIBS := $(shell $(PKG_CONFIG) --libs sdl2 SDL2_image SDL2_ttf) \
+        -lfat \
+        -logc \
+        -lm
+
+LIBDIRS := $(PORTLIBS) $(LIBOGC)
+
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+
+export OUTPUT := $(CURDIR)/$(TARGET)
+export TOPDIR := $(CURDIR)
+
+export VPATH := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+                $(foreach dir,$(DATA),$(CURDIR)/$(dir))
+
+export DEPSDIR := $(CURDIR)/$(BUILD)
+
+CFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES := $(filter-out SDL3%.cpp SDL2WiiU%.cpp, $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
+SFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+BINFILES := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+
+export LD := $(CXX)
+
+export OFILES_BIN := $(addsuffix .o,$(BINFILES))
+export OFILES_SRC := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+export OFILES     := $(OFILES_BIN) $(OFILES_SRC)
+export HFILES_BIN := $(addsuffix .h,$(subst .,_,$(BINFILES)))
+
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+                  $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+                  -I$(DEVKITPRO)/libogc/include \
+                  -I$(CURDIR)/$(BUILD)
+
+
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+
+.PHONY: all clean $(BUILD)
+
+all: $(BUILD)
+
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile.wii
+
+clean:
+	@echo clean ...
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).dol $(TARGET)_package
+
+else
+
+.PHONY: all package_dir
+
+DEPENDS := $(OFILES:.o=.d)
+
+all: $(OUTPUT).dol package_dir
+
+$(OUTPUT).dol: $(OUTPUT).elf
+	elf2dol $(OUTPUT).elf $(OUTPUT).dol
+
+$(OUTPUT).elf: $(OFILES)
+	$(LD) $(LDFLAGS) $(LIBPATHS) $(OFILES) $(LIBS) -o $@
+
+$(OFILES_SRC): $(HFILES_BIN)
+
+PACKAGE_DIR := $(OUTPUT)_package
+
+package_dir: $(OUTPUT).dol
+	@mkdir -p "$(PACKAGE_DIR)/apps/nuclearrt"
+	@mkdir -p "$(PACKAGE_DIR)/nuclearrt"
+	@cp "$(OUTPUT).dol" "$(PACKAGE_DIR)/apps/nuclearrt/boot.dol"
+	@if [ -f "$(TOPDIR)/$(PAK_FILE)" ]; then \
+		cp "$(TOPDIR)/$(PAK_FILE)" "$(PACKAGE_DIR)/nuclearrt/assets.pak"; \
+	fi
+
+%.bin.o %_bin.h: %.bin
+	@echo $(notdir $<)
+	@$(bin2o)
+
+%.o: %.cpp
+	@echo $(notdir $<)
+	$(CXX) -MMD -MP -MT $@ -MF $(DEPSDIR)/$*.d $(CXXFLAGS) $(INCLUDE) -c $< -o $@
+
+%.o: %.c
+	@echo $(notdir $<)
+	$(CC) -MMD -MP -MT $@ -MF $(DEPSDIR)/$*.d $(CFLAGS) $(INCLUDE) -c $< -o $@
+
+-include $(DEPENDS)
+
+endif

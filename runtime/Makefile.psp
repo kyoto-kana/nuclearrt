@@ -1,0 +1,63 @@
+TARGET = nuclearrt-runtime
+
+SOURCES = source
+DATA = data
+INCLUDES = include
+
+CFILES   = $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES = $(filter-out SDL3%.cpp SDL2WiiU%.cpp,$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
+SFILES   = $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+
+OBJS = $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+
+VPATH = $(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
+
+INCDIR = $(INCLUDES)
+LIBDIR =
+
+PKG_CONFIG = psp-pkg-config
+
+CFLAGS = $(shell $(PKG_CONFIG) --cflags sdl2 SDL2_image SDL2_ttf) \
+         -Wall -Wno-unused -O2 \
+         -ffunction-sections -fdata-sections \
+         -G0 \
+         -DPLATFORM_PSP -DNUCLEAR_BACKEND_SDL2 -D__PSP__
+
+CXXFLAGS = $(CFLAGS) -std=c++17
+ASFLAGS = $(CFLAGS)
+
+LIBS := $(shell $(PKG_CONFIG) --libs sdl2 SDL2_image SDL2_ttf | sed 's/-pthread/-fpthread/g') \
+        -lstdc++ \
+        -lsupc++ \
+        -lpspgum \
+        -lpspgu \
+        -lpspaudio \
+        -lpspctrl \
+        -lpspdisplay \
+        -lpspge \
+        -lpsppower \
+        -lpsputility \
+        -lpsprtc \
+        -lpspdebug \
+        -lm \
+        -lc
+
+EXTRA_TARGETS = EBOOT.PBP package_dir
+
+PSP_EBOOT_TITLE = NuclearRT Runtime
+PSP_EBOOT_ICON = NULL
+PSP_EBOOT_PIC1 = NULL
+
+PSPSDK = $(shell psp-config --pspsdk-path)
+
+PACKAGE_DIR = $(TARGET)_package
+PAK_FILE = copy/all/assets.pak
+
+package_dir: EBOOT.PBP
+	@mkdir -p "$(PACKAGE_DIR)/PSP/GAME/NuclearRT"
+	@cp EBOOT.PBP "$(PACKAGE_DIR)/PSP/GAME/NuclearRT/EBOOT.PBP"
+	@if [ -f "$(PAK_FILE)" ]; then \
+		cp "$(PAK_FILE)" "$(PACKAGE_DIR)/PSP/GAME/NuclearRT/assets.pak"; \
+	fi
+
+include $(PSPSDK)/lib/build.mak

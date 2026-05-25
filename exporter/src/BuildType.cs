@@ -3,5 +3,11 @@ public enum BuildType
 	SourceCode,
 	WindowsDebug,
 	WindowsRelease,
-	Web
+	Web,
+	PS2,
+	PSP,
+	Vita,
+	Wii,
+	N3DS,
+	WiiU
 }

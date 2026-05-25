@@ -2,14 +2,23 @@
 
 #ifdef _DEBUG
 
-#include <SDL3/SDL.h>
+
+
+#ifdef NUCLEAR_BACKEND_SDL3
+	#include <SDL3/SDL.h>
+	#include "imgui_impl_sdl3.h"
+	#include "imgui_impl_opengl3.h"
+#elif NUCLEAR_BACKEND_SDL2
+	#include <SDL2/SDL.h>
+	#include "imgui_impl_sdl2.h"
+#endif
+
+
 #include <cstdio>
 #include <chrono>
 
 // Dear ImGui includes
 #include "imgui.h"
-#include "imgui_impl_sdl3.h"
-#include "imgui_impl_opengl3.h"
 
 void DebugUI::Initialize(SDL_Window* window, void* glContext) {
 	if (initialized) {
@@ -25,8 +34,6 @@ void DebugUI::Initialize(SDL_Window* window, void* glContext) {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-	ImGui_ImplSDL3_InitForOpenGL(window, glContext);
-	ImGui_ImplOpenGL3_Init("#version 330");
 
 	initialized = true;
 }
@@ -36,8 +43,6 @@ void DebugUI::Shutdown() {
 		return;
 	}
 
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext(context);
 	context = nullptr;
 
@@ -56,8 +61,6 @@ void DebugUI::BeginFrame() {
 	
 	fps = 1.0f / frameTime;
 
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 }
 
@@ -70,7 +73,6 @@ void DebugUI::EndFrame() {
 	RenderMetrics();
 
 	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void DebugUI::AddWindow(const std::string& name, std::function<void()> renderFunction) {

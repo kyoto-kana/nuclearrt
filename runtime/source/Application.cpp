@@ -5,9 +5,7 @@
 
 #ifdef NUCLEAR_BACKEND_SDL3
 #include "SDL3Backend.h"
-#endif
-
-#ifdef NUCLEAR_BACKEND_SDL2
+#elif defined(NUCLEAR_BACKEND_SDL2)
 #include "SDL2Backend.h"
 #endif
 
@@ -39,7 +37,7 @@ void Application::Initialize()
 	backend->platform->Log("Initialized Input");
 
 	QueueStateChange(GameState::RestartApplication);
-
+	
 	srand(time(0));
 }
 
@@ -108,6 +106,9 @@ void Application::Run()
 		{
 			break;
 		}
+		#ifdef PLATFORM_3DS
+			SDL_Delay(1);
+		#endif
 	}
 #endif
 
@@ -144,88 +145,181 @@ short Application::RandomRange(short min, short max)
 
 void Application::LoadFrame(int frameIndex)
 {
+	backend->platform->Log("LoadFrame: entered with frameIndex=" + std::to_string(frameIndex));
+
 	if (frameIndex < 0)
 	{
+		backend->platform->Log("LoadFrame: frameIndex < 0, clamping to 0");
 		frameIndex = 0;
-	}	
-	backend->platform->Log("Loading frame " + std::to_string(frameIndex));
-	std::vector<unsigned int> oldImagesUsed;
-	std::vector<unsigned int> oldFontsUsed;
-	if (currentFrame != nullptr)
-	{
-		oldImagesUsed = currentFrame->GetImagesUsed();
-		oldFontsUsed = currentFrame->GetFontsUsed();
-
-		// merge current frame's global object data with existing data
-		std::vector<ObjectGlobalData*> frameData = currentFrame->GetGlobalObjectData();
-		MergeGlobalObjectData(frameData);
 	}
 
+	backend->platform->Log("LoadFrame: Loading frame " + std::to_string(frameIndex));
+
+	std::vector<unsigned int> oldImagesUsed;
+	std::vector<unsigned int> oldFontsUsed;
+
+	backend->platform->Log("LoadFrame: checking currentFrame");
+
+	if (currentFrame != nullptr)
+	{
+		backend->platform->Log("LoadFrame: currentFrame exists, collecting old resources");
+
+		oldImagesUsed = currentFrame->GetImagesUsed();
+		backend->platform->Log("LoadFrame: oldImagesUsed count=" + std::to_string(oldImagesUsed.size()));
+
+		oldFontsUsed = currentFrame->GetFontsUsed();
+		backend->platform->Log("LoadFrame: oldFontsUsed count=" + std::to_string(oldFontsUsed.size()));
+
+		backend->platform->Log("LoadFrame: getting global object data from current frame");
+		std::vector<ObjectGlobalData*> frameData = currentFrame->GetGlobalObjectData();
+
+		backend->platform->Log("LoadFrame: frame global object data count=" + std::to_string(frameData.size()));
+
+		backend->platform->Log("LoadFrame: merging global object data");
+		MergeGlobalObjectData(frameData);
+		backend->platform->Log("LoadFrame: finished merging global object data");
+	}
+	else
+	{
+		backend->platform->Log("LoadFrame: no currentFrame, first frame load");
+	}
+
+	backend->platform->Log("LoadFrame: before FrameFactory::CreateFrame");
 	currentFrame = FrameFactory::CreateFrame(frameIndex);
+	backend->platform->Log("LoadFrame: after FrameFactory::CreateFrame");
 
 	if (currentFrame == nullptr)
 	{
+		backend->platform->Log("LoadFrame ERROR: FrameFactory::CreateFrame returned nullptr");
 		QueueStateChange(GameState::EndApplication);
+		backend->platform->Log("LoadFrame: queued EndApplication");
 		return;
 	}
 
+	backend->platform->Log("LoadFrame: currentFrame created successfully");
+
+	backend->platform->Log("LoadFrame: before currentFrame->Initialize()");
 	currentFrame->Initialize();
-	
-	// apply global object data to new frame
+	backend->platform->Log("LoadFrame: after currentFrame->Initialize()");
+
+	backend->platform->Log("LoadFrame: globalObjectData count=" + std::to_string(globalObjectData.size()));
+
 	if (!globalObjectData.empty())
 	{
+		backend->platform->Log("LoadFrame: before ApplyGlobalObjectData");
 		currentFrame->ApplyGlobalObjectData(globalObjectData);
+		backend->platform->Log("LoadFrame: after ApplyGlobalObjectData");
 	}
-	
-	backend->input->ShowMouseCursor();
+	else
+	{
+		backend->platform->Log("LoadFrame: no global object data to apply");
+	}
 
+	backend->platform->Log("LoadFrame: before ShowMouseCursor");
+	backend->input->ShowMouseCursor();
+	backend->platform->Log("LoadFrame: after ShowMouseCursor");
+
+	backend->platform->Log("LoadFrame: getting new images used");
 	std::vector<unsigned int> newImagesUsed = currentFrame->GetImagesUsed();
+	backend->platform->Log("LoadFrame: newImagesUsed count=" + std::to_string(newImagesUsed.size()));
+
+	for (size_t i = 0; i < newImagesUsed.size(); ++i)
+	{
+		backend->platform->Log("LoadFrame: newImagesUsed[" + std::to_string(i) + "]=" + std::to_string(newImagesUsed[i]));
+	}
+
+	backend->platform->Log("LoadFrame: getting new fonts used");
 	std::vector<unsigned int> newFontsUsed = currentFrame->GetFontsUsed();
+	backend->platform->Log("LoadFrame: newFontsUsed count=" + std::to_string(newFontsUsed.size()));
+
+	for (size_t i = 0; i < newFontsUsed.size(); ++i)
+	{
+		backend->platform->Log("LoadFrame: newFontsUsed[" + std::to_string(i) + "]=" + std::to_string(newFontsUsed[i]));
+	}
 
 	std::vector<unsigned int> imagesToUnload;
 	std::vector<unsigned int> fontsToUnload;
+
+	backend->platform->Log("LoadFrame: calculating imagesToUnload");
+
 	for (unsigned int image : oldImagesUsed)
 	{
+		backend->platform->Log("LoadFrame: checking old image " + std::to_string(image));
+
 		if (std::find(newImagesUsed.begin(), newImagesUsed.end(), image) == newImagesUsed.end())
 		{
+			backend->platform->Log("LoadFrame: image will be unloaded " + std::to_string(image));
 			imagesToUnload.push_back(image);
 		}
 	}
 
+	backend->platform->Log("LoadFrame: imagesToUnload count=" + std::to_string(imagesToUnload.size()));
+
+	backend->platform->Log("LoadFrame: calculating fontsToUnload");
+
 	for (unsigned int font : oldFontsUsed)
 	{
+		backend->platform->Log("LoadFrame: checking old font " + std::to_string(font));
+
 		if (std::find(newFontsUsed.begin(), newFontsUsed.end(), font) == newFontsUsed.end())
 		{
+			backend->platform->Log("LoadFrame: font will be unloaded " + std::to_string(font));
 			fontsToUnload.push_back(font);
 		}
 	}
 
-	//unload the images that are no longer used
+	backend->platform->Log("LoadFrame: fontsToUnload count=" + std::to_string(fontsToUnload.size()));
+
+	backend->platform->Log("LoadFrame: unloading old images");
+
 	for (unsigned int image : imagesToUnload)
 	{
+		backend->platform->Log("LoadFrame: before UnloadTexture image=" + std::to_string(image));
 		backend->graphics->UnloadTexture(image);
+		backend->platform->Log("LoadFrame: after UnloadTexture image=" + std::to_string(image));
 	}
 
-	//load the images that are new
+	backend->platform->Log("LoadFrame: loading new images");
+
 	for (unsigned int image : newImagesUsed)
 	{
+		backend->platform->Log("LoadFrame: before LoadTexture image=" + std::to_string(image));
 		backend->graphics->LoadTexture(image);
+		backend->platform->Log("LoadFrame: after LoadTexture image=" + std::to_string(image));
 	}
 
-	//load the fonts that are new
+	backend->platform->Log("LoadFrame: loading new fonts");
+
 	for (unsigned int font : newFontsUsed)
 	{
+		backend->platform->Log("LoadFrame: before LoadFont font=" + std::to_string(font));
 		backend->graphics->LoadFont(font);
+		backend->platform->Log("LoadFrame: after LoadFont font=" + std::to_string(font));
 	}
 
-	//unload the fonts that are no longer used
+	backend->platform->Log("LoadFrame: unloading old fonts");
+
 	for (unsigned int font : fontsToUnload)
 	{
+		backend->platform->Log("LoadFrame: before UnloadFont font=" + std::to_string(font));
 		backend->graphics->UnloadFont(font);
+		backend->platform->Log("LoadFrame: after UnloadFont font=" + std::to_string(font));
 	}
 
-	backend->platform->Log("Loaded frame " + std::to_string(frameIndex));
-	if (!GetAppData()->GetSampleOverFrame()) backend->audio->StopSample(-1, false);
+	backend->platform->Log("LoadFrame: Loaded frame " + std::to_string(frameIndex));
+
+	backend->platform->Log("LoadFrame: checking SampleOverFrame");
+	bool sampleOverFrame = GetAppData()->GetSampleOverFrame();
+	backend->platform->Log("LoadFrame: SampleOverFrame=" + std::to_string(sampleOverFrame ? 1 : 0));
+
+	if (!sampleOverFrame)
+	{
+		backend->platform->Log("LoadFrame: before StopSample(-1, false)");
+		backend->audio->StopSample(-1, false);
+		backend->platform->Log("LoadFrame: after StopSample(-1, false)");
+	}
+
+	backend->platform->Log("LoadFrame: finished");
 }
 
 void Application::MergeGlobalObjectData(std::vector<ObjectGlobalData*> frameData)
