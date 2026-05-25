@@ -131,6 +131,22 @@ public:
 		return static_cast<int>(Paragraphs.size());
 	}
 
+	unsigned char GetHorizontalAlignment()
+	{
+		if (CurrentParagraph == -1)
+			return Paragraphs[0].HorizontalAlignment; 
+		else
+			return Paragraphs[CurrentParagraph].HorizontalAlignment;
+	}
+
+	unsigned char GetVerticalAlignment()
+	{
+		if (CurrentParagraph == -1)
+			return Paragraphs[0].VerticalAlignment;
+		else
+			return Paragraphs[CurrentParagraph].VerticalAlignment;
+	}
+
 	std::vector<unsigned int> GetFontsUsed() override {
 		std::vector<unsigned int> fontsUsed;
 		for (auto& paragraph : Paragraphs)

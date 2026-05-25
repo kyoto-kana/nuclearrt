@@ -1319,7 +1319,7 @@ void SDL3GraphicsBackend::UnloadFont(int id)
 	}
 }
 
-void SDL3GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color, const std::string& text, int objectHandle, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
+void SDL3GraphicsBackend::DrawText(FontInfo *fontInfo, int x, int y, int width, int height, unsigned char horizontalAlignment, unsigned char verticalAlignment, int color, const std::string &text, int objectHandle, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance *effectInstance)
 {
 	if (fontInfo == nullptr) {
 		return;
@@ -1338,13 +1338,13 @@ void SDL3GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color, 
 	auto cacheIt = textCache.find(cacheKey);
 	
 	GLTexture texture;
-	int width = 0;
-	int height = 0;
+	int textureWidth = 0;
+	int textureHeight = 0;
 	
 	if (cacheIt != textCache.end()) {
 		texture = cacheIt->second.texture;
-		width = cacheIt->second.width;
-		height = cacheIt->second.height;
+		textureWidth = cacheIt->second.width;
+		textureHeight = cacheIt->second.height;
 	} else {
 		//something changed in the text, clear texture cache for this object
 		if (objectHandle != -1) {
@@ -1376,13 +1376,14 @@ void SDL3GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color, 
 		if (modifiedText.find_first_not_of(" \n\r\t") == std::string::npos) {
 			return;
 		}
-
-		SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(font, modifiedText.c_str(), 0, RGBToSDLColor(color), 0);
+		
+		TTF_SetFontWrapAlignment(font, (TTF_HorizontalAlignment)horizontalAlignment);
+		SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(font, modifiedText.c_str(), 0, RGBToSDLColor(color), width);
 		if (surface == nullptr) {
 			backend->GetPlatform()->Log("TTF_RenderText_Blended_Wrapped Error: " + std::string(SDL_GetError()));
 			return;
 		}
-
+		
 		SDL_Surface* rgbaSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
 		SDL_DestroySurface(surface);
 		if (rgbaSurface == nullptr) {
@@ -1402,8 +1403,8 @@ void SDL3GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color, 
 		
 		texture.width = rgbaSurface->w;
 		texture.height = rgbaSurface->h;
-		width = rgbaSurface->w;
-		height = rgbaSurface->h;
+		textureWidth = rgbaSurface->w;
+		textureHeight = rgbaSurface->h;
 		
 		SDL_DestroySurface(rgbaSurface);
 		
@@ -1414,14 +1415,20 @@ void SDL3GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color, 
 		//cache the texture
 		CachedText cached;
 		cached.texture = texture;
-		cached.width = width;
-		cached.height = height;
+		cached.width = textureWidth;
+		cached.height = textureHeight;
 		textCache[cacheKey] = cached;
 	}
-
-	ApplyEffectParameters(effectInstance, width, height, rgbCoefficient, effect, effectParameter, texture.textureId);
 	
-	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
+	if (verticalAlignment == 1) { // Center
+		y += (height - textureHeight) / 2;
+	} else if (verticalAlignment == 2) { // Bottom
+		y += height - textureHeight;
+	}
+	
+	ApplyEffectParameters(effectInstance, textureWidth, textureHeight, rgbCoefficient, effect, effectParameter, texture.textureId);
+	
+	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(textureWidth), static_cast<float>(textureHeight));
 }
 
 void SDL3GraphicsBackend::RemoveOldTextCache()

@@ -59,7 +59,7 @@ public:
 
 	void LoadFont(int id) override;
 	void UnloadFont(int id) override;
-	void DrawText(FontInfo* fontInfo, int x, int y, int color, const std::string& text, int objectHandle = -1, int rgbCoefficient = 0xFFFFFF, int effect = 0, unsigned char effectParameter = 0, EffectInstance* effectInstance = nullptr) override;
+	void DrawText(FontInfo *fontInfo, int x, int y, int width, int height, unsigned char horizontalAlignment, unsigned char verticalAlignment, int color, const std::string &text, int objectHandle = -1, int rgbCoefficient = 0xFFFFFF, int effect = 0, unsigned char effectParameter = 0, EffectInstance* effectInstance = nullptr) override;
 
 	SDL_FRect CalculateRenderTargetRect();
 	SDL_Window* GetSDLWindow() const { return window; }
