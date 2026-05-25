@@ -65,6 +65,7 @@ else()
 endif()
 
 if(NOT EMSCRIPTEN)
+    set(SDLTTF_VENDORED ON)
     find_package(SDL3_ttf QUIET)
     if (NOT SDL3_ttf_FOUND)
         message(STATUS "Getting SDL3_ttf from Github")
