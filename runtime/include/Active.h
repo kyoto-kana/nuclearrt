@@ -56,6 +56,14 @@ public:
 	int GetYActionPoint() const {
 		return Y + animations.GetYActionPoint() - animations.GetYHotspot();
 	}
+
+	int GetWidth() const {
+		return animations.GetWidth();
+	}
+
+	int GetHeight() const {
+		return animations.GetHeight();
+	}
 };
 
  

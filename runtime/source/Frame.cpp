@@ -788,8 +788,8 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 		drawY = instance->Y - scrollYOffset;
 		if (counter)
 		{
-			bounds.width = counter->GetCounterWidth();
-			bounds.height = counter->GetCounterHeight();
+			bounds.width = counter->GetWidth();
+			bounds.height = counter->GetHeight();
 			bounds.maskWidth = bounds.width;
 			bounds.maskHeight = bounds.height;
 
