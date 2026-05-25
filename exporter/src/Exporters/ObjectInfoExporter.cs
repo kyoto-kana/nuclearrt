@@ -364,7 +364,15 @@ public class ObjectInfoExporter : BaseExporter
 		result.Append("((StringObject*)instance)->Paragraphs = std::vector<Paragraph>{");
 		foreach (var paragraph in common.Text.Items)
 		{
-			result.Append($"Paragraph({paragraph.FontHandle}, {ColorToRGB(paragraph.Color)}, \"{SanitizeString(paragraph.Value)}\")");
+			int horizontalAlignment = 0;
+			if (paragraph.Flags.GetFlag("HorizontalCenter")) horizontalAlignment = 1;
+			else if (paragraph.Flags.GetFlag("RightAligned")) horizontalAlignment = 2;
+
+			int verticalAlignment = 0;
+			if (paragraph.Flags.GetFlag("VerticalCenter")) verticalAlignment = 1;
+			else if (paragraph.Flags.GetFlag("BottomAligned")) verticalAlignment = 2;
+
+			result.Append($"Paragraph({paragraph.FontHandle}, {ColorToRGB(paragraph.Color)}, \"{SanitizeString(paragraph.Value)}\", {horizontalAlignment}, {verticalAlignment})");
 			if (paragraph != common.Text.Items.Last()) result.Append(", ");
 		}
 		result.AppendLine("};");

@@ -229,6 +229,10 @@ void Frame::DrawLayer(Layer& layer)
 				FontBank::Instance().GetFont(((StringObject*)instance)->GetFont()),
 				instance->X - scrollXOffset,
 				instance->Y - scrollYOffset,
+				((StringObject*)instance)->Width,
+				((StringObject*)instance)->Height,
+				((StringObject*)instance)->GetHorizontalAlignment(),
+				((StringObject*)instance)->GetVerticalAlignment(),
 				((StringObject*)instance)->GetColor(),
 				text,
 				instance->Handle,
@@ -495,6 +499,7 @@ ObjectInstance* Frame::CreateInstance(
 	createdInstance->InstanceValue = instanceValue;
 	createdInstance->ObjectInfoHandle = objectInfoHandle;
 	createdInstance->SetAngle(angle);
+	createdInstance->FixedValue = (createdInstance->Handle << 16) | ((createdInstance->Handle-1) & 0xFFFF);
 
 	backend->platform->Log("CreateInstance: Basic fields assigned");
 
@@ -960,8 +965,8 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 		drawY = instance->Y - scrollYOffset;
 		if (counter)
 		{
-			bounds.width = counter->GetCounterWidth();
-			bounds.height = counter->GetCounterHeight();
+			bounds.width = counter->GetWidth();
+			bounds.height = counter->GetHeight();
 			bounds.maskWidth = bounds.width;
 			bounds.maskHeight = bounds.height;
 

@@ -59,7 +59,7 @@ public:
 
 	virtual int GetValue() const { return 0; }
 
-	int GetCounterWidth() {
+	int GetWidth() {
 		if (DisplayType == 1) // Numbers
 		{
 			std::string valueString = std::to_string(GetValue());
@@ -118,7 +118,7 @@ public:
 		}
 	}
 
-	int GetCounterHeight(){
+	int GetHeight(){
 		if (DisplayType == 1) // Numbers
 		{
 			std::string valueString = std::to_string(GetValue());

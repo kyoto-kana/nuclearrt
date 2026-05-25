@@ -91,6 +91,15 @@ public:
 
 	ObjectInstance* CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, bool postInitialize = false, ObjectInstance* parentInstance = nullptr);
 
+	ObjectInstance* GetInstanceByFixedValue(unsigned int fixedValue) {
+		for (auto& [handle, instance] : ObjectInstances) {
+			if (instance->FixedValue == fixedValue) {
+				return instance;
+			}
+		}
+		return nullptr;
+	}
+
 	std::vector<ObjectGlobalData*> GetGlobalObjectData();
 	void ApplyGlobalObjectData(std::vector<ObjectGlobalData*> globalData);
 

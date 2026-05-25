@@ -17,6 +17,7 @@ public static class ExtensionExporterRegistry
 		new GlobalStoreXExporter(),
 		new PerspectiveExporter(),
 		new IniPlusPlusExporter(),
+		new EasingObjectExporter(),
 	];
 
 	public static ExtensionExporter GetExporter(string extensionName)
@@ -82,5 +83,16 @@ public abstract class ExtensionExporter
 	protected string GetExtensionInstanceLoop()
 	{
 		return $"(({CppClassName}*)instance)";
+	}
+
+	public string GetSelector(int objectInfo, bool isGlobal = false)
+	{
+		return ExpressionConverter.GetSelector(objectInfo, isGlobal);
+	}
+
+	public string EvaluateExpression(EventBase eventBase, int num)
+	{
+		ExpressionParameter expressionParam = (ExpressionParameter)eventBase.Items[num].Loader;
+		return ExpressionConverter.ConvertExpression(expressionParam, eventBase);
 	}
 }

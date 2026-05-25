@@ -11,8 +11,7 @@ PSP_MAIN_THREAD_STACK_SIZE_KB(512);
 PSP_HEAP_SIZE_KB(-2048);
 #endif
 
-
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     Application& app = Application::Instance();
     app.Initialize();

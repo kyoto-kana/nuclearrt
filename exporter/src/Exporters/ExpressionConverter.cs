@@ -209,7 +209,12 @@ public class ExpressionConverter
 		switch (expression.Num)
 		{
 			case 12: // Fixed Value
-				return stringBuilder.Append("0"); // TODO
+				{
+					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						return stringBuilder.Append("instance->FixedValue");
+					else
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->FixedValue : 0)");
+				}
 			case 15: // NObjects (number of this object)
 				return stringBuilder.Append($"{objectSelector}->Size()");
 			case 45: // NSelectedObjects (number of selected objects)
@@ -310,16 +315,16 @@ public class ExpressionConverter
 			case 40: // Object Width
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append("((Active*)instance)->animations.GetWidth()");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->GetWidth()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->animations.GetWidth() : 0)");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->GetWidth() : 0)");
 				}
 			case 41: // Object Height
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append("((Active*)instance)->animations.GetHeight()");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->GetHeight()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->animations.GetHeight() : 0)");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->GetHeight() : 0)");
 				}
 		}
 
@@ -694,7 +699,7 @@ public class ExpressionConverter
 			{
 				objectName = Utilities.GetQualifierName(systemQualifier, objectType - 1);
 			}
-			
+
 			objectInfo = short.MaxValue + systemQualifier + 1;
 		}
 
