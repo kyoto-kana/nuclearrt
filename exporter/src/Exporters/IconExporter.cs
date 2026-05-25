@@ -13,6 +13,7 @@ public class IconExporter : BaseExporter
 	{
 		WriteRawIcons();
 		WriteWindowsIcons();
+		WriteMacIcons();
 	}
 
 	void WriteRawIcons()
@@ -59,5 +60,40 @@ public class IconExporter : BaseExporter
 		{
 			IconFactory.SavePngsAsIcon(bitmaps, stream);
 		}
+	}
+
+	void WriteMacIcons()
+	{
+		List<(string, byte[])> rawIcons = [.. Directory.GetFiles(Path.Combine(OutputPath.FullName, "icons", "raw")).Where(f => f.EndsWith(".png")).Select(f => (Path.GetFileName(f), File.ReadAllBytes(f)))];
+
+		Directory.CreateDirectory(Path.Combine(OutputPath.FullName, "copy", "mac"));
+		BinaryWriter writer = new(File.Open(Path.Combine(OutputPath.FullName, "copy", "mac", "AppIcon.icns"), FileMode.Create));
+
+		writer.Write("icns".ToCharArray());
+		writer.Write(0);
+
+		foreach (var rawIcon in rawIcons)
+		{
+			string? iconType = rawIcon.Item1 switch
+			{
+				"128.png" => "ic07",
+				"256.png" => "ic08",
+				_ => null
+			};
+
+			if (iconType == null)
+			{
+				continue;
+			}
+
+			writer.Write(Encoding.ASCII.GetBytes(iconType));
+			writer.Write(BitConverter.GetBytes(rawIcon.Item2.Length + 8).Reverse().ToArray());
+			writer.Write(rawIcon.Item2);
+		}
+
+		writer.BaseStream.Seek(4, SeekOrigin.Begin);
+
+		//write in big endian
+		writer.Write(BitConverter.GetBytes((int)writer.BaseStream.Length).Reverse().ToArray());
 	}
 }
