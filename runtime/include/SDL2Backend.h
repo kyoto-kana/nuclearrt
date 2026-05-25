@@ -129,8 +129,10 @@ public:
 		aud->SetBackend(this);
 		inp->SetBackend(this);
 
+		// Graphics needs the window/renderer created above
 		gfx->SetWindowAndRenderer(win, ren);
 
+		// Load pak file via platform backend
 		if (!plt->GetPakFile().Load(plt->GetAssetsDirectory())) {
 			plt->Log("PakFile::Load Error: Failed to load pak directory");
 		}

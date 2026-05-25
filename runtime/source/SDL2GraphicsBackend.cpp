@@ -19,9 +19,33 @@ void SDL2GraphicsBackend::SetWindowAndRenderer(SDL_Window* win, SDL_Renderer* re
     renderer = ren;
 }
 
-void SDL2GraphicsBackend::Deinitialize() {
-	if (renderer) { SDL_DestroyRenderer(renderer); renderer = nullptr; }
-	if (window)   { SDL_DestroyWindow(window);     window   = nullptr; }
+void SDL2GraphicsBackend::Deinitialize()
+{
+    // cleanup text texture cache
+    for (auto& pair : textCache) {
+        if (pair.second.texture) {
+            SDL_DestroyTexture(pair.second.texture);
+        }
+    }
+    textCache.clear();
+
+    // cleanup textures
+    for (auto& pair : textures) {
+        if (pair.second) {
+            SDL_DestroyTexture(pair.second);
+        }
+    }
+    textures.clear();
+
+    // cleanup fonts
+    for (auto& pair : fonts) {
+        TTF_CloseFont(pair.second);
+    }
+    fonts.clear();
+    fontBuffers.clear();
+
+    if (renderer) { SDL_DestroyRenderer(renderer); renderer = nullptr; }
+    if (window)   { SDL_DestroyWindow(window);     window   = nullptr; }
 }
 
 void SDL2GraphicsBackend::BeginDrawing() {
@@ -221,35 +245,122 @@ void SDL2GraphicsBackend::UnloadFont(int id) {
 		if (!shared) fontBuffers.erase(info->FontFileName);
 	}
 
+	ClearTextCacheForFont(id);
+
 	TTF_CloseFont(it->second);
 	fonts.erase(it);
 }
 
-void SDL2GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color,
-	const std::string& text, int objectHandle, int rgbCoefficient,
-	int effect, unsigned char effectParameter, EffectInstance* effectInstance)
+void SDL2GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int width, int height,
+    unsigned char horizontalAlignment, unsigned char verticalAlignment,
+    int color, const std::string& text, int objectHandle, int rgbCoefficient,
+    int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
-	(void)objectHandle; (void)rgbCoefficient; (void)effect;
-	(void)effectParameter; (void)effectInstance;
+    if (fontInfo == nullptr) return;
+    if (fonts.find(fontInfo->Handle) == fonts.end()) return;
 
-	TTF_Font* font = fonts[fontInfo->Handle];
-	if (!font) return;
+    TTF_Font* font = fonts[fontInfo->Handle];
+    if (!font) return;
 
-	std::string t = text;
-	t.erase(std::remove(t.begin(), t.end(), '\r'), t.end());
-	for (size_t i = 0; i < t.size(); i++)
-		if (t[i] == '\t') { t.replace(i, 1, "    "); i += 3; }
-	if (t.find_first_not_of(" \n\r\t") == std::string::npos) return;
+    // Check cache
+    TextCacheKey cacheKey{ fontInfo->Handle, text, color, objectHandle };
+    auto cacheIt = textCache.find(cacheKey);
 
-	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(
-		font, t.c_str(), RGBToSDLColor(color), fontInfo->Width);
-	if (!surf) return;
+    SDL_Texture* tex = nullptr;
+    int textureWidth = 0;
+    int textureHeight = 0;
 
-	SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-	SDL_Rect rect = { x, y, surf->w, surf->h };
-	SDL_RenderCopy(renderer, tex, nullptr, &rect);
-	SDL_FreeSurface(surf);
-	SDL_DestroyTexture(tex);
+    if (cacheIt != textCache.end()) {
+        tex = cacheIt->second.texture;
+        textureWidth = cacheIt->second.width;
+        textureHeight = cacheIt->second.height;
+    } else {
+        if (objectHandle != -1) {
+            auto it = textCache.begin();
+            while (it != textCache.end()) {
+                if (it->first.objectHandle == objectHandle) {
+                    if (it->second.texture) SDL_DestroyTexture(it->second.texture);
+                    it = textCache.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        std::string t = text;
+        t.erase(std::remove(t.begin(), t.end(), '\r'), t.end());
+        for (size_t i = 0; i < t.size(); i++)
+            if (t[i] == '\t') { t.replace(i, 1, "    "); i += 3; }
+        if (t.find_first_not_of(" \n\r\t") == std::string::npos) return;
+
+        SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(
+            font, t.c_str(), RGBToSDLColor(color), width);
+        if (!surf) {
+            backend->GetPlatform()->Log("TTF_RenderUTF8_Blended_Wrapped Error: " + std::string(TTF_GetError()));
+            return;
+        }
+
+        tex = SDL_CreateTextureFromSurface(renderer, surf);
+        textureWidth  = surf->w;
+        textureHeight = surf->h;
+        SDL_FreeSurface(surf);
+
+        if (!tex) {
+            backend->GetPlatform()->Log("SDL_CreateTextureFromSurface Error: " + std::string(SDL_GetError()));
+            return;
+        }
+
+        if (textCache.size() >= 256) RemoveOldTextCache();
+
+        CachedText cached;
+        cached.texture = tex;
+        cached.width   = textureWidth;
+        cached.height  = textureHeight;
+        textCache[cacheKey] = cached;
+    }
+
+    int drawX = x;
+    if (horizontalAlignment == 1) {        // Center
+        drawX += (width - textureWidth) / 2;
+    } else if (horizontalAlignment == 2) { // Right
+        drawX += width - textureWidth;
+    }
+
+    int drawY = y;
+    if (verticalAlignment == 1) {          // Center
+        drawY += (height - textureHeight) / 2;
+    } else if (verticalAlignment == 2) {   // Bottom
+        drawY += height - textureHeight;
+    }
+
+    SDL_Rect rect = { drawX, drawY, textureWidth, textureHeight };
+    SDL_RenderCopy(renderer, tex, nullptr, &rect);
+}
+
+void SDL2GraphicsBackend::RemoveOldTextCache()
+{
+    if (textCache.empty()) return;
+
+    auto oldestIt = textCache.begin();
+    if (oldestIt->second.texture) {
+        SDL_DestroyTexture(oldestIt->second.texture);
+    }
+    textCache.erase(oldestIt);
+}
+
+void SDL2GraphicsBackend::ClearTextCacheForFont(int fontHandle)
+{
+    auto it = textCache.begin();
+    while (it != textCache.end()) {
+        if (it->first.fontHandle == fontHandle) {
+            if (it->second.texture) {
+                SDL_DestroyTexture(it->second.texture);
+            }
+            it = textCache.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 SDL_Color SDL2GraphicsBackend::RGBToSDLColor(int color) {
