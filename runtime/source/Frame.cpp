@@ -753,6 +753,8 @@ void Frame::MoveObjectToBack(ObjectInstance* instance)
 
 void Frame::MoveObjectInFrontOf(ObjectInstance* instance, unsigned int oiHandle)
 {	
+	auto& instances = Layers[instance->Layer].instances;
+
 	int maxIndex = -1;
 	for (int i = 0; i < Layers[instance->Layer].instances.size(); i++)
 	{
@@ -761,27 +763,46 @@ void Frame::MoveObjectInFrontOf(ObjectInstance* instance, unsigned int oiHandle)
 			maxIndex = i;
 		}
 	}
-
 	if (maxIndex == -1) return;
-	Layers[instance->Layer].instances.erase(std::find(Layers[instance->Layer].instances.begin(), Layers[instance->Layer].instances.end(), instance));
-	Layers[instance->Layer].instances.insert(Layers[instance->Layer].instances.begin() + maxIndex + 1, instance);
+
+	auto it = std::find(instances.begin(), instances.end(), instance);
+	if (it == instances.end()) return;
+
+	int eraseIndex = (int)(it - instances.begin());
+	instances.erase(it);
+
+	if (eraseIndex <= maxIndex)
+		maxIndex--;
+
+	instances.insert(instances.begin() + maxIndex + 1, instance);
 }
 
 void Frame::MoveObjectBehindOf(ObjectInstance* instance, unsigned int oiHandle)
 {
+    auto& instances = Layers[instance->Layer].instances;
 	
-	int minIndex = -1;
-	for (int i = Layers[instance->Layer].instances.size() - 1; i >= 0; i--)
-	{
-		if (Layers[instance->Layer].instances[i]->ObjectInfoHandle == oiHandle)
-		{
-			minIndex = i;
-		}
-	}
-	
-	if (minIndex == -1) return;
-	Layers[instance->Layer].instances.erase(std::find(Layers[instance->Layer].instances.begin(), Layers[instance->Layer].instances.end(), instance));
-	Layers[instance->Layer].instances.insert(Layers[instance->Layer].instances.begin() + minIndex, instance);
+    int minIndex = -1;
+    for (int i = 0; i < (int)instances.size(); i++)
+    {
+        if (instances[i]->ObjectInfoHandle == oiHandle)
+        {
+            minIndex = i;
+            break;
+        }
+    }
+
+    if (minIndex == -1) return;
+
+    auto it = std::find(instances.begin(), instances.end(), instance);
+    if (it == instances.end()) return;
+
+    int eraseIndex = (int)(it - instances.begin());
+    instances.erase(it);
+
+    if (eraseIndex < minIndex)
+        minIndex--;
+
+    instances.insert(instances.begin() + minIndex, instance);
 }
 
 int Frame::GetMouseX()
