@@ -20,7 +20,6 @@ public class UponClickingWithinZoneCondition : ConditionBase
 			button = 1;
 
 		bool isDouble = click.IsDouble != 0;
-
-		return $"{ifStatement} (Application::Instance().GetInput()->IsMouseButtonPressed({button}, {isDouble.ToString().ToLower()}) && GetMouseX() >= {zone.X1} && GetMouseX() <= {zone.X2} && GetMouseY() >= {zone.Y1} && GetMouseY() <= {zone.Y2}))) goto {nextLabel};";
+		return $"{ifStatement} (Application::Instance().GetInput()->IsMouseButtonPressed({button}, {isDouble.ToString().ToLower()}) && GetMouseX() >= {zone.X1} && GetMouseX() <= {zone.X2} && GetMouseY() >= {zone.Y1} && GetMouseY() <= {zone.Y2})) goto {nextLabel};";
 	}
 }

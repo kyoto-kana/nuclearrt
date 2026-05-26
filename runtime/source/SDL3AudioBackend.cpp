@@ -634,10 +634,14 @@ void SDL3AudioBackend::StopSample(int id, bool channel) {
 		channels[id].position = 0;
 		return;
 	}
-	if (!channel && id > -1) { // check for sample handle
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) StopSample(i, true);
+	
+	if (!channel) {
+		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
+			if (id == -1 || channels[i].curHandle == id) {
+				StopSample(i, true);
+			}
 		}
+		return;
 	}
 }
 void SDL3AudioBackend::UpdateSample() {

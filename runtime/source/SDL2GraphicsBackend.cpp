@@ -99,7 +99,7 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 	int angle, float scaleX, float scaleY, int color, int effect,
 	unsigned char effectParameter, EffectInstance* effectInstance)
 {
-	(void)scaleX; (void)scaleY; (void)effectInstance;
+	(void)effectInstance;
 
 	SDL_Texture* tex = textures[id];
 	if (!tex) return;
@@ -110,35 +110,68 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 	SDL_GetTextureAlphaMod(tex, &origA);
 	SDL_GetTextureBlendMode(tex, &origBlend);
 
-	SDL_SetTextureColorMod(tex, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
-
 	std::shared_ptr<ImageInfo> info = ImageBank::Instance().GetImage(id);
-	int w = info ? info->Width  : 0;
+	int w = info ? info->Width : 0;
 	int h = info ? info->Height : 0;
 
-    if (w == 0 || h == 0) {
-        // Fallback to texture size if ImageInfo missing
-        SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
-    }
-	SDL_Rect rect = { x - offsetX, y - offsetY, w, h };
+	if (w == 0 || h == 0) {
+		SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
+	}
+
+	if (scaleX == 0.0f) scaleX = 1.0f;
+	if (scaleY == 0.0f) scaleY = 1.0f;
+
+	if (effect == 1) {
+		color = 0xFFFFFF;
+	}
+
+	SDL_SetTextureColorMod(
+		tex,
+		(color >> 16) & 0xFF,
+		(color >> 8) & 0xFF,
+		color & 0xFF
+	);
+
+	SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(tex, 255);
 
 	switch (effect) {
 		case 4096:
 		case 0:
 			SDL_SetTextureAlphaMod(tex, 255 - effectParameter);
 			break;
+
 		case 1: // Semi-Transparent
-			SDL_SetTextureColorMod(tex, 255, 255, 255);
 			SDL_SetTextureAlphaMod(tex, 255 - effectParameter);
 			break;
+
 		case 9: // Additive
 			SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_ADD);
 			SDL_SetTextureAlphaMod(tex, 255 - effectParameter);
 			break;
 	}
 
-	SDL_Point center = { offsetX, offsetY };
-	SDL_RenderCopyEx(renderer, tex, nullptr, &rect, 360 - angle, &center, SDL_FLIP_NONE);
+	SDL_Rect rect = {
+		static_cast<int>(x - (offsetX * scaleX)),
+		static_cast<int>(y - (offsetY * scaleY)),
+		static_cast<int>(w * scaleX),
+		static_cast<int>(h * scaleY)
+	};
+
+	SDL_Point center = {
+		static_cast<int>(offsetX * scaleX),
+		static_cast<int>(offsetY * scaleY)
+	};
+
+	SDL_RenderCopyEx(
+		renderer,
+		tex,
+		nullptr,
+		&rect,
+		360 - angle,
+		&center,
+		SDL_FLIP_NONE
+	);
 
 	SDL_SetTextureColorMod(tex, origR, origG, origB);
 	SDL_SetTextureAlphaMod(tex, origA);

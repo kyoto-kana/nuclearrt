@@ -1013,12 +1013,14 @@ void SDL2AudioBackend::StopSample(int id, bool channel)
 		ch.curHandle = -1;
 		ch.name.clear();
 	}
-
-	if (!channel && id > -1) {
+	
+	if (!channel) {
 		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-			if (channels[i].curHandle == id)
+			if (id == -1 || channels[i].curHandle == id) {
 				StopSample(i, true);
+			}
 		}
+		return;
 	}
 }
 

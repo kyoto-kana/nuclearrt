@@ -79,7 +79,7 @@ public class PlaySampleChannel : ActionBase
 public class PlayAndLoopSample : ActionBase
 {
 	public override int[] ObjectType { get; set; } = [-2];
-	public override int Num { get; set; } = -2;
+	public override int Num { get; set; } = 4;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
 		StringBuilder result = new();

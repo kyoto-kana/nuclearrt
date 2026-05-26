@@ -44,12 +44,12 @@ public class PakBuilder
 			var entry = new PakEntry { Path = $"images/{image.Handle}.png" };
 			using var imageStream = new MemoryStream();
 			// TODO: Replace this with a system that works based off the target platform's resolution and the Application's resolution, instead of hardcoding it like this.
-			float multiplier = 1.00f;
+			float multiplier = 1f; 
 			if (multiplier < 1.0f && multiplier > 0.0f)
 			{
 				int newW = Math.Max(1, (int)(image.bitmap.Width * multiplier));
 				int newH = Math.Max(1, (int)(image.bitmap.Height * multiplier));
-
+				Logger.Log($"Downscaling image {image.Handle} from {image.bitmap.Width}x{image.bitmap.Width} to {newW}x{newH}");
 				using var scaled = new System.Drawing.Bitmap(image.bitmap, newW, newH);
 				scaled.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
 			}
