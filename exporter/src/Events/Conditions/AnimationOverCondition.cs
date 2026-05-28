@@ -11,9 +11,15 @@ public class AnimationOverCondition : ConditionBase
 	{
 		StringBuilder result = new();
 
+		string value;
+		if (eventBase.Items[0].Loader is Short shortValue)
+			value = shortValue.Value.ToString();
+		else
+			value = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase);
+
 		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    if (!((Active*)instance)->animations.IsSequenceOver({((Short)eventBase.Items[0].Loader).Value})) it.deselect();");
+		result.AppendLine($"    if (!((Active*)instance)->animations.IsSequenceOver({value})) it.deselect();");
 		result.AppendLine("}");
 
 		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo)}->Count() == 0) goto {nextLabel};");
