@@ -33,6 +33,7 @@ public:
 	void Stop();
 
 	void SetCurrentSequenceIndex(int index);
+	void SetCurrentDirectionMask(int directionMask);
 	void SetCurrentDirection(int index);
 
 	void SetForcedFrame(int frame);
@@ -44,12 +45,17 @@ public:
 
 	bool IsDirectionForced() const;
 
+	void SetAnimationSpeed(int speed, int minimumSpeed, int maximumSpeed);
+
 	void Update(float deltaTime);
 
 	bool AutomaticRotation = false;
 private:
 	std::unordered_map<int, Sequence*> Sequences;
 	float CurrentFrameTime = 0.0f;
+
+	int RequestedSequenceIndex = 0;
+	int RequestedDirection = 0;
 
 	int CurrentSequenceIndex = 0;
 	int CurrentDirection = 0;
@@ -61,7 +67,18 @@ private:
 	int forcedDirection = -1;
 	int forcedSequence = -1;
 
+	int speed = 0;
+	int minimumSpeed = 0;
+	int maximumSpeed = 100;
+	
 	int automaticRotationDirection = -1;
 
+	int lastSequenceOverIndex = -1;
 	mutable std::unordered_map<int, bool> SequenceOverEvents;
+
+	int GetLowestDirectionIndex(const Sequence* sequence) const;
+	int GetNearestDirectionIndex(const Sequence* sequence, int directionIndex) const;
+	int GetFirstSequenceIndex();
+	int ResolveSequenceIndex(int requestedSequenceIndex);
+	bool IsTwoSpeedAnimation(int sequenceIndex);
 };

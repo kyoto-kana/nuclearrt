@@ -5,61 +5,93 @@
 #include "Active.h"
 #include "Application.h"
 
-void EightDirectionsMovement::Update(float deltaTime) {
-	bool moved = false;
+void EightDirectionsMovement::Initialize()
+{
+	//this should probably be done in base movement class
+	SetMovementDirection(DirectionAtStart);
+
+	if (!((Active *)Instance)->AutomaticRotation)
+	{
+		((Active *)Instance)->animations.SetCurrentDirection(movementDirection);
+	}
+}
+
+void EightDirectionsMovement::Update(float deltaTime)
+{
 	int wishX = 0;
 	int wishY = 0;
 
+	//this sucks so bad
 	deltaTime *= 10;
 
 	if (Application::Instance().GetInput()->IsControlsDown(Player, 1)) // up
 	{
 		wishY -= 1;
-		moved = true;
 	}
 	if (Application::Instance().GetInput()->IsControlsDown(Player, 2)) // down
 	{
 		wishY += 1;
-		moved = true;
 	}
 	if (Application::Instance().GetInput()->IsControlsDown(Player, 4)) // left
 	{
 		wishX -= 1;
-		moved = true;
 	}
 	if (Application::Instance().GetInput()->IsControlsDown(Player, 8)) // right
 	{
 		wishX += 1;
+	}
+
+	bool moved = false;
+	if (wishX == 0 && wishY < 0 && IsDirectionValid(8, Directions)) // up
+	{
+		movementDirection = 8;
+		moved = true;
+	}
+	else if (wishX > 0 && wishY < 0 && IsDirectionValid(4, Directions)) // up-right
+	{
+		movementDirection = 4;
+		moved = true;
+	}	
+	else if (wishX > 0 && wishY == 0 && IsDirectionValid(0, Directions)) // right
+	{
+		movementDirection = 0;
+		moved = true;
+	}
+	else if (wishX > 0 && wishY > 0 && IsDirectionValid(28, Directions)) // down-right
+	{
+		movementDirection = 28;
+		moved = true;
+	}
+	else if (wishX == 0 && wishY > 0 && IsDirectionValid(24, Directions)) // down
+	{
+		movementDirection = 24;
+		moved = true;
+	}
+	else if (wishX < 0 && wishY > 0 && IsDirectionValid(20, Directions)) // down-left
+	{
+		movementDirection = 20;
+		moved = true;
+	}
+	else if (wishX < 0 && wishY == 0 && IsDirectionValid(16, Directions)) // left
+	{
+		movementDirection = 16;
+		moved = true;
+	}
+	else if (wishX < 0 && wishY < 0 && IsDirectionValid(12, Directions)) // up-left
+	{
+		movementDirection = 12;
 		moved = true;
 	}
 
+	//accelerate
 	if (moved)
 	{
-		if (wishX == 0 && wishY < 0) // up
-			movementDirection = 8;
-		else if (wishX > 0 && wishY < 0) // up-right
-			movementDirection = 4;
-		else if (wishX > 0 && wishY == 0) // right
-			movementDirection = 0;
-		else if (wishX > 0 && wishY > 0) // down-right
-			movementDirection = 28;
-		else if (wishX == 0 && wishY > 0) // down
-			movementDirection = 24;
-		else if (wishX < 0 && wishY > 0) // down-left
-			movementDirection = 20;
-		else if (wishX < 0 && wishY == 0) // left
-			movementDirection = 16;
-		else if (wishX < 0 && wishY < 0) // up-left
-			movementDirection = 12;
-
-		//accelerate
 		realSpeed += Acceleration * deltaTime;
 		if (realSpeed > Speed)
 			realSpeed = Speed;
 	}
-	else
+	else // decelerate
 	{
-		//decelerate
 		realSpeed -= Deceleration * deltaTime;
 		if (realSpeed < 0)
 			realSpeed = 0;

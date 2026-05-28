@@ -11,22 +11,11 @@ Animations::Animations(const std::unordered_map<int, Sequence*> sequences) {
 
 	//set current sequence to the one with the lowest index
 	if (!Sequences.empty()) {
-		int minIndex = Sequences.begin()->first;
-		for (const auto& pair : Sequences) {
-			if (pair.first < minIndex) {
-				minIndex = pair.first;
-			}
-		}
-		CurrentSequenceIndex = minIndex;
-		auto* firstSequence = Sequences.at(minIndex);
-		// find the direction with the lowest index
-		int minDirectionIndex = firstSequence->Directions.begin()->second->Index;
-		for (const auto& dirPair : firstSequence->Directions) {
-			if (dirPair.second->Index < minDirectionIndex) {
-				minDirectionIndex = dirPair.second->Index;
-			}
-		}
-		CurrentDirection = minDirectionIndex;
+		RequestedSequenceIndex = 0;
+		RequestedDirection = 0;
+		CurrentSequenceIndex = ResolveSequenceIndex(RequestedSequenceIndex);
+		auto* currentSequence = Sequences.at(CurrentSequenceIndex);
+		CurrentDirection = GetNearestDirectionIndex(currentSequence, RequestedDirection);
 	}
 }
 
@@ -62,14 +51,7 @@ unsigned int Animations::GetCurrentImageHandle() const {
 	auto* sequence = Sequences.at(displaySequence);
 
 	if (sequence->Directions.find(displayDirection) == sequence->Directions.end() || AutomaticRotation) {
-		// find the direction with the lowest index
-		int minDirectionIndex = sequence->Directions.begin()->second->Index;
-		for (const auto& dirPair : sequence->Directions) {
-			if (dirPair.second->Index < minDirectionIndex) {
-				minDirectionIndex = dirPair.second->Index;
-			}
-		}
-		displayDirection = minDirectionIndex;
+		displayDirection = GetNearestDirectionIndex(sequence, displayDirection);
 	}
 	
 	auto* direction = sequence->Directions.at(displayDirection);
@@ -77,11 +59,11 @@ unsigned int Animations::GetCurrentImageHandle() const {
 }
 
 unsigned int Animations::GetCurrentSequenceIndex() const {
-	return CurrentSequenceIndex;
+	return forcedSequence != -1 ? forcedSequence : RequestedSequenceIndex;
 }
 
 unsigned int Animations::GetCurrentDirection() const {
-	return forcedDirection != -1 ? forcedDirection : CurrentDirection;
+	return forcedDirection != -1 ? forcedDirection : RequestedDirection;
 }
 
 unsigned int Animations::GetCurrentFrameIndex() const {
@@ -130,45 +112,75 @@ void Animations::Stop() {
 }
 
 void Animations::SetCurrentSequenceIndex(int index) {
-	if (index == CurrentSequenceIndex) {
+	RequestedSequenceIndex = index;
+	lastSequenceOverIndex = -1;
+	int resolvedSequenceIndex = ResolveSequenceIndex(RequestedSequenceIndex);
+	if (resolvedSequenceIndex == CurrentSequenceIndex) {
 		return;
 	}
 
-	if (Sequences.find(index) == Sequences.end()) {
-		return;
-	}
-
-	CurrentSequenceIndex = index;
-	auto* sequence = Sequences.at(index);
-	// find the direction with the lowest index
-	int minDirectionIndex = sequence->Directions.begin()->second->Index;
-	for (const auto& dirPair : sequence->Directions) {
-		if (dirPair.second->Index < minDirectionIndex) {
-			minDirectionIndex = dirPair.second->Index;
-		}
-	}
-	CurrentDirection = minDirectionIndex;
+	auto* sequence = Sequences.at(resolvedSequenceIndex);
+	CurrentSequenceIndex = resolvedSequenceIndex;
+	CurrentDirection = GetNearestDirectionIndex(sequence, RequestedDirection);
 	CurrentFrameIndex = 0;
 	CurrentFrameTime = 0.0f;
 }
 
+void Animations::SetCurrentDirectionMask(int directionMask)
+{
+	int newDirection = -1;
+
+	std::vector<int> validDirections;
+	if (directionMask == -1) // set to any valid direction
+	{
+		// set to all
+		for (int i = 0; i < 32; ++i)
+		{
+			validDirections.push_back(i);
+		}
+	}
+	else
+	{
+		for (int i = 0; i < 32; ++i)
+		{
+			if (directionMask & (1 << i))
+			{
+				validDirections.push_back(i);
+			}
+		}
+	}
+
+	if (validDirections.empty()) return;
+
+	// get a random valid direction from the list
+	int index = Application::Instance().RandomRange(0, static_cast<short>(validDirections.size() - 1));
+
+	SetCurrentDirection(validDirections.at(index));
+}
+
 void Animations::SetCurrentDirection(int index) {
-	if (index == CurrentDirection) {
+	if (index == RequestedDirection) {
 		return;
 	}
 
-	auto& currentSequence = Sequences.at(CurrentSequenceIndex);
-	if (index >= 0 && currentSequence->Directions.find(index) != currentSequence->Directions.end()) {
-		CurrentDirection = index;
-		CurrentFrameIndex = 0; // Reset frame when changing direction
-		CurrentFrameTime = 0.0f; // Reset frame time
+	RequestedDirection = index;
+	lastSequenceOverIndex = -1;
+	auto* currentSequence = Sequences.at(CurrentSequenceIndex);
+	CurrentDirection = GetNearestDirectionIndex(currentSequence, RequestedDirection);
+	automaticRotationDirection = CurrentDirection;
+	auto* direction = currentSequence->Directions.at(CurrentDirection);
+	if (direction->Frames.empty()) {
+		CurrentFrameIndex = 0;
+	} else {
+		CurrentFrameIndex = std::clamp(CurrentFrameIndex, 0, static_cast<int>(direction->Frames.size() - 1));
 	}
 }
 
 void Animations::SetForcedFrame(int frame) {
 	if (forcedFrame == frame) return;
 	
-	auto& direction = Sequences.at(CurrentSequenceIndex)->Directions.at(CurrentDirection);
+	auto* sequence = Sequences.at(ResolveSequenceIndex(forcedSequence != -1 ? forcedSequence : RequestedSequenceIndex));
+	auto* direction = sequence->Directions.at(forcedDirection != -1 ? forcedDirection : GetNearestDirectionIndex(sequence, RequestedDirection));
 
 	frame = std::clamp(frame, 0, static_cast<int>(direction->Frames.size() - 1));
 	forcedFrame = frame;
@@ -212,8 +224,13 @@ void Animations::SetForcedDirection(int directionMask) {
 	if (forcedDirection == newDirection) return;
 
 	forcedDirection = newDirection;
-	CurrentFrameIndex = 0;
-	CurrentFrameTime = 0.0f;
+	RequestedDirection = forcedDirection;
+	auto* direction = sequence->Directions.at(forcedDirection);
+	if (direction->Frames.empty()) {
+		CurrentFrameIndex = 0;
+	} else {
+		CurrentFrameIndex = std::clamp(CurrentFrameIndex, 0, static_cast<int>(direction->Frames.size() - 1));
+	}
 }
 
 void Animations::RestoreForcedSequence() {
@@ -235,94 +252,200 @@ bool Animations::IsDirectionForced() const {
 	return forcedDirection != -1;
 }
 
+void Animations::SetAnimationSpeed(int speed, int minimumSpeed, int maximumSpeed)
+{
+	this->minimumSpeed = std::max(0, minimumSpeed);
+	this->maximumSpeed = std::max(this->minimumSpeed, maximumSpeed);
+	this->speed = std::clamp(speed, this->minimumSpeed, this->maximumSpeed);
+}
+
 void Animations::Update(float deltaTime) {
-	CurrentFrameTime += deltaTime;
-	
 	SequenceOverEvents.erase(SequenceOverEvents.begin(), SequenceOverEvents.end());
 
-	int displayFrame = CurrentFrameIndex;
-	int displaySequence = CurrentSequenceIndex;
-	int displayDirection = CurrentDirection;
-	if (forcedFrame != -1) {
-		displayFrame = forcedFrame;
-	}
+	int requestedSequence = forcedSequence != -1 ? forcedSequence : RequestedSequenceIndex;
+	int requestedDirection = forcedDirection != -1 ? forcedDirection : RequestedDirection;
+	int displaySequence = forcedSequence != -1 ? forcedSequence : CurrentSequenceIndex;
+	int displayDirection = requestedDirection;
+
 	if (forcedDirection != -1) {
 		displayDirection = forcedDirection;
 	}
-	if (forcedSequence != -1) {
-		displaySequence = forcedSequence;
-	}
 
-	auto& currentSequence = Sequences.at(displaySequence);
+	auto* currentSequence = Sequences.at(displaySequence);
 
 	//if the direction doesn't exist, set to the first direction
 	if (currentSequence->Directions.find(displayDirection) == currentSequence->Directions.end()) {
 		forcedDirection = -1;
-		// find the direction with the lowest index
-		int minDirectionIndex = currentSequence->Directions.begin()->second->Index;
-		for (const auto& dirPair : currentSequence->Directions) {
-			if (dirPair.second->Index < minDirectionIndex) {
-				minDirectionIndex = dirPair.second->Index;
-			}
-		}
-		displayDirection = minDirectionIndex;
+		displayDirection = GetNearestDirectionIndex(currentSequence, displayDirection);
+		CurrentDirection = displayDirection;
+		CurrentFrameTime = 0.0f;
+	}
+	else if (displayDirection != CurrentDirection) {
 		CurrentDirection = displayDirection;
 		CurrentFrameIndex = 0;
 		CurrentFrameTime = 0.0f;
-		return;
 	}
 	auto& currentDirection = currentSequence->Directions.at(displayDirection);
+	if (currentDirection->Frames.empty()) {
+		CurrentFrameIndex = 0;
+		return;
+	}
 
-	int animSpeed = currentDirection->MaximumSpeed; // TODO: look at minimum speed too
+	CurrentFrameIndex = std::clamp(CurrentFrameIndex, 0, static_cast<int>(currentDirection->Frames.size() - 1));
+
+	if (forcedFrame != -1)
+	{
+		return;
+	}
+
+	if (!started)
+	{
+		// If the animation is stopped, we don't update the frame time or index
+		return;
+	}
+
+	int animMinSpeed = std::clamp(currentDirection->MinimumSpeed, 0, 100);
+	int animMaxSpeed = std::clamp(currentDirection->MaximumSpeed, 0, 100);
+	if (animMaxSpeed < animMinSpeed) {
+		animMaxSpeed = animMinSpeed;
+	}
+	if (!IsTwoSpeedAnimation(displaySequence)) {
+		animMinSpeed = animMaxSpeed;
+	}
+
+	int animSpeed = animMinSpeed;
+	int animDeltaSpeed = animMaxSpeed - animMinSpeed;
+	if (animDeltaSpeed > 0) {
+		int movementDelta = maximumSpeed - minimumSpeed;
+		if (movementDelta == 0) {
+			animSpeed = animMinSpeed + (animDeltaSpeed / 2);
+		} else {
+			int normalizedSpeed = std::clamp(speed - minimumSpeed, 0, movementDelta);
+			animSpeed = animMinSpeed + ((animDeltaSpeed * normalizedSpeed) / movementDelta);
+		}
+		animSpeed = std::clamp(animSpeed, animMinSpeed, animMaxSpeed);
+	}
 
 	if (animSpeed == 0) {
 		return;
 	}
 
-	if (!started) {
-		// If the animation is stopped, we don't update the frame time or index
-		return;
-	}
+	CurrentFrameTime += static_cast<float>(animSpeed) * deltaTime * 60.0f;
 
-	if (CurrentFrameTime >= 1.0f / animSpeed) {
-
-		//TODO: verify if this is correct
-		if (forcedFrame != -1) return; // If a forced frame is set, don't update the index
-
-		CurrentFrameTime = 0.0f;
+	while (CurrentFrameTime > 100.0f)
+	{
+		CurrentFrameTime -= 100.0f;
 		CurrentFrameIndex++;
 
 		if (CurrentFrameIndex >= static_cast<int>(currentDirection->Frames.size())) // reached end of animation
 		{
 			if (currentDirection->Repeat) {
-				CurrentFrameIndex = currentDirection->RepeatFrame;
+				CurrentFrameIndex = std::clamp(currentDirection->RepeatFrame, 0, static_cast<int>(currentDirection->Frames.size() - 1));
 			} else {
 				
 				// If animation is not the first one (stopped), change to that animation
-				// find the sequence with the lowest index (the "first" sequence)
-				int firstSequenceIndex = Sequences.begin()->first;
-				for (const auto& pair : Sequences) {
-					if (pair.first < firstSequenceIndex) {
-						firstSequenceIndex = pair.first;
-					}
-				}
+				int firstSequenceIndex = GetFirstSequenceIndex();
 				
-				if (CurrentSequenceIndex != firstSequenceIndex) {
-					//set sequence over event
-					SequenceOverEvents[displaySequence] = true;
+				if (displaySequence != firstSequenceIndex) {
 
-					//Change to the first sequence
-					SetCurrentSequenceIndex(firstSequenceIndex);
+					if (lastSequenceOverIndex != requestedSequence) {
+						SequenceOverEvents[requestedSequence] = true;
+						lastSequenceOverIndex = requestedSequence;
+					}
+
+					// pick the lowest available seq
+					RequestedSequenceIndex = 0;
+					CurrentSequenceIndex = ResolveSequenceIndex(RequestedSequenceIndex);
+					CurrentDirection = GetNearestDirectionIndex(Sequences.at(CurrentSequenceIndex), RequestedDirection);
+					RequestedDirection = CurrentDirection;
+					CurrentFrameIndex = 0;
+					CurrentFrameTime = 0.0f;
 				}
 				else // if it is the first one, stay on the last frame
 				{
 					CurrentFrameIndex -= 1;
-
-					//TODO: this shouldn't activate during certian conditions but idk what they are
-					//set sequence over event
-					SequenceOverEvents[displaySequence] = true;
+					if (lastSequenceOverIndex != requestedSequence) {
+						SequenceOverEvents[requestedSequence] = true;
+						lastSequenceOverIndex = requestedSequence;
+					}
 				}
 			}
 		}
 	}
+}
+
+int Animations::GetLowestDirectionIndex(const Sequence *sequence) const
+{
+	int minDirectionIndex = sequence->Directions.begin()->second->Index;
+	for (const auto &dirPair : sequence->Directions)
+	{
+		if (dirPair.second->Index < minDirectionIndex)
+		{
+			minDirectionIndex = dirPair.second->Index;
+		}
+	}
+	return minDirectionIndex;
+}
+
+int Animations::GetNearestDirectionIndex(const Sequence *sequence, int directionIndex) const
+{
+	if (AutomaticRotation)
+	{
+		directionIndex = 0;
+	}
+
+	if (sequence->Directions.find(directionIndex) != sequence->Directions.end())
+	{
+		return directionIndex;
+	}
+
+	int bestDirectionIndex = GetLowestDirectionIndex(sequence);
+	int bestDistance = 32;
+	for (const auto &dirPair : sequence->Directions)
+	{
+		int candidateIndex = dirPair.second->Index;
+		int distance = std::abs(candidateIndex - directionIndex);
+		distance = std::min(distance, 32 - distance);
+		if (distance < bestDistance)
+		{
+			bestDistance = distance;
+			bestDirectionIndex = candidateIndex;
+		}
+	}
+	return bestDirectionIndex;
+}
+
+int Animations::GetFirstSequenceIndex()
+{
+	int firstSequenceIndex = Sequences.begin()->first;
+	for (const auto &pair : Sequences)
+	{
+		if (pair.first < firstSequenceIndex)
+		{
+			firstSequenceIndex = pair.first;
+		}
+	}
+	return firstSequenceIndex;
+}
+
+int Animations::ResolveSequenceIndex(int requestedSequenceIndex)
+{
+	if (Sequences.find(requestedSequenceIndex) != Sequences.end())
+	{
+		return requestedSequenceIndex;
+	}
+
+	return GetFirstSequenceIndex();
+}
+
+bool Animations::IsTwoSpeedAnimation(int sequenceIndex)
+{
+	if (sequenceIndex == 0 || // Stopped
+		sequenceIndex == 3 || // Appearing
+		sequenceIndex == 4 || // Disappearing
+		sequenceIndex == 6    // Launching
+		) 
+		return false;
+	
+	return true;
 }

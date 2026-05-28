@@ -16,11 +16,14 @@ public class SetMovementDirectionAction : ActionBase
 		string direction = "";
 		if (eventBase.Items[0].Loader is IntParam intParam) {
 			direction = intParam.Value.ToString();
+			result.AppendLine($"    ((Active*)instance)->animations.SetCurrentDirectionMask({direction});");
 		}
 		else if (eventBase.Items[0].Loader is ExpressionParameter expressionParameter) {
 			direction = ExpressionConverter.ConvertExpression(expressionParameter, eventBase);
+			result.AppendLine($"    ((Active*)instance)->animations.SetCurrentDirection({direction});");
 		}
-		result.AppendLine($"    ((Active*)instance)->animations.SetForcedDirection({direction});");
+
+		// TODO: verify this works with both int and expression parameters
 		result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, IsGlobal)}*)instance)->movements.GetCurrentMovement()->SetMovementDirection({direction});");
 		result.AppendLine("}");
 
