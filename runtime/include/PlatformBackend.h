@@ -18,6 +18,10 @@ public:
 	virtual std::string GetPlatformName() { return "Unknown"; }
 	virtual std::string GetAssetsDirectory() { return ""; }
 
+	virtual std::string GetAppDrive() { return ""; }
+	virtual std::string GetAppDirectory() { return ""; }
+	virtual std::string GetAppPath() { return ""; }
+
 	virtual unsigned int GetTicks() { return 0; }
 	virtual float GetTimeDelta() { return 0.0f; }
 	virtual void Delay(unsigned int ms) {}

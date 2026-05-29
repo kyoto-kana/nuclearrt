@@ -106,9 +106,9 @@ public class ExpressionConverter
 		{ (ObjectType.System, 3),  e => $"std::string(\"{e.Loader.ToString()}\")" },
 		{ (ObjectType.System, 4),  _ => $"std::to_string(" }, // Str$
 		{ (ObjectType.System, 5),  _ => $"MathHelper::Stoi(" }, // Val(
-		{ (ObjectType.System, 6),  _ => "std::string(\"\")" }, // Appdrive$ // TODO
-		{ (ObjectType.System, 7),  _ => "std::string(\"\")" }, // Appdir$ // TODO
-		{ (ObjectType.System, 8),  _ => "std::string(\"\")" }, // Apppath$ // TODO
+		{ (ObjectType.System, 6),  _ => "Application::Instance().GetBackend()->platform->GetAppDrive()" }, // Appdrive$
+		{ (ObjectType.System, 7),  _ => "Application::Instance().GetBackend()->platform->GetAppDirectory()" }, // Appdir$
+		{ (ObjectType.System, 8),  _ => "Application::Instance().GetBackend()->platform->GetAppPath()" }, // Apppath$
 		{ (ObjectType.System, 9),  _ => "std::string(\"\")" }, // Appname$ // TODO
 		{ (ObjectType.System, 10), _ => "MathHelper::Sin(" }, // Sin
 		{ (ObjectType.System, 11), _ => "MathHelper::Cos(" }, // Cos

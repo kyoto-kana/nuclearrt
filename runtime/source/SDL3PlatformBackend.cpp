@@ -111,6 +111,50 @@ std::string SDL3PlatformBackend::GetAssetsDirectory()
 	return std::string(SDL_GetBasePath());
 }
 
+std::string SDL3PlatformBackend::GetAppDrive()
+{
+#if defined(PLATFORM_WINDOWS)
+std::string basePath = SDL_GetBasePath();
+	if (basePath.length() >= 2 && basePath[1] == ':') {
+		return basePath.substr(0, 2);
+	}
+	return "";
+#elif defined(PLATFORM_WEB)
+	return "/disk";
+#else
+	return "/";
+#endif
+}
+
+std::string SDL3PlatformBackend::GetAppDirectory()
+{
+#if defined(PLATFORM_WEB)
+	return "/";
+#else
+	std::string basePath = SDL_GetBasePath();
+	size_t pos = basePath.find('/');
+	if (pos != std::string::npos) {
+		return basePath.substr(pos);
+	}
+	else {
+		pos = basePath.find('\\');
+		if (pos != std::string::npos) {
+			return basePath.substr(pos);
+		}
+	}
+	return basePath;
+#endif
+}
+
+std::string SDL3PlatformBackend::GetAppPath()
+{
+#if defined(PLATFORM_WEB)
+	return "/disk/";
+#else
+	return SDL_GetBasePath();
+#endif
+}
+
 void SDL3PlatformBackend::Log(std::string text) {
 	#ifdef __EMSCRIPTEN__
 	emscripten_console_log(text.c_str());
