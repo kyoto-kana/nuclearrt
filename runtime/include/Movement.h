@@ -29,6 +29,8 @@ public:
 	virtual void OnEnabled() {} // called when the movement is switched to
 	virtual void OnDisabled() {} // called when the movement is switched to another movement
 	virtual int GetRealSpeed() { return 0; }
+	virtual int GetMinimumSpeed() { return 0; }
+	virtual int GetMaximumSpeed() { return 0; }
 	virtual bool IsStopped() { return GetRealSpeed() == 0; }
 	virtual void SetMovementDirection(int directionMask) { 
 		if (directionMask == 0) return;
@@ -43,6 +45,10 @@ public:
 		movementDirection = directions[Application::Instance().RandomRange(0, static_cast<short>(directions.size() - 1))];
 	}
 
+	bool IsDirectionValid(int direction, int validDirectionsMask) {
+		return (1 << direction) & validDirectionsMask;
+	}
+	
 	void LookAtObject(ObjectInstance* targetObject, int xOffset, int yOffset);
 	void LookAtPoint(int x, int y);
 	virtual int GetMovementDirection() { return movementDirection; } // 0-31 with 0 being right and going counter-clockwise

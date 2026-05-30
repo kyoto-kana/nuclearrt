@@ -17,7 +17,10 @@ public:
 
 	float realSpeed = 0;
 
+	void Initialize() override;
 	int GetRealSpeed() override { return static_cast<int>(realSpeed); }
+	int GetMinimumSpeed() override { return 0; }
+	int GetMaximumSpeed() override { return static_cast<int>(Speed); }
 	int GetMovementDirection() override { return movementDirection; }
 	
 	void Update(float deltaTime) override;

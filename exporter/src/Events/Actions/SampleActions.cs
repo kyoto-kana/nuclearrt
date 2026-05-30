@@ -14,6 +14,19 @@ public class PlaySample : ActionBase
 	}
 }
 
+public class PlaySample2Action : ActionBase
+{
+	public override int[] ObjectType { get; set; } = [-2];
+	public override int Num { get; set; } = 4;
+	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
+	{
+		StringBuilder result = new();
+		result.AppendLine($"Application::Instance().GetBackend()->audio->PlaySample({CheckType.Check(eventBase)}, -1, 1, NULL, {CheckType.GetUninterruptable(eventBase)}, -1, -2);");
+
+		return result.ToString();
+	}
+}
+
 public class PlaySampleAllParameters : ActionBase
 {
 	public override int[] ObjectType { get; set; } = [-2];

@@ -37,6 +37,17 @@ void Frame::Update()
 		if (instance->Type == 2) // Common object with possible animation
 		{
 			((Active*)instance)->movements.Update(deltaTime);
+
+			int movementSpeed = 0;
+			int movementMinimumSpeed = 0;
+			int movementMaximumSpeed = 0;
+			auto* movement = ((Active*)instance)->movements.GetCurrentMovement();
+			if (movement != nullptr) {
+				movementSpeed = movement->GetRealSpeed();
+				movementMinimumSpeed = movement->GetMinimumSpeed();
+				movementMaximumSpeed = movement->GetMaximumSpeed();
+			}
+			((Active*)instance)->animations.SetAnimationSpeed(movementSpeed, movementMinimumSpeed, movementMaximumSpeed);
 			((Active*)instance)->animations.Update(deltaTime);
 		}
 		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) // Counter
