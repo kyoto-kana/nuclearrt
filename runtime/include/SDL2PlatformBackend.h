@@ -27,7 +27,7 @@ public:
 
 	void Log(std::string text) override;
 
-#if defined(__SWITCH__) || defined(__vita__)
+#if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
 	int touchX = 0;
 	int touchY = 0;
 	bool touchDown = false;

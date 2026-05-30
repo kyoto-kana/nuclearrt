@@ -25,6 +25,7 @@ public:
 
 	virtual void LoadTexture(int id) {}
 	virtual void UnloadTexture(int id) {}
+	
 	virtual void DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance = nullptr) {}
 	virtual void DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape) {}
 	virtual void DrawCounterBar(int x, int y, Counter* counter) {}

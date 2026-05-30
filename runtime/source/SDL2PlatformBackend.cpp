@@ -3,13 +3,17 @@
 #include "SDL2PlatformBackend.h"
 #include "SDL2Backend.h"
 #include <iostream>
-
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 #ifdef __SWITCH__
 #include <switch.h>
 #endif
 
 #ifdef PLATFORM_WIIU
 #include <cstdio>
+#include <vpad/input.h>
 #endif
 
 
@@ -58,11 +62,41 @@ void SDL2PlatformBackend::Deinitialize()
 
 void SDL2PlatformBackend::Log(std::string text)
 {
+    return;
+    auto now = std::chrono::system_clock::now();
+
+    std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+
+    std::tm tm{};
+    #ifdef _WIN32
+    localtime_s(&tm, &nowTime);
+    #else
+    localtime_r(&nowTime, &tm);
+    #endif
+
+    std::ostringstream timestamp;
+    timestamp << std::put_time(&tm, "%H:%M:%S");
+
+    static auto lastTime = std::chrono::steady_clock::now();
+
+    auto nowSteady = std::chrono::steady_clock::now();
+
+    auto deltaMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            nowSteady - lastTime).count();
+
+    lastTime = nowSteady;
+
+    std::string logLine =
+        "[" + timestamp.str() +
+        " | +" + std::to_string(deltaMs) + "ms] " +
+        text;
+
 #ifdef PLATFORM_WIIU
     FILE* f = fopen("/vol/external01/nuclearrt.log", "a");
     if (f)
     {
-        fprintf(f, "%s\n", text.c_str());
+        fprintf(f, "%s\n", logLine.c_str());
         fflush(f);
         fclose(f);
     }
@@ -73,29 +107,29 @@ void SDL2PlatformBackend::Log(std::string text)
         FILE* f = fopen("fat:/nuclearrt.log", "a");
         if (f)
         {
-            fprintf(f, "%s\n", text.c_str());
+            fprintf(f, "%s\n", logLine.c_str());
             fflush(f);
             fclose(f);
             return;
         }
     }
 
-    printf("%s\n", text.c_str());
+    printf("%s\n", logLine.c_str());
 
 #elif defined(PLATFORM_PS2)
     FILE* f = fopen("host:nuclearrt.log", "a");
     if (f)
     {
-        fprintf(f, "%s\n", text.c_str());
+        fprintf(f, "%s\n", logLine.c_str());
         fflush(f);
         fclose(f);
     }
-    printf("%s\n", text.c_str());
+    printf("%s\n", logLine.c_str());
 #elif defined(PLATFORM_PSP)
     FILE* f = fopen("./nuclearrt.log", "a");
     if (f)
     {
-        fprintf(f, "%s\n", text.c_str());
+        fprintf(f, "%s\n", logLine.c_str());
         fflush(f);
         fclose(f);
     }
@@ -103,20 +137,19 @@ void SDL2PlatformBackend::Log(std::string text)
     FILE* f = fopen("sdmc:/nuclearrt.log", "a");
     if (f)
     {
-        fprintf(f, "%s\n", text.c_str());
+        fprintf(f, "%s\n", logLine.c_str());
         fflush(f);
         fclose(f);
     }
 #else
-    std::cout << text << std::endl;
+    std::cout << logLine << std::endl;
 #endif
 }
-
 
 bool SDL2PlatformBackend::ShouldQuit() {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-#if defined(__SWITCH__) || defined(__vita__)
+#if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
 		if (event.type == SDL_FINGERDOWN || event.type == SDL_FINGERMOTION) {
 			SDL_Window* win = backend->GetGraphics()->GetWindow();
 			int windowWidth, windowHeight;
@@ -127,7 +160,7 @@ bool SDL2PlatformBackend::ShouldQuit() {
 		}
 		else if (event.type == SDL_FINGERUP) {
 			touchDown = false;
-		}
+        }
 #endif
 		if (event.type == SDL_QUIT) {
 			return true;

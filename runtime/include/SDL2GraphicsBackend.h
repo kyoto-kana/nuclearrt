@@ -7,9 +7,12 @@
 #include <SDL2/SDL.h>
 #include <SDL_ttf.h>
 #include <unordered_map>
+#include <set>
 #include <memory>
 #include <vector>
 #include <string>
+#include <deque>
+#include <queue>
 
 class SDL2Backend;
 class EffectInstance;
@@ -26,12 +29,14 @@ public:
 	void EndDrawing() override;
 	void Clear(int color) override;
 
+
 	void LoadTexture(int id) override;
 	void UnloadTexture(int id) override;
 	void DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle,
 		float scaleX, float scaleY, int color, int effect,
 		unsigned char effectParameter, EffectInstance* effectInstance = nullptr) override;
 	void DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape) override;
+	void DrawCounterBar(int x, int y, Counter* counter) override;
 
 	void LoadFont(int id) override;
 	void UnloadFont(int id) override;
@@ -45,7 +50,10 @@ private:
 	SDL_Renderer* renderer = nullptr;
 	SDL2Backend*  backend  = nullptr;
 
-	std::unordered_map<int, SDL_Texture*> textures;
+	std::unordered_map<int, SDL_Texture*> mosaics;
+	std::unordered_map<int, int> imageToMosaic;
+	std::unordered_map<int, std::set<int>> mosaicToImages;
+
 	std::unordered_map<int, TTF_Font*> fonts;
 	std::unordered_map<std::string, std::shared_ptr<std::vector<uint8_t>>> fontBuffers;
 
@@ -81,9 +89,16 @@ private:
 	void RemoveOldTextCache();
 	void ClearTextCacheForFont(int fontHandle);
 
+	static SDL_Surface* LoadLZ4SurfaceFromMemory(const std::vector<uint8_t>& data);	
 
 	SDL_Color RGBToSDLColor(int color);
 	SDL_Color RGBAToSDLColor(int color);
+
+
+	Uint32 fpsLastUpdate = 0;
+	Uint32 fpsFrameCount = 0;
+	float currentFps = 0.0f;
+	std::string baseWindowTitle;
 };
 
 #endif

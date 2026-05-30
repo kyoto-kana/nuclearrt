@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO;
 
 public class ImageBankExporter : BaseExporter
 {
@@ -6,19 +7,44 @@ public class ImageBankExporter : BaseExporter
 
 	public override void Export()
 	{
+		TextureSheetBuilder.Initialize(GameData);
+
 		var imageBankPath = Path.Combine(RuntimeBasePath.FullName, "source", "ImageBank.template.cpp");
 		var imageBank = File.ReadAllText(imageBankPath);
 
-		var imageBankData = new StringBuilder();
-		if (GameData.Images.Items.Values.Count != 0) { imageBankData.AppendLine($"Images.reserve({GameData.Images.Items.Values.Count});"); }
+		int imageCount = GameData.Images.Items.Values.Count;
+		var imageBankData = new StringBuilder(imageCount * 80);
+
 		foreach (var image in GameData.Images.Items.Values)
 		{
-			imageBankData.Append($"Images[{image.Handle}] = std::make_shared<ImageInfo>({image.Handle}, {image.Width}, {image.Height}, {image.HotspotX}, {image.HotspotY}, {image.ActionX}, {image.ActionY}, {ColorToRGB(image.Transparent)});\n");
+			int mosaicIndex = 0;
+			int mosaicX = 0;
+			int mosaicY = 0;
+
+			if (TextureSheetBuilder.ImageAtlasMetadata.TryGetValue(image.Handle, out var metadata))
+			{
+				mosaicIndex = metadata.AtlasIndex;
+				mosaicX = metadata.X;
+				mosaicY = metadata.Y;
+			}
+
+			imageBankData.Append("\t\t{ ")
+						 .Append(image.Handle).Append(", ")
+						 .Append(image.Width).Append(", ")
+						 .Append(image.Height).Append(", ")
+						 .Append(image.HotspotX).Append(", ")
+						 .Append(image.HotspotY).Append(", ")
+						 .Append(image.ActionX).Append(", ")
+						 .Append(image.ActionY).Append(", ")
+						 .Append(mosaicIndex).Append(", ")
+						 .Append(mosaicX).Append(", ")
+						 .Append(mosaicY).Append(", ")
+						 .Append(ColorToRGB(image.Transparent)).Append(" },\n");
 		}
 
 		imageBank = imageBank.Replace("{{ IMAGES }}", imageBankData.ToString());
 
-		SaveFile(Path.Combine(OutputPath.FullName, "source", "ImageBank.cpp"), imageBank.ToString());
+		SaveFile(Path.Combine(OutputPath.FullName, "source", "ImageBank.cpp"), imageBank);
 		File.Delete(Path.Combine(OutputPath.FullName, "source", "ImageBank.template.cpp"));
 	}
 }

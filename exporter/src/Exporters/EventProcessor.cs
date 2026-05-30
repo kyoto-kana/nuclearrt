@@ -17,6 +17,26 @@ public class EventProcessor
 		Normal,
 	}
 
+	private readonly Dictionary<int, HashSet<string>> _literalSampleNamesByFrame = new();
+
+	public IReadOnlyCollection<string> GetLiteralSampleNamesUsed(int frameIndex)
+	{
+		return _literalSampleNamesByFrame.TryGetValue(frameIndex, out var set)
+			? set
+			: Array.Empty<string>();
+	}
+
+	private void RegisterLiteralSampleName(int frameIndex, string name)
+	{
+		if (!_literalSampleNamesByFrame.TryGetValue(frameIndex, out var set))
+		{
+			set = new HashSet<string>();
+			_literalSampleNamesByFrame[frameIndex] = set;
+		}
+
+		set.Add(name.Replace("\0", ""));
+	}
+
 	public EventProcessor(Exporter exporter)
 	{
 		_exporter = exporter;
@@ -167,6 +187,13 @@ public class EventProcessor
 
 			foreach (var action in evt.Actions)
 			{
+				// scan actions for anything sample related, so we can preload them at runtime
+				if (SoundPreloadingHelper.IsSampleAction(action) &&
+					SoundPreloadingHelper.TryGetLiteralSample(action, out var sample))
+				{
+					RegisterLiteralSampleName(frameIndex, sample.Name);
+				}
+
 				//reset any selectors used in this action if it wasn't reset in a previous action
 				foreach (var obj in GetRelevantObjectInfos(action, frameIndex, evt.IsGlobal).Item2.Distinct().ToList())
 				{

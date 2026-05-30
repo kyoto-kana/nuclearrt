@@ -3,6 +3,7 @@
 #include "SDL2GraphicsBackend.h"
 #include "SDL2Backend.h"
 #include "Application.h"
+#include "Counter.h"
 #include "FontBank.h"
 #include "ImageBank.h"
 #include "Shape.h"
@@ -12,11 +13,71 @@
 #include <SDL_ttf.h>
 #include <iostream>
 #include <algorithm>
+#include <cstring>
+#include "lz4.h"
+
+SDL_Surface* SDL2GraphicsBackend::LoadLZ4SurfaceFromMemory(const std::vector<uint8_t>& data)
+{
+	if (data.size() < sizeof(uint16_t) * 2 + sizeof(uint32_t) + sizeof(int32_t))
+	{
+		Application::Instance().GetBackend().get()->platform->Log("LoadLZ4SurfaceFromMemory: data too small to contain header");
+		return nullptr;
+	}
+
+	const uint8_t* ptr = data.data();
+
+	uint16_t width  = EndiannessHelper::ReadLE16(ptr);
+	uint16_t height = EndiannessHelper::ReadLE16(ptr);
+	uint32_t surface_format = EndiannessHelper::ReadLE32(ptr);
+	int32_t compressed_size = (int32_t)EndiannessHelper::ReadLE32(ptr);
+
+	const uint8_t* compressed_buffer = ptr;
+	size_t header_size = sizeof(width) + sizeof(height) + sizeof(surface_format) + sizeof(compressed_size);
+
+	if (data.size() < header_size + (size_t)compressed_size) {
+		Application::Instance().GetBackend().get()->platform->Log("LoadLZ4SurfaceFromMemory: data truncated expected " +
+			std::to_string(header_size + compressed_size) +
+			" bytes, got " +
+			std::to_string(data.size()));
+		return nullptr;
+	}
+
+	SDL_Surface* out = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_BGRA32);
+
+	if (!out) {
+		Application::Instance().GetBackend().get()->platform->Log("SDL_CreateRGBSurfaceWithFormat Error: " + std::string(SDL_GetError()));
+		return nullptr;
+	}
+
+	uint32_t bpp = out->format->BytesPerPixel;
+	int uncompressed_size = (int)(width * height * bpp);
+
+	int result = LZ4_decompress_safe(
+		reinterpret_cast<const char*>(compressed_buffer),
+		reinterpret_cast<char*>(out->pixels),
+		compressed_size,
+		uncompressed_size);
+
+	if (result < 0) {
+		Application::Instance().GetBackend().get()->platform->Log("LZ4_decompress_safe Error: decompression failed code " + std::to_string(result));
+		SDL_FreeSurface(out);
+		return nullptr;
+	}
+
+	return out;
+}
 
 void SDL2GraphicsBackend::SetWindowAndRenderer(SDL_Window* win, SDL_Renderer* ren)
 {
     window   = win;
     renderer = ren;
+/*
+	if (window) {
+		baseWindowTitle = SDL_GetWindowTitle(window);
+	}
+
+	fpsLastUpdate = SDL_GetTicks();
+	*/
 }
 
 void SDL2GraphicsBackend::Deinitialize()
@@ -29,13 +90,15 @@ void SDL2GraphicsBackend::Deinitialize()
     }
     textCache.clear();
 
-    // cleanup textures
-    for (auto& pair : textures) {
+    // cleanup mosaics
+    for (auto& pair : mosaics) {
         if (pair.second) {
             SDL_DestroyTexture(pair.second);
         }
     }
-    textures.clear();
+	mosaics.clear();
+	imageToMosaic.clear();
+	mosaicToImages.clear();
 
     // cleanup fonts
     for (auto& pair : fonts) {
@@ -56,7 +119,28 @@ void SDL2GraphicsBackend::BeginDrawing() {
 }
 
 void SDL2GraphicsBackend::EndDrawing() {
+
 	SDL_RenderPresent(renderer);
+	/*
+	fpsFrameCount++;
+
+	const Uint32 now = SDL_GetTicks();
+	const Uint32 elapsed = now - fpsLastUpdate;
+
+	if (elapsed >= 1000) {
+		currentFps = (fpsFrameCount * 1000.0f) / elapsed;
+
+		std::string title =
+			baseWindowTitle +
+			" (FPS: " +
+			std::to_string(static_cast<int>(currentFps)) + ")";
+
+		SDL_SetWindowTitle(window, title.c_str());
+
+		fpsFrameCount = 0;
+		fpsLastUpdate = now;
+	}
+	*/
 }
 
 void SDL2GraphicsBackend::Clear(int color) {
@@ -68,30 +152,121 @@ void SDL2GraphicsBackend::Clear(int color) {
 	SDL_RenderClear(renderer);
 }
 
-void SDL2GraphicsBackend::LoadTexture(int id) {
-	if (textures.count(id)) return;
+void SDL2GraphicsBackend::LoadTexture(int id)
+{
+	Application::Instance().GetBackend().get()->platform->Log(
+	"LoadTexture: entered image=" + std::to_string(id)
+	);
+	if (imageToMosaic.count(id)) return;
 
-	std::vector<uint8_t> data = backend->GetPlatform()->GetPakFileEntryData(
-		"images/" + std::to_string(id) + ".png");
-	if (data.empty()) {
-		std::cerr << "LoadTexture: image " << id << " not found\n";
+	auto imageInfo = ImageBank::Instance().GetImage(id);
+	if (!imageInfo)
+	{
+		Application::Instance().GetBackend().get()->platform->Log(
+			"ImageBank::GetImage Error: Image with id " + std::to_string(id) + " not found"
+		);
 		return;
 	}
 
-	SDL_RWops*  stream  = SDL_RWFromMem(data.data(), (int)data.size());
-	SDL_Surface* surface = IMG_Load_RW(stream, 1);
-	if (!surface) { std::cerr << "IMG_Load_RW: " << IMG_GetError() << "\n"; return; }
+	int mosaicIndex = imageInfo->MosaicIndex;
 
-	SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surface);
-	SDL_FreeSurface(surface);
-	textures[id] = tex;
+	Application::Instance().GetBackend().get()->platform->Log(
+	"LoadTexture: mosaicIndex=" + std::to_string(mosaicIndex)
+	);
+	
+	if (mosaicIndex < 0)
+	{
+		Application::Instance().GetBackend().get()->platform->Log(
+			"LoadTexture Error: Image with id " +
+			std::to_string(id) +
+			" has invalid mosaic index " +
+			std::to_string(mosaicIndex)
+		);
+		return;
+	}
+
+	if (mosaics.find(mosaicIndex) == mosaics.end())
+	{
+		char mosaicFileName[64];
+		std::snprintf(
+			mosaicFileName,
+			sizeof(mosaicFileName),
+			"images/m%05d.sdl_surface.lz4",
+			mosaicIndex
+		);
+
+		Application::Instance().GetBackend().get()->platform->Log(
+			"LoadTexture: loading pak entry " + std::string(mosaicFileName)
+		);
+
+		std::vector<uint8_t> data = backend->platform->GetPakFile().GetData(mosaicFileName);
+
+		Application::Instance().GetBackend().get()->platform->Log(
+			"LoadTexture: pak entry loaded, size=" + std::to_string(data.size())
+		);
+
+		if (data.empty())
+		{
+			Application::Instance().GetBackend().get()->platform->Log(
+				"PakFile::GetData Error: Mosaic " + std::string(mosaicFileName) + " not found"
+			);
+			return;
+		}
+
+		Application::Instance().GetBackend().get()->platform->Log(
+			"LoadTexture: before LoadLZ4SurfaceFromMemory"
+		);
+
+		SDL_Surface* surface = LoadLZ4SurfaceFromMemory(data);
+		Application::Instance().GetBackend().get()->platform->Log(
+			"LoadTexture: after LoadLZ4SurfaceFromMemory"
+		);
+
+		if (!surface)
+		{
+			Application::Instance().GetBackend().get()->platform->Log(
+				"LoadLZ4SurfaceFromMemory Error: failed to decode " + std::string(mosaicFileName)
+			);
+			return;
+		}
+
+		SDL_Texture* mosaicTexture = SDL_CreateTextureFromSurface(renderer, surface);
+		
+		SDL_FreeSurface(surface);
+
+		if (!mosaicTexture)
+		{
+			Application::Instance().GetBackend().get()->platform->Log(
+				"SDL_CreateTextureFromSurface Error: " + std::string(SDL_GetError())
+			);
+			return;
+		}
+
+		mosaics[mosaicIndex] = mosaicTexture;
+	}
+
+	imageToMosaic[id] = mosaicIndex;
+	mosaicToImages[mosaicIndex].insert(id);
 }
 
 void SDL2GraphicsBackend::UnloadTexture(int id) {
-	auto it = textures.find(id);
-	if (it != textures.end()) {
-		SDL_DestroyTexture(it->second);
-		textures.erase(it);
+	auto mosaicIt = imageToMosaic.find(id);
+	if (mosaicIt == imageToMosaic.end()) {
+		return;
+	}
+	
+	int mosaicIndex = mosaicIt->second;
+	mosaicToImages[mosaicIndex].erase(id);
+	imageToMosaic.erase(mosaicIt);
+	
+	//if no more images use this mosaic, unload it
+	if (mosaicToImages[mosaicIndex].empty()) {
+		auto mosaicTextureIt = mosaics.find(mosaicIndex);
+		if (mosaicTextureIt != mosaics.end()) {
+			SDL_DestroyTexture(mosaicTextureIt->second);
+			mosaics.erase(mosaicTextureIt);
+		}
+		mosaicToImages.erase(mosaicIndex);
 	}
 }
 
@@ -101,18 +276,36 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 {
 	(void)effectInstance;
 
-	SDL_Texture* tex = textures[id];
-	if (!tex) return;
+	auto imageInfo = ImageBank::Instance().GetImage(id);
+	if (!imageInfo) return;
+
+	auto mosaicIt = imageToMosaic.find(id);
+	if (mosaicIt == imageToMosaic.end()) {
+		LoadTexture(id);
+		mosaicIt = imageToMosaic.find(id);
+		if (mosaicIt == imageToMosaic.end()) return;
+	}
+
+	auto texIt = mosaics.find(mosaicIt->second);
+	if (texIt == mosaics.end() || !texIt->second) return;
+
+	SDL_Texture* tex = texIt->second;
+
+	SDL_Rect src = {
+		imageInfo->MosaicX,
+		imageInfo->MosaicY,
+		imageInfo->Width,
+		imageInfo->Height
+	};
+
+	int w = imageInfo->Width;
+	int h = imageInfo->Height;
 
 	Uint8 origR, origG, origB, origA;
 	SDL_BlendMode origBlend;
 	SDL_GetTextureColorMod(tex, &origR, &origG, &origB);
 	SDL_GetTextureAlphaMod(tex, &origA);
 	SDL_GetTextureBlendMode(tex, &origBlend);
-
-	std::shared_ptr<ImageInfo> info = ImageBank::Instance().GetImage(id);
-	int w = info ? info->Width : 0;
-	int h = info ? info->Height : 0;
 
 	if (w == 0 || h == 0) {
 		SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
@@ -121,6 +314,7 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 	if (scaleX == 0.0f) scaleX = 1.0f;
 	if (scaleY == 0.0f) scaleY = 1.0f;
 
+	// effect 1 ignores color, matching your SDL3 path
 	if (effect == 1) {
 		color = 0xFFFFFF;
 	}
@@ -141,7 +335,7 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 			SDL_SetTextureAlphaMod(tex, 255 - effectParameter);
 			break;
 
-		case 1: // Semi-Transparent
+		case 1: // Semi-transparent
 			SDL_SetTextureAlphaMod(tex, 255 - effectParameter);
 			break;
 
@@ -163,15 +357,14 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 		static_cast<int>(offsetY * scaleY)
 	};
 
-	SDL_RenderCopyEx(
-		renderer,
-		tex,
-		nullptr,
-		&rect,
-		360 - angle,
-		&center,
-		SDL_FLIP_NONE
-	);
+	if (angle == 0)
+	{
+		SDL_RenderCopy(renderer, tex, &src, &rect);
+	}
+	else
+	{
+		SDL_RenderCopyEx(renderer, tex, &src, &rect, 360 - angle, &center, SDL_FLIP_NONE);
+	}
 
 	SDL_SetTextureColorMod(tex, origR, origG, origB);
 	SDL_SetTextureAlphaMod(tex, origA);
@@ -216,19 +409,151 @@ void SDL2GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 				}
 			}
 		} else if (shape->FillType == 3) { // Motif
-			SDL_Texture* tex = textures[shape->Image];
-			if (!tex) return;
-			int tw, th;
-			SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th);
-			for (int ty = y; ty < y + height; ty += th) {
-				for (int tx = x; tx < x + width; tx += tw) {
+			auto imageInfo = ImageBank::Instance().GetImage(shape->Image);
+
+			if (!imageInfo)
+			{
+				backend->GetPlatform()->Log(
+					"ImageBank miss for image " +
+					std::to_string(shape->Image)
+				);
+				return;
+			}
+			if (shape->Image <= 0)
+			{
+				backend->GetPlatform()->Log(
+					"Invalid backdrop image handle: " +
+					std::to_string(shape->Image)
+				);
+				return;
+			}
+			
+			auto mosaicIt = imageToMosaic.find(shape->Image);
+			if (mosaicIt == imageToMosaic.end()) {
+				LoadTexture(shape->Image);
+				mosaicIt = imageToMosaic.find(shape->Image);
+				if (mosaicIt == imageToMosaic.end()) return;
+			}
+
+			auto texIt = mosaics.find(mosaicIt->second);
+			if (texIt == mosaics.end() || !texIt->second) return;
+
+			SDL_Texture* tex = texIt->second;
+
+			int tw = imageInfo->Width;
+			int th = imageInfo->Height;
+			if (tw <= 0 || th <= 0) return;
+
+			for (int ty = y; ty < y + height; ty += th ) {
+				for (int tx = x; tx < x + width; tx += tw ) {
 					int dw = std::min(tw, x + width  - tx);
 					int dh = std::min(th, y + height - ty);
-					SDL_Rect src  = { 0, 0, dw, dh };
-					SDL_Rect dest = { tx, ty, dw, dh };
-					SDL_RenderCopy(renderer, tex, &src, &dest);
+
+					SDL_Rect src = {
+						imageInfo->MosaicX,
+						imageInfo->MosaicY,
+						dw,
+						dh
+					};
+
+					SDL_Rect dst = { tx, ty, dw, dh };
+
+					SDL_RenderCopy(renderer, tex, &src, &dst);
 				}
 			}
+		}
+	}
+}
+
+void SDL2GraphicsBackend::DrawCounterBar(int x, int y, Counter* counter)
+{
+	if (!counter || counter->Width <= 0 || counter->Height <= 0)
+		return;
+
+	bool isVertical = counter->DisplayType == 2;
+
+	float fillPercent = counter->MaxValue > 0
+		? static_cast<float>(counter->GetValue()) / static_cast<float>(counter->MaxValue)
+		: 0.0f;
+
+	fillPercent = SDL_clamp(fillPercent, 0.0f, 1.0f);
+
+	int fillWidth  = counter->Width;
+	int fillHeight = counter->Height;
+	int fillX = x;
+	int fillY = y;
+
+	if (isVertical) {
+		fillHeight = static_cast<int>(counter->Height * fillPercent);
+		if (counter->BarDirection == 1)
+			fillY = y + (counter->Height - fillHeight);
+	} else {
+		fillWidth = static_cast<int>(counter->Width * fillPercent);
+		if (counter->BarDirection == 1)
+			fillX = x + (counter->Width - fillWidth);
+	}
+
+	if (fillWidth <= 0 || fillHeight <= 0)
+		return;
+
+	int color1 = counter->shape.Color1;
+	int color2 = counter->shape.FillType == 2 ? counter->shape.Color2 : color1;
+
+	if (counter->BarDirection) {
+		int temp = color1;
+		color1 = color2;
+		color2 = temp;
+	}
+
+	SDL_Rect rect = { fillX, fillY, fillWidth, fillHeight };
+
+	if (counter->shape.FillType != 2) {
+		SDL_SetRenderDrawColor(
+			renderer,
+			(color1 >> 16) & 0xFF,
+			(color1 >> 8) & 0xFF,
+			color1 & 0xFF,
+			255
+		);
+		SDL_RenderFillRect(renderer, &rect);
+		return;
+	}
+
+	Uint8 r1 = (color1 >> 16) & 0xFF;
+	Uint8 g1 = (color1 >> 8) & 0xFF;
+	Uint8 b1 = color1 & 0xFF;
+
+	Uint8 r2 = (color2 >> 16) & 0xFF;
+	Uint8 g2 = (color2 >> 8) & 0xFF;
+	Uint8 b2 = color2 & 0xFF;
+
+	if (counter->shape.VerticalGradient) {
+		for (int i = 0; i < fillHeight; i++) {
+			float t = fillHeight > 1 ? static_cast<float>(i) / static_cast<float>(fillHeight - 1) : 0.0f;
+
+			SDL_SetRenderDrawColor(
+				renderer,
+				static_cast<Uint8>(r1 + (r2 - r1) * t),
+				static_cast<Uint8>(g1 + (g2 - g1) * t),
+				static_cast<Uint8>(b1 + (b2 - b1) * t),
+				255
+			);
+
+			SDL_RenderDrawLine(renderer, fillX, fillY + i, fillX + fillWidth - 1, fillY + i);
+		}
+	} else {
+		for (int i = 0; i < fillWidth; i++) {
+			float t = fillWidth > 1 ? static_cast<float>(i) / static_cast<float>(fillWidth - 1) : 0.0f;
+
+			SDL_SetRenderDrawColor(
+				renderer,
+				static_cast<Uint8>(r1 + (r2 - r1) * t),
+				static_cast<Uint8>(g1 + (g2 - g1) * t),
+				static_cast<Uint8>(b1 + (b2 - b1) * t),
+				255
+			);
+
+			SDL_RenderDrawLine(renderer, fillX + i, fillY, fillX + i, fillY + fillHeight - 1);
 		}
 	}
 }

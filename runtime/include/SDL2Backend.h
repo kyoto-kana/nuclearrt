@@ -8,10 +8,12 @@
 #include "SDL2AudioBackend.h"
 #include "SDL2InputBackend.h"
 
+#include <set>
 #include <SDL2/SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-
+#include <chrono>
+#include <thread>
 
 #ifdef PLATFORM_3DS
     #include <3ds.h>
@@ -72,10 +74,10 @@ public:
 #endif
 
 
-#ifdef PLATFORM_PS2 // audio doesnt work for some reason
+#if defined(PLATFORM_PS2) || defined(PLATFORM_VITA) // audio doesnt work for some reason
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 #else
-		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
 #endif
 			SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 			return;
@@ -96,7 +98,6 @@ public:
     		outputWidth, outputHeight,
 			SDL_WINDOW_SHOWN
 		);
-
 		SDL_Renderer* ren = SDL_CreateRenderer(
 			win,
 			-1,
@@ -106,8 +107,6 @@ public:
 			SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 		#endif
 		);
-
-
 		#ifdef PLATFORM_WII
 			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
@@ -118,8 +117,15 @@ public:
 			SDL_RenderSetLogicalSize(ren, logicalWidth, logicalHeight);
 		#endif
 
+		#ifdef __wiiu__
+			SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1");
+			SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
+			SDL_JoystickOpen(0);
+		#endif
+
 
 		auto* plt = new SDL2PlatformBackend();
+		plt->Log("Test");
 		auto* gfx = new SDL2GraphicsBackend();
 		auto* aud = new SDL2AudioBackend();
 		auto* inp = new SDL2InputBackend();
@@ -133,9 +139,16 @@ public:
 		gfx->SetWindowAndRenderer(win, ren);
 
 		// Load pak file via platform backend
-		if (!plt->GetPakFile().Load(plt->GetAssetsDirectory())) {
-			plt->Log("PakFile::Load Error: Failed to load pak directory");
-		}
+		#if defined(PLATFORM_WIIU)
+			// some platforms dont like loading from a directory?
+			if (!plt->GetPakFile().LoadFile(plt->GetAssetsDirectory() + "assets.pak")) {
+				plt->Log("PakFile::LoadFile Error: Failed to load /vol/content/assets.pak");
+			}
+		#else
+			if (!plt->GetPakFile().Load(plt->GetAssetsDirectory())) {
+				plt->Log("PakFile::Load Error: Failed to load pak directory");
+			}
+		#endif
 
 		platform = plt;
 		graphics = gfx;

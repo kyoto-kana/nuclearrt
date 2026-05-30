@@ -8,7 +8,8 @@ struct SoundInfo {
     unsigned int Handle;
     std::string Name;
     std::string Type;
-    SoundInfo(unsigned int handle, std::string name, std::string type) : Handle(handle), Name(name), Type(type) {};
+    unsigned int Flags;
+    SoundInfo(unsigned int handle, std::string name, std::string type, unsigned int flags) : Handle(handle), Name(name), Type(type), Flags(flags) {};
 };
 class SoundBank {
 public:

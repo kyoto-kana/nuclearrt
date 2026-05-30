@@ -4,6 +4,7 @@
 
 #include "InputBackend.h"
 #include <SDL2/SDL.h>
+#include <vector>
 
 class SDL2Backend;
 
@@ -13,6 +14,7 @@ public:
 
 	void GetKeyboardState(uint8_t* outBuffer) override;
 	void Initialize() override {}
+	void Update() override;
 	void Deinitialize() override {}
 	int GetMouseX() override;
 	int GetMouseY() override;
@@ -21,6 +23,10 @@ public:
 	void HideMouseCursor() override;
 	void ShowMouseCursor() override;
 
+	bool IsGamepadConnected(int index) override;
+	uint8_t GetGamepadButtonState(int index) override;
+
+	std::vector<SDL_GameController*> gamepads = {};
 private:
 	SDL2Backend* backend = nullptr;
 	int FusionToSDLKey(short key);

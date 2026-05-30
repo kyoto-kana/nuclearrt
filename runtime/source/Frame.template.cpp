@@ -9,6 +9,8 @@
 #include "MathHelper.h"
 #include "PlatformBackend.h"
 
+{{ PRELOAD_SOUND_ARRAYS }}
+
 void GeneratedFrame{{ FRAME_INDEX }}::Initialize() {
 	Frame::Initialize();
 
@@ -27,6 +29,13 @@ void GeneratedFrame{{ FRAME_INDEX }}::Initialize() {
 	{{ OBJECT_SELECTORS_INIT }}
 
 	{{ GROUP_ACTIVE }}
+
+	auto* audio = Application::Instance().GetBackend()->audio;
+	audio->SetFramePreloadedSounds(
+		PreloadedSounds,
+		PreloadedSounds[0] == -1 ? 0 :
+		sizeof(PreloadedSounds) / sizeof(PreloadedSounds[0])
+	);
 
 	Frame::PostInitialize();
 }

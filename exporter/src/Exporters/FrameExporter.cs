@@ -86,6 +86,8 @@ public class FrameExporter : BaseExporter
 		frameCpp = frameCpp.Replace("{{ EVENT_NORMAL_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, EventProcessor.EventLoopType.Normal));
 		frameCpp = frameCpp.Replace("{{ EVENT_FUNCTIONS }}", _eventProcessor.BuildEventFunctions(frameIndex));
 
+		frameCpp = frameCpp.Replace("{{ PRELOAD_SOUND_ARRAYS }}", BuildPreloadSoundArrays(frameIndex));
+
 		return frameCpp;
 	}
 
@@ -248,5 +250,42 @@ public class FrameExporter : BaseExporter
 			}
 		}
 		return groupActive.ToString();
+	}
+
+	private string BuildPreloadSoundArrays(int frameIndex)
+	{
+		var sampleNames = _eventProcessor.GetLiteralSampleNamesUsed(frameIndex);
+
+		var handles = new SortedSet<uint>();
+
+		foreach (string name in sampleNames)
+		{
+			var sound = MfaData.Sounds.Items.FirstOrDefault(s =>
+				s.Name.Replace("\0", "") == name);
+
+			if (sound == null)
+				continue;
+
+			const uint SNDF_LOADONCALL = 0x0010;
+			const uint SNDF_PLAYFROMDISK = 0x0020;
+
+			if ((sound.Flags & SNDF_LOADONCALL) != 0)
+				continue;
+
+			if ((sound.Flags & SNDF_PLAYFROMDISK) != 0)
+				continue;
+
+			handles.Add(sound.Handle);
+		}
+
+		if (handles.Count == 0)
+		{
+			return "static constexpr int PreloadedSounds[] = { -1 };\n";
+		}
+
+		return
+			"static constexpr int PreloadedSounds[] = { " +
+			string.Join(", ", handles) +
+			" };\n";
 	}
 }

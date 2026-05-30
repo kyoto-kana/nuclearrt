@@ -1,8 +1,10 @@
+using System.Drawing;
 using System.Drawing.Text;
 using CTFAK.EXE;
 using CTFAK.FileReaders;
 using CTFAK.Memory;
 using CTFAK.Utils;
+using FFMpegCore;
 
 public class PakBuilder
 {
@@ -39,46 +41,68 @@ public class PakBuilder
 		PakFile mainPak = new PakFile();
 
 		// images
-		foreach (var image in gameData.Images.Items.Values)
+		for (int i = 0; i < TextureSheetBuilder.TextureSheets.Count; i++)
 		{
-			var entry = new PakEntry { Path = $"images/{image.Handle}.png" };
-			using var imageStream = new MemoryStream();
-			// TODO: Replace this with a system that works based off the target platform's resolution and the Application's resolution, instead of hardcoding it like this.
-			float multiplier = 1f; 
-			if (multiplier < 1.0f && multiplier > 0.0f)
-			{
-				int newW = Math.Max(1, (int)(image.bitmap.Width * multiplier));
-				int newH = Math.Max(1, (int)(image.bitmap.Height * multiplier));
-				Logger.Log($"Downscaling image {image.Handle} from {image.bitmap.Width}x{image.bitmap.Width} to {newW}x{newH}");
-				using var scaled = new System.Drawing.Bitmap(image.bitmap, newW, newH);
-				scaled.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
-			}
-			else
-			{
-				image.bitmap.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
-			}
+			var entry = new PakEntry { Path = $"images/m{i:D5}.sdl_surface.lz4" };
 
-			entry.Size = (uint)imageStream.Length;
-			entry.Data = imageStream.ToArray();
-			mainPak.AddEntry(entry);
+			Bitmap sheet = TextureSheetBuilder.TextureSheets[i];
+
+			// TODO: Replace hardcoded multiplier with target platform resolution vs app resolution
+			const float multiplier = 1f;
+			int scaledWidth = (int)(sheet.Width * multiplier);
+			int scaledHeight = (int)(sheet.Height * multiplier);
+
+			Bitmap toExport = (multiplier == 1f)
+				? sheet
+				: new Bitmap(sheet, new Size(scaledWidth, scaledHeight));
+
+			try
+			{
+				// TEMPORARY: Export to PNG for debugging
+				string debugPath = $"fnafworld/images/m{i:D5}.sdl_surface.lz4.png";
+				toExport.Save(debugPath, System.Drawing.Imaging.ImageFormat.Png);
+
+				using var imageStream = new MemoryStream();
+				ImageLZ4Compressor.ExportToLZ4(toExport, imageStream, useHC: true);
+
+				entry.Size = (uint)imageStream.Length;
+				entry.Data = imageStream.ToArray();
+				mainPak.AddEntry(entry);
+			}
+			finally
+			{
+				if (multiplier != 1f) toExport.Dispose();
+			}
 		}
 
 		//collision masks
 		var collisionMasks = CollisionMaskBuilder.BuildCollisionMask(gameData);
 		foreach (var mask in collisionMasks)
 		{
-			var entry = new PakEntry { Path = $"images/masks/{mask.Handle}.bin" };
-			entry.Size = (uint)mask.Data.Length;
-			entry.Data = mask.Data;
+			var entry = new PakEntry { Path = $"images/masks/{mask.Handle}.bin.lz4" };
+			entry.Data = ImageLZ4Compressor.CompressMaskLZ4(mask.Data, mask.Width, mask.Height);
+			entry.Size = (uint)entry.Data.Length;
 			mainPak.AddEntry(entry);
 		}
 
 		//sounds
 		foreach (var sound in mfaData.Sounds.Items)
 		{
-			var entry = new PakEntry { Path = $"sounds/{sound.Handle}.{GetAudioExtension(sound.Data[0..4])}" };
-			entry.Size = (uint)sound.Data.Length;
-			entry.Data = sound.Data;
+			byte[] oggData;
+			string ext = GetAudioExtension(sound.Data[0..4]);
+
+			if (ext == "ogg")
+			{
+				oggData = sound.Data;
+			}
+			else
+			{
+				oggData = ConvertAudioToVorbis(sound.Data, (int)sound.Handle);
+			}
+
+			var entry = new PakEntry { Path = $"sounds/{sound.Handle}.ogg" };
+			entry.Size = (uint)oggData.Length;
+			entry.Data = oggData;
 			mainPak.AddEntry(entry);
 		}
 
@@ -202,6 +226,32 @@ public class PakBuilder
 			return "ogg";
 
 		return "wav";
+	}
+	private static byte[] ConvertAudioToVorbis(byte[] inputData, int handle)
+	{
+		GlobalFFOptions.Configure(options => options.BinaryFolder = @"C:\ffmpeg\bin");
+
+		string tempDir = Path.Combine(Path.GetTempPath(), "NuclearRT_AudioConvert");
+		Directory.CreateDirectory(tempDir);
+
+		string inputPath = Path.Combine(tempDir, $"{handle}_input.{GetAudioExtension(inputData[0..4])}");
+		string outputPath = Path.Combine(tempDir, $"{handle}.ogg");
+
+		File.WriteAllBytes(inputPath, inputData);
+
+		FFMpegArguments
+			.FromFileInput(inputPath)
+			.OutputToFile(outputPath, true, options => options
+				.WithAudioCodec("libvorbis")
+				.WithCustomArgument("-q:a 4"))
+			.ProcessSynchronously();
+
+		byte[] result = File.ReadAllBytes(outputPath);
+
+		File.Delete(inputPath);
+		File.Delete(outputPath);
+
+		return result;
 	}
 }
 

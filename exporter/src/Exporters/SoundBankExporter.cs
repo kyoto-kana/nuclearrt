@@ -13,7 +13,7 @@ public class SoundBankExporter : BaseExporter
 		if (MfaData.Sounds.Items.Count != 0) { soundBankData.AppendLine($"Sounds.reserve({MfaData.Sounds.Items.Count});"); }
 		foreach (var sounds in MfaData.Sounds.Items)
 		{
-			soundBankData.AppendLine($"Sounds[{sounds.Handle}] = new SoundInfo({sounds.Handle}, \"{SanitizeString(sounds.Name.Replace("\0", ""))}\", \"{PakBuilder.GetAudioExtension(sounds.Data[0..4])}\");\n");
+			soundBankData.AppendLine($"Sounds[{sounds.Handle}] = new SoundInfo({sounds.Handle}, \"{SanitizeString(sounds.Name.Replace("\0", ""))}\", \"ogg\", 0x{sounds.Flags:X});\n");
 		}
 
 		soundBank = soundBank.Replace("{{ SOUNDS }}", soundBankData.ToString());

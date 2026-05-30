@@ -4,16 +4,24 @@ public static class FileUtils
 {
 	public static void CopyFilesRecursively(string sourcePath, string targetPath)
 	{
-		// create all directories
+		Directory.CreateDirectory(targetPath);
+
 		foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
 		{
 			Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
 		}
 
-		// copy all files & replace any files with the same name
-		foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
+		foreach (string sourceFilePath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
 		{
-			SaveFile(newPath.Replace(sourcePath, targetPath), File.ReadAllText(newPath));
+			string targetFilePath = sourceFilePath.Replace(sourcePath, targetPath);
+
+			Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
+
+			if (!File.Exists(targetFilePath) ||
+				!File.ReadAllBytes(sourceFilePath).SequenceEqual(File.ReadAllBytes(targetFilePath)))
+			{
+				File.Copy(sourceFilePath, targetFilePath, true);
+			}
 		}
 	}
 

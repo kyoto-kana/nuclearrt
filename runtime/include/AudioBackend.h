@@ -1,6 +1,10 @@
 #pragma once
 
 #include <string>
+#include <unordered_set>
+#include "Application.h"
+#include "PlatformBackend.h"
+#include "AppData.h"
 
 class AudioBackend {
 public:
@@ -30,4 +34,32 @@ public:
 	virtual void SetSamplePos(int pos, int id, bool channel) {}
 	virtual void UpdateSample() {}
 	virtual bool SampleState(int id, bool channel, bool pauseOrStop) {return false;}
+
+	virtual void PreloadSample(int id) {}
+
+	virtual void UnloadPreloadedSample(int id) {}
+
+	virtual void SetFramePreloadedSounds(const int* sounds, int count)
+	{
+		std::unordered_set<int> nextSounds;
+
+		for (int i = 0; i < count; i++) {
+			nextSounds.insert(sounds[i]);
+			Application::Instance().GetBackend().get()->platform->Log("Pre-loading sound " + std::to_string(i));
+			PreloadSample(sounds[i]);
+		}
+
+		if (!Application::Instance().GetAppData()->GetSampleOverFrame()) {
+			for (int oldSound : currentFramePreloadedSounds) {
+				if (nextSounds.find(oldSound) == nextSounds.end()) {
+					UnloadPreloadedSample(oldSound);
+				}
+			}
+		}
+
+		currentFramePreloadedSounds = std::move(nextSounds);
+	}
+
+protected:
+	std::unordered_set<int> currentFramePreloadedSounds;
 }; 

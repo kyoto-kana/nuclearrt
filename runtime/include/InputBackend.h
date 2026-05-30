@@ -5,6 +5,7 @@
 class InputBackend {
 public:
 	virtual void Initialize() {}
+	virtual void Update() {}
 	virtual void Deinitialize() {}
 
 	virtual void GetKeyboardState(uint8_t* outBuffer) {}

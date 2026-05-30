@@ -7,7 +7,6 @@
 #include <fstream>
 #include <cstdint>
 #include <filesystem>
-
 struct PakEntry {
     unsigned int offset;
     unsigned int size;
@@ -17,6 +16,7 @@ struct PakEntry {
 class PakFile {
 public:
     bool Load(const std::string& directoryPath);
+    bool LoadFile(const std::string& filepath);
     std::vector<uint8_t> GetData(const std::string& filename);
     bool Exists(const std::string& filename);
 private:

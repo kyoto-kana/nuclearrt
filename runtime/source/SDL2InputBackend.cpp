@@ -3,18 +3,32 @@
 #include "SDL2InputBackend.h"
 #include "SDL2Backend.h"
 
-#if defined(__vita__)
-	#define VITA_WIDTH 960.0f
-	#define VITA_HEIGHT 544.0f
-#endif
-
 void SDL2InputBackend::GetKeyboardState(uint8_t* outBuffer) {
 	const uint8_t* state = SDL_GetKeyboardState(nullptr);
 	for (int i = 0; i < 256; i++)
 		outBuffer[i] = state[FusionToSDLKey(i)];
 }
 
+void SDL2InputBackend::Update()
+{
+    SDL_GameControllerUpdate();
+}
+
 int SDL2InputBackend::GetMouseX() {
+
+#if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
+	if (backend->GetPlatform()->touchDown) {
+		int appWidth = Application::Instance().GetAppData()->GetWindowWidth();
+
+#if defined(__wiiu__)
+		return (backend->GetPlatform()->touchX * appWidth) / 1280;
+#else
+		return backend->GetPlatform()->touchX;
+#endif
+	}
+	return 0;
+#endif
+
 	int mouseX;
 	SDL_GetMouseState(&mouseX, nullptr);
 
@@ -31,11 +45,27 @@ int SDL2InputBackend::GetMouseX() {
 }
 
 int SDL2InputBackend::GetMouseY() {
+
+#if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
+	if (backend->GetPlatform()->touchDown) {
+		int appHeight = Application::Instance().GetAppData()->GetWindowHeight();
+
+#if defined(__wiiu__)
+		return (backend->GetPlatform()->touchY * appHeight) / 720;
+#else
+		return backend->GetPlatform()->touchY;
+#endif
+	}
+	return 0;
+#endif
+
 	int mouseY;
 	SDL_GetMouseState(nullptr, &mouseY);
 
 	int windowHeight = Application::Instance().GetAppData()->GetWindowHeight();
 	
+	
+
 	int actualHeight;
 	SDL_GetWindowSize(backend->GetGraphics()->GetWindow(), nullptr, &actualHeight);
 
@@ -55,7 +85,7 @@ int SDL2InputBackend::GetMouseWheelMove() {
 }
 
 uint32_t SDL2InputBackend::GetMouseState() {
-#if defined(__SWITCH__) || defined(__vita__)
+#if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
 	if (backend->GetPlatform()->touchDown)
 		return SDL_BUTTON(SDL_BUTTON_LEFT);
 #endif
@@ -64,6 +94,55 @@ uint32_t SDL2InputBackend::GetMouseState() {
 
 void SDL2InputBackend::HideMouseCursor() { SDL_ShowCursor(SDL_DISABLE); }
 void SDL2InputBackend::ShowMouseCursor() { SDL_ShowCursor(SDL_ENABLE); }
+
+bool SDL2InputBackend::IsGamepadConnected(int index) { 
+    return index >= 0 && index < gamepads.size() && gamepads.at(index) != nullptr; 
+} 
+
+uint8_t SDL2InputBackend::GetGamepadButtonState(int index)
+{
+	uint8_t state = 0;
+
+	// Real SDL2 controller input
+	if (IsGamepadConnected(index)) {
+		Sint16 leftX = SDL_GameControllerGetAxis(gamepads.at(index), SDL_CONTROLLER_AXIS_LEFTX);
+		Sint16 leftY = SDL_GameControllerGetAxis(gamepads.at(index), SDL_CONTROLLER_AXIS_LEFTY);
+
+		if (leftY < -16384) state |= 1 << 0; // Up
+		if (leftY >  16384) state |= 1 << 1; // Down
+		if (leftX < -16384) state |= 1 << 2; // Left
+		if (leftX >  16384) state |= 1 << 3; // Right
+
+		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_A)) state |= 1 << 4; // A
+		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_B)) state |= 1 << 5; // B
+		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_X)) state |= 1 << 6; // X
+		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_Y)) state |= 1 << 7; // Y
+	}
+
+#if defined(__wiiu__) || defined(__WIIU__)
+	state = 0;
+
+    SDL_Joystick* joy = SDL_JoystickOpen(index);
+    if (joy) {
+        Sint16 leftX = SDL_JoystickGetAxis(joy, 0);
+        Sint16 leftY = SDL_JoystickGetAxis(joy, 1);
+
+        if (leftY < -16384) state |= 1 << 0; // Up
+        if (leftY >  16384) state |= 1 << 1; // Down
+        if (leftX < -16384) state |= 1 << 2; // Left
+        if (leftX >  16384) state |= 1 << 3; // Right
+
+        if (SDL_JoystickGetButton(joy, 0)) state |= 1 << 4; // A
+        if (SDL_JoystickGetButton(joy, 1)) state |= 1 << 5; // B
+        if (SDL_JoystickGetButton(joy, 2)) state |= 1 << 6; // X
+        if (SDL_JoystickGetButton(joy, 3)) state |= 1 << 7; // Y
+    }
+#endif
+
+
+	return state;
+}
+
 
 int SDL2InputBackend::FusionToSDLKey(short key) {
 	switch (key) {

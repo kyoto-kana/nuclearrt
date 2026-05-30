@@ -95,7 +95,7 @@ void SDL2AudioBackend::Initialize()
 	want.freq = 44100;
 	want.channels = 2;
 	want.format = AUDIO_F32SYS;
-	want.samples = 1024;
+	want.samples = 4096;
 	want.callback = SDL2AudioBackend::AudioCallback;
 	want.userdata = this;
 
@@ -143,6 +143,14 @@ void SDL2AudioBackend::Deinitialize()
 			ch.name.clear();
 		}
 	}
+
+	for (auto& [id, sample] : sampleCache) {
+		if (sample.data) {
+			SDL_free(sample.data);
+			sample.data = nullptr;
+		}
+	}
+	sampleCache.clear();
 
 	if (audio_device) {
 		SDL_PauseAudioDevice(audio_device, 1);
@@ -202,6 +210,27 @@ bool SDL2AudioBackend::LoadSample(int id, int channel)
 		soundInfo,
 		data
 	);
+}
+
+static bool CopyCachedSampleToChannel(const CachedSample& sample, Channel& ch)
+{
+	if (ch.data) {
+		SDL_free(ch.data);
+		ch.data = nullptr;
+		ch.data_len = 0;
+	}
+
+	ch.data = static_cast<Uint8*>(SDL_malloc(sample.data_len));
+	if (!ch.data)
+		return false;
+
+	SDL_memcpy(ch.data, sample.data, sample.data_len);
+	ch.data_len = sample.data_len;
+	ch.spec = sample.spec;
+	ch.name = sample.name;
+	ch.streaming = false;
+
+	return true;
 }
 
 bool SDL2AudioBackend::LoadSampleFromMemory(
@@ -490,11 +519,11 @@ bool SDL2AudioBackend::ShouldStreamSample(int id, SoundInfo* soundInfo, size_t p
 
 		return packedSize >= 512 * 1024;
 	}
-
+/*
 	if (soundInfo->Type == "wav") {
 		return packedSize >= 1024 * 1024;
 	}
-
+*/
 	return false;
 }
 
@@ -528,8 +557,27 @@ void SDL2AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 	ch.loop = loops <= 0;
 	ch.loopsRemaining = ch.loop ? -1 : loops;
 
-	if (!LoadSample(id, channel))
-		return;
+	auto cached = sampleCache.find(id);
+	if (cached != sampleCache.end()) {
+		if (!CopyCachedSampleToChannel(cached->second, ch))
+			return;
+
+		ch.stream = SDL_NewAudioStream(
+			ch.spec.format,
+			ch.spec.channels,
+			ch.spec.freq,
+			spec.format,
+			spec.channels,
+			spec.freq
+		);
+
+		if (!ch.stream)
+			return;
+	}
+	else {
+		if (!LoadSample(id, channel))
+			return;
+	}
 
 	ch.position = 0;
 	ch.pause = false;
@@ -1057,5 +1105,91 @@ void SDL2AudioBackend::UpdateSample()
 		}
 	}
 }
+void SDL2AudioBackend::PreloadSample(int id)
+{
+	if (id < 0)
+		return;
+
+	if (sampleCache.find(id) != sampleCache.end())
+		return;
+
+	SoundInfo* soundInfo = SoundBank::Instance().GetSound(id);
+	if (!soundInfo)
+		return;
+
+	std::vector<uint8_t> data =
+		backend->platform->GetPakFile().GetData(
+			"sounds/" + std::to_string(id) + "." + soundInfo->Type
+		);
+
+	if (data.empty())
+		return;
+
+	// Do not preload things your current backend wants to stream.
+	if (ShouldStreamSample(id, soundInfo, data.size(), 1))
+		return;
+
+	Channel temp{};
+
+	AudioDeviceLock lock(audio_device);
+
+	if (!LoadSampleFromMemory(id, 0, soundInfo, data))
+		return;
+
+	Channel& decoded = channels[0];
+
+	CachedSample cached;
+	cached.data_len = decoded.data_len;
+	cached.spec = decoded.spec;
+	cached.name = decoded.name;
+
+	cached.data = static_cast<Uint8*>(SDL_malloc(cached.data_len));
+	if (!cached.data) {
+		if (decoded.stream) {
+			SDL_AudioStreamClear(decoded.stream);
+			SDL_FreeAudioStream(decoded.stream);
+			decoded.stream = nullptr;
+		}
+		if (decoded.data) {
+			SDL_free(decoded.data);
+			decoded.data = nullptr;
+			decoded.data_len = 0;
+		}
+		return;
+	}
+
+	SDL_memcpy(cached.data, decoded.data, cached.data_len);
+
+	if (decoded.stream) {
+		SDL_AudioStreamClear(decoded.stream);
+		SDL_FreeAudioStream(decoded.stream);
+		decoded.stream = nullptr;
+	}
+
+	if (decoded.data) {
+		SDL_free(decoded.data);
+		decoded.data = nullptr;
+		decoded.data_len = 0;
+	}
+
+	sampleCache.emplace(id, cached);
+}
+
+void SDL2AudioBackend::UnloadPreloadedSample(int id)
+{
+	AudioDeviceLock lock(audio_device);
+
+	auto it = sampleCache.find(id);
+	if (it == sampleCache.end())
+		return;
+
+	if (it->second.data) {
+		SDL_free(it->second.data);
+		it->second.data = nullptr;
+	}
+
+	sampleCache.erase(it);
+}
+
 
 #endif

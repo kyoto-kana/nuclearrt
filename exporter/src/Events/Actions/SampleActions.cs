@@ -87,6 +87,16 @@ public class PlayAndLoopSample : ActionBase
 		return result.ToString();
 	}
 }
+public class StopSample : ActionBase
+{
+	public override int[] ObjectType { get; set; } = [-2];
+	public override int Num { get; set; } = 6;
+	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
+	{
+
+		return $"Application::Instance().GetBackend()->audio->StopSample({CheckType.Check(eventBase)}, false);\n";
+	}
+}
 public class StopAnySample : ActionBase
 {
 	public override int[] ObjectType { get; set; } = [-2];

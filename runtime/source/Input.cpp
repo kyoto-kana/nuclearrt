@@ -7,6 +7,8 @@
 
 void Input::Update()
 {
+	Application::Instance().GetBackend()->input->Update();
+	
 	m_currIndex ^= 1;
 	Application::Instance().GetBackend()->input->GetKeyboardState(m_keyboardState[m_currIndex]);
 
@@ -37,27 +39,112 @@ void Input::Reset()
 
 bool Input::IsKeyDown(short key)
 {
+#if defined(__wiiu__) || defined(__WIIU__)
+	uint8_t gp = m_gamepadState[m_currIndex][0];
+
+	switch (key) {
+		case 0x57: // W
+		case 0x26: // Up arrow
+			if (gp & (1 << 0)) return true;
+			break;
+
+		case 0x53: // S
+		case 0x28: // Down arrow
+			if (gp & (1 << 1)) return true;
+			break;
+
+		case 0x41: // A
+		case 0x25: // Left arrow
+			if (gp & (1 << 2)) return true;
+			break;
+
+		case 0x44: // D
+		case 0x27: // Right arrow
+			if (gp & (1 << 3)) return true;
+			break;
+
+		case 0x58: // X / Enter -> A
+		case 0x0D:
+			if (gp & (1 << 4)) return true;
+			break;
+
+		case 0x5A: // Z -> B
+			if (gp & (1 << 5)) return true;
+			break;
+
+		case 0x09: // Tab -> X
+			if (gp & (1 << 6)) return true;
+			break;
+
+		case 0x52: // R -> Y
+			if (gp & (1 << 7)) return true;
+			break;
+	}
+#endif
+
 	return m_keyboardState[m_currIndex][key] == 1;
 }
 
 bool Input::IsKeyPressed(short key)
 {
+#if defined(__wiiu__) || defined(__WIIU__)
+	auto IsKeyDownAt = [&](int index) -> bool {
+		uint8_t gp = m_gamepadState[index][0];
+
+		switch (key) {
+			case 0x57:
+			case 0x26: return (gp & (1 << 0)) != 0;
+			case 0x53:
+			case 0x28: return (gp & (1 << 1)) != 0;
+			case 0x41:
+			case 0x25: return (gp & (1 << 2)) != 0;
+			case 0x44:
+			case 0x27: return (gp & (1 << 3)) != 0;
+			case 0x58:
+			case 0x0D: return (gp & (1 << 4)) != 0;
+			case 0x5A: return (gp & (1 << 5)) != 0;
+			case 0x09: return (gp & (1 << 6)) != 0;
+			case 0x52: return (gp & (1 << 7)) != 0;
+		}
+
+		return m_keyboardState[index][key] == 1;
+	};
+
+	return IsKeyDownAt(m_currIndex) && !IsKeyDownAt(m_currIndex ^ 1);
+#else
 	return m_keyboardState[m_currIndex][key] == 1 && m_keyboardState[m_currIndex ^ 1][key] == 0;
+#endif
 }
 
 bool Input::IsKeyReleased(short key)
 {
-	return m_keyboardState[m_currIndex][key] == 0 && m_keyboardState[m_currIndex ^ 1][key] == 1;
-}
+#if defined(__wiiu__) || defined(__WIIU__)
+	auto IsKeyDownAt = [&](int index) -> bool {
+		uint8_t gp = m_gamepadState[index][0];
 
-bool Input::IsAnyKeyPressed()
-{
-	for (int i = 0; i < 256; i++)
-	{
-		if (IsKeyPressed(i))
-			return true;
-	}
-	return false;
+		switch (key) {
+			case 0x57:
+			case 0x26: return (gp & (1 << 0)) != 0;
+			case 0x53:
+			case 0x28: return (gp & (1 << 1)) != 0;
+			case 0x41:
+			case 0x25: return (gp & (1 << 2)) != 0;
+			case 0x44:
+			case 0x27: return (gp & (1 << 3)) != 0;
+			case 0x58:
+			case 0x0D: return (gp & (1 << 4)) != 0;
+			case 0x5A: return (gp & (1 << 5)) != 0;
+			case 0x09: return (gp & (1 << 6)) != 0;
+			case 0x52: return (gp & (1 << 7)) != 0;
+		}
+
+		return m_keyboardState[index][key] == 1;
+	};
+
+	return !IsKeyDownAt(m_currIndex) && IsKeyDownAt(m_currIndex ^ 1);
+#else
+	return m_keyboardState[m_currIndex][key] == 0 && m_keyboardState[m_currIndex ^ 1][key] == 1;
+#endif
 }
 
 int Input::GetControlType(int player)

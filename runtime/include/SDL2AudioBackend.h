@@ -59,6 +59,13 @@ typedef struct Channel {
 	std::vector<int16_t> decodeBuffer;
 } Channel;
 
+typedef struct CachedSample {
+	Uint8* data = nullptr;
+	Uint32 data_len = 0;
+	SDL_AudioSpec spec{};
+	std::string name = "";
+} CachedSample;
+
 class SDL2Backend;
 
 class SDL2AudioBackend : public AudioBackend {
@@ -111,6 +118,8 @@ public:
 	void SetSamplePos(int pos, int id, bool channel) override;
 	void StopSample(int id, bool channel) override;
 	
+	void PreloadSample(int id) override;
+	void UnloadPreloadedSample(int id) override;
 
 	SDL_AudioSpec spec;
 	SDL2Backend* backend = nullptr;
@@ -119,8 +128,8 @@ private:
 	float mainVol = 100.0f;
 	float mainPan = 0.0f;
 	Channel channels[49]; // 48 will be the last element.
-
 	std::unordered_map<std::string, SampleFile> sampleFiles;
+	std::unordered_map<int, CachedSample> sampleCache;
 	bool sampleFocusGainApplied = false;
 	bool lastWindowFocused = true;
 

@@ -511,24 +511,9 @@ ObjectInstance* Frame::CreateInstance(
 		std::vector<unsigned int> texturesToLoad =
 			createdInstance->GetImagesUsed();
 
-		backend->platform->Log(
-			"CreateInstance: texturesToLoad count=" +
-			std::to_string(texturesToLoad.size())
-		);
-
 		for (unsigned int textureId : texturesToLoad)
 		{
-			backend->platform->Log(
-				"CreateInstance: Loading texture " +
-				std::to_string(textureId)
-			);
-
 			backend->graphics->LoadTexture(textureId);
-
-			backend->platform->Log(
-				"CreateInstance: Loaded texture " +
-				std::to_string(textureId)
-			);
 		}
 	}
 	else

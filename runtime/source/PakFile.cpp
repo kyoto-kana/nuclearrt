@@ -18,7 +18,6 @@ static uint32_t SwapBytes32(uint32_t val) {
 #endif
 }
 
-
 bool PakFile::Load(const std::string& directoryPath) {
 	pakStreams.clear();
 	entries.clear();
@@ -26,6 +25,7 @@ bool PakFile::Load(const std::string& directoryPath) {
 	const std::filesystem::path dir(directoryPath);
 	std::vector<std::filesystem::path> pakPaths;
 	std::error_code ec;
+
 	if (std::filesystem::is_directory(dir, ec)) {
 		for (const std::filesystem::directory_entry& ent :
 			 std::filesystem::directory_iterator(dir, ec)) {
@@ -33,18 +33,31 @@ bool PakFile::Load(const std::string& directoryPath) {
 				break;
 			if (!ent.is_regular_file(ec))
 				continue;
+
 			const std::filesystem::path& p = ent.path();
 			if (HasPakExtension(p))
 				pakPaths.push_back(p);
 		}
 	}
+
 	std::sort(pakPaths.begin(), pakPaths.end());
 
 	bool loadedAnyPak = false;
 	for (const std::filesystem::path& p : pakPaths) {
-		if (AppendPak(p)) loadedAnyPak = true;
+		if (AppendPak(p))
+			loadedAnyPak = true;
 	}
+
 	return loadedAnyPak;
+}
+
+
+bool PakFile::LoadFile(const std::string& filepath)
+{
+	pakStreams.clear();
+	entries.clear();
+
+	return AppendPak(std::filesystem::path(filepath));
 }
 
 bool PakFile::AppendPak(const std::filesystem::path& filepath) {
@@ -145,11 +158,13 @@ std::vector<uint8_t> PakFile::GetData(const std::string& filename) {
 		return {};
 
 	std::ifstream& stream = pakStreams[entry.streamIndex];
+
 	stream.clear();
 	stream.seekg(entry.offset);
 
 	std::vector<uint8_t> data(entry.size);
 	stream.read(reinterpret_cast<char*>(data.data()), entry.size);
+
 	return data;
 }
 

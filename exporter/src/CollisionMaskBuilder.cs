@@ -9,6 +9,8 @@ public class CollisionMaskBuilder
 	public struct CollisionMask
 	{
 		public int Handle;
+		public int Width;
+		public int Height;
 		public byte[] Data;
 	}
 

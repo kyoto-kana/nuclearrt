@@ -233,6 +233,25 @@ else()
 
 endif()
 
+
+# =========================================================
+# LZ4
+# =========================================================
+
+set(LZ4_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/lz4")
+
+set(LZ4_SOURCES
+    ${LZ4_PATH}/lz4.c
+    ${LZ4_PATH}/lz4file.c
+    ${LZ4_PATH}/lz4frame.c
+    ${LZ4_PATH}/lz4hc.c
+    ${LZ4_PATH}/xxhash.c
+)
+
+include_directories(
+    ${LZ4_PATH}
+)
+
 # =========================================================
 # INCLUDE DIRECTORIES
 # =========================================================
@@ -265,6 +284,7 @@ if(APPLE AND NOT EMSCRIPTEN)
         ${SOURCES}
         ${HEADERS}
         ${IMGUI_SOURCES}
+        ${LZ4_SOURCES}
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -285,6 +305,7 @@ else()
         ${SOURCES}
         ${HEADERS}
         ${IMGUI_SOURCES}
+        ${LZ4_SOURCES}
     )
 
 endif()
