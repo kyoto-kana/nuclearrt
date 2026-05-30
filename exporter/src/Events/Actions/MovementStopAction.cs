@@ -18,8 +18,6 @@ public class MovementStopAction : ActionBase
 		result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, IsGlobal)}*)instance)->movements.GetCurrentMovement()->Stop();");
 		result.AppendLine("}");
 
-		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo)}->Count() == 0) goto {nextLabel};");
-
 		return result.ToString();
 	}
 }
