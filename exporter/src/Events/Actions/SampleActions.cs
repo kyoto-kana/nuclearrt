@@ -109,6 +109,17 @@ public class StopAnySample : ActionBase
 		return "Application::Instance().GetBackend()->audio->StopSample(-1, false);\n";
 	}
 }
+
+public class StopChannel : ActionBase
+{
+	public override int[] ObjectType { get; set; } = [-2];
+	public override int Num { get; set; } = 15;
+	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
+	{
+		return $"Application::Instance().GetBackend()->audio->StopSample({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, true);\n";
+	}
+}
+
 public class PlayAndLoopSampleAtChannel : ActionBase
 {
 	public override int[] ObjectType { get; set; } = [-2];
