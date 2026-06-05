@@ -69,14 +69,14 @@ public class IniPlusPlusExporter : ExtensionExporter
 				break;
 			// case 2:
 			//     return CurrentGroupCompareHashedItem(cnd);
-			case 3:
-				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->GroupItemExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)})) goto {nextLabel};");
-				break;
+			// case 3:?
+			//     return GroupCompareHashedItem(cnd);
 			case 4:
 				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->GroupExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)})) goto {nextLabel};");
 				break;
-			// case 5:
-			//     return GroupCompareHashedItem(cnd);
+			case 5:
+				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->GroupItemExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)})) goto {nextLabel};");
+				break;
 			// case 18:
 			//     return HasUndo();
 			// case 19:
