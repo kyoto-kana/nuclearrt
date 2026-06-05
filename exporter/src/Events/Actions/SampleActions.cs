@@ -43,7 +43,7 @@ public class CheckType
 		string type;
 		string val;
 		if (eventBase.Items[0].Loader is Sample)
-			val = $"\"{((Sample)eventBase.Items[0].Loader).Name}\"";
+			return ((Sample)eventBase.Items[0].Loader).Handle.ToString();
 		else
 			val = $"{ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}"; // Supposedly the String expression that uses the name of the sample.
 		type = $"Application::Instance().GetBackend()->audio->FindSample({val})";

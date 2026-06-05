@@ -11,19 +11,19 @@ public class CompareDirectionCondition: ConditionBase
 	{
 		StringBuilder result = new();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		if (eventBase.Items[0].Loader is IntParam direction)
 		{
-			result.AppendLine($"    {ifStatement} ((({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, IsGlobal)}*)instance)->animations.IsFacingDirectionMask({direction.Value}))) it.deselect();");
+			result.AppendLine($"    {ifStatement} ((({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->animations.IsFacingDirectionMask({direction.Value}))) it.deselect();");
 		}
 		else
 		{
-			result.AppendLine($"    {ifStatement} ((({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, IsGlobal)}*)instance)->animations.IsFacingDirection({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}))) it.deselect();");
+			result.AppendLine($"    {ifStatement} ((({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->animations.IsFacingDirection({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}))) it.deselect();");
 		}
 		result.AppendLine("}");
 
-		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo)}->Count() == 0) goto {nextLabel};");
+		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}->Count() == 0) goto {nextLabel};");
 
 		return result.ToString();
 	}

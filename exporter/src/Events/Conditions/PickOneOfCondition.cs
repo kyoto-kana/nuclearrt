@@ -11,8 +11,8 @@ public class PickOneOfCondition : ConditionBase
 	{
 		StringBuilder result = new();
 
-		result.AppendLine($"{GetSelector(eventBase.ObjectInfo)}->SelectRandom();");
-		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo)}->Count() == 0) goto {nextLabel};");
+		result.AppendLine($"{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}->SelectRandom();");
+		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}->Count() == 0) goto {nextLabel};");
 
 		return result.ToString();
 	}

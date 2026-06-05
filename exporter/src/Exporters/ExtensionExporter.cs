@@ -28,7 +28,7 @@ public static class ExtensionExporterRegistry
 	public static ExtensionExporter? GetExporterByObjectInfo(int objectInfo, int frameIndex)
 	{
 		//get the object info from the frame
-		var oi = ExpressionConverter.GetObject(objectInfo, false, frameIndex);
+		var oi = ExpressionConverter.GetObject(objectInfo, frameIndex);
 
 		//get identifier from ccn
 		ObjectInfo? obj = Exporter.Instance.GameData.frameitems.GetValueOrDefault(oi.Item1);
@@ -74,9 +74,9 @@ public abstract class ExtensionExporter
 		return parameters;
 	}
 
-	protected string GetExtensionInstance(int objectInfo, bool isGlobal = false)
+	protected string GetExtensionInstance(int objectInfo, int objectType)
 	{
-		string selector = ExpressionConverter.GetSelector(objectInfo, isGlobal);
+		string selector = GetSelector(objectInfo, objectType);
 		return $"(({CppClassName}*)*({selector}->begin()))";
 	}
 
@@ -85,9 +85,9 @@ public abstract class ExtensionExporter
 		return $"(({CppClassName}*)instance)";
 	}
 
-	public string GetSelector(int objectInfo, bool isGlobal = false)
+	public string GetSelector(int objectInfo, int objectType)
 	{
-		return ExpressionConverter.GetSelector(objectInfo, isGlobal);
+		return ExpressionConverter.GetSelector(objectInfo, objectType);
 	}
 
 	public string EvaluateExpression(EventBase eventBase, int num)

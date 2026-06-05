@@ -62,18 +62,18 @@ public class IniPlusPlusExporter : ExtensionExporter
 		switch (conditionNum)
 		{
 			case 0:
-				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo)}->CurrentGroupExists()) goto {nextLabel};");
+				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->CurrentGroupExists()) goto {nextLabel};");
 				break;
 			case 1:
-				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo)}->CurrentGroupItemExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)})) goto {nextLabel};");
+				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->CurrentGroupItemExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)})) goto {nextLabel};");
 				break;
 			// case 2:
 			//     return CurrentGroupCompareHashedItem(cnd);
 			case 3:
-				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo)}->GroupItemExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)})) goto {nextLabel};");
+				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->GroupItemExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)})) goto {nextLabel};");
 				break;
 			case 4:
-				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo)}->GroupExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)})) goto {nextLabel};");
+				result.AppendLine($"{ifStatement} {GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->GroupExists({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)})) goto {nextLabel};");
 				break;
 			// case 5:
 			//     return GroupCompareHashedItem(cnd);
@@ -97,13 +97,13 @@ public class IniPlusPlusExporter : ExtensionExporter
 		switch (actionNum)
 		{
 			case 0:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetCurrentGroup({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetCurrentGroup({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
 			case 1:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetCurrentGroupItemValue({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetCurrentGroupItemValue({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)});");
 				break;
 			case 2:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetCurrentGroupItemString({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetCurrentGroupItemString({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
 				break;
 			// case 3:
 			// 	SetCurrentGroupItemStringHashed(act);
@@ -124,10 +124,10 @@ public class IniPlusPlusExporter : ExtensionExporter
 			// 	LoadGlobalValsInCurrentGroup();
 			// 	break;
 			case 9:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->DeleteCurrentGroup();");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->DeleteCurrentGroup();");
 				break;
 			case 10:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->DeleteCurrentGroupItem({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->DeleteCurrentGroupItem({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
 			// case 11:
 			// 	RenameCurrentGroup(act);
@@ -139,10 +139,10 @@ public class IniPlusPlusExporter : ExtensionExporter
 			// 	MoveItemFromCurrentGroup(act);
 			// 	break;
 			case 14:
-			 	result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetItemValue({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[3].Loader, eventBase)});");
+			 	result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetItemValue({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[3].Loader, eventBase)});");
 			 	break;
 			case 15:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetItemString({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetItemString({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)});");
 			 	break;
 			// case 16:
 			// 	SetItemStringHashed(act);
@@ -181,10 +181,10 @@ public class IniPlusPlusExporter : ExtensionExporter
 			// 	CopyItem(act);
 			// 	break;
 			case 28:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->DeleteGroup({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->DeleteGroup({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
 			case 29:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->DeleteGroupItem({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->DeleteGroupItem({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
 				break;
 			// case 30:
 			// 	DeleteMassItem(act);
@@ -193,10 +193,10 @@ public class IniPlusPlusExporter : ExtensionExporter
 			// 	DeleteWithPatterns(act);
 			// 	break;
 			case 32:
-			 	result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->ClearINI();");
+			 	result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->ClearINI();");
 			 	break;
 			case 44:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->Save();");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->Save();");
 				break;
 			// case 79:
 			// 	Undo();
@@ -219,10 +219,10 @@ public class IniPlusPlusExporter : ExtensionExporter
 		switch (expression.Num)
 		{
 			case 0:
-				result = $"{GetExtensionInstance(expression.ObjectInfo)}->GetCurrentGroupValue(";
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetCurrentGroupValue(";
 				break;
 			case 1:
-				result = $"{GetExtensionInstance(expression.ObjectInfo)}->GetCurrentGroupString(";
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetCurrentGroupString(";
 				break;
 			// case 2:
 			// 	return Exp_GetCurrentGroupPositionX_Execute();
@@ -237,10 +237,10 @@ public class IniPlusPlusExporter : ExtensionExporter
 			// case 7:
 			// 	return Exp_GetCurrentGroupItemCount_Execute();
 			case 8:
-				result = $"{GetExtensionInstance(expression.ObjectInfo)}->GetItemValue(";
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetItemValue(";
 				break;
 			case 9:
-				result = $"{GetExtensionInstance(expression.ObjectInfo)}->GetItemString(";
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetItemString(";
 				break;
 			// case 10:
 			// 	return Exp_GetItemPositionX_Execute();

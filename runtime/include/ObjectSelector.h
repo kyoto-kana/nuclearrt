@@ -24,7 +24,7 @@ public:
 			instance->isSelected = false; 
 			if (IsQualifier) {
 				for (int i = 0; i < instance->Qualifiers.size(); i++) {
-					if (instance->Qualifiers[i] == ObjectInfoId) {
+					if (instance->Qualifiers[i] == (ObjectInfoId & 0x7FFF) && instance->Type == (ObjectInfoId >> 16)) {
 						AllSelectorObjectInstances.push_back(instance);
 						break;
 					}

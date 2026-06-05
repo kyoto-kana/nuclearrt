@@ -70,7 +70,7 @@ public class ObjectInfoExporter : BaseExporter
 
 		result.AppendLine($"ObjectInstance* ObjectFactory::CreateInstance_{SanitizeObjectName(objectInfo.name)}_{objectInfo.handle}() {{");
 
-		string objectTypeClass = ExpressionConverter.GetObjectClassName(objectInfo.handle, convertToCCN: false);
+		string objectTypeClass = ExpressionConverter.GetObjectClassName(objectInfo.handle, objectInfo.ObjectType);
 		string additionalParameters = "";
 		if (objectInfo.ObjectType >= 32)
 		{
@@ -144,7 +144,7 @@ public class ObjectInfoExporter : BaseExporter
 			{
 				if (!common._qualifiers.All(q => q == -1)) result.AppendLine($"instance->Qualifiers = {BuildQualifiers(common)};");
 
-				// afaik their isn't a way to check if the object is global in the ccn's object info ( the preference flag does not change )
+				// FIXME: afaik their isn't a way to check if the object is global in the ccn's object info ( the preference flag does not change )
 				// this is probably terrible and might lead to incorrect results, but it's the best i can do for now
 				bool isGlobal = false;
 				foreach (var frame in Exporter.Instance.MfaData.Frames)

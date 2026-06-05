@@ -36,29 +36,29 @@ public class LayerObjectExporter : ExtensionExporter
 		switch (actionNum)
 		{
 			case 12:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->XSort(false);");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->XSort(false);");
 				break;
 			case 13:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->YSort(false);");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->YSort(false);");
 				break;
 			case 14:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->XSort();");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->XSort();");
 				break;
 			case 15:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->YSort();");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->YSort();");
 				break;
 			case 26:
 				{
 					int altIndex = ((AlterableValue)eventBase.Items[0].Loader).Value;
 					string defaultValue = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase);
-					result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->AltValueSort(false, {altIndex}, {defaultValue});");
+					result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->AltValueSort(false, {altIndex}, {defaultValue});");
 				}
 				break;
 			case 27:
 				{
 					int altIndex = ((AlterableValue)eventBase.Items[0].Loader).Value;
 					string defaultValue = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase);
-					result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->AltValueSort(true, {altIndex}, {defaultValue});");
+					result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->AltValueSort(true, {altIndex}, {defaultValue});");
 				}
 				break;
 			default:

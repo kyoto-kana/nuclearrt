@@ -93,7 +93,7 @@ DWORD WINAPI GetBuildType(int idx)
 DWORD WINAPI GetBuildOptions(int idx)
 {
 		// return BUILDEROPTION_ZIP_CHUNKS | BUILDEROPTION_SAVE_IMAGES_AS_FILES | BUILDEROPTION_SAVE_SOUNDS_AS_FILES | BUILDEROPTION_SAVE_MUSICS_AS_FILES | BUILDEROPTION_PNG_WITH_ALPHA_ALWAYS;
-    return BUILDEROPTION_ZIP_CHUNKS;
+    return BUILDEROPTION_ZIP_CHUNKS | 0x020 | 0x100; // Updated format, Allow child events
 }
 
 // Return the file filter to display in the file selector for a given build type when the user builds an application

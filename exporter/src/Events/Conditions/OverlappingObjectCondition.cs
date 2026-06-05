@@ -13,17 +13,17 @@ public class OverlappingObjectCondition : ConditionBase
 
 		if (ifStatement == "if (")
 		{
-			result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
-			result.AppendLine($"    for (ObjectIterator other(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo)}); !other.end(); ++other) {{");
+			result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+			result.AppendLine($"    for (ObjectIterator other(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !other.end(); ++other) {{");
 			result.AppendLine($"        if (IsColliding(&(**it), &(**other))) goto {nextLabel};");
 			result.AppendLine($"    }}");
 			result.AppendLine("}");
 		}
 		else
 		{
-			result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+			result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 			result.AppendLine($"    bool hasCollision = false;");
-			result.AppendLine($"    for (ObjectIterator other(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo)}); !other.end(); ++other) {{");
+			result.AppendLine($"    for (ObjectIterator other(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !other.end(); ++other) {{");
 			result.AppendLine($"        if (IsColliding(&(**it), &(**other))) {{");
 			result.AppendLine($"            hasCollision = true;");
 			result.AppendLine($"        }}");
@@ -31,9 +31,9 @@ public class OverlappingObjectCondition : ConditionBase
 			result.AppendLine($"    if (!hasCollision) it.deselect();");
 			result.AppendLine("}");
 
-			result.AppendLine($"for (ObjectIterator other(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo)}); !other.end(); ++other) {{");
+			result.AppendLine($"for (ObjectIterator other(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !other.end(); ++other) {{");
 			result.AppendLine($"    bool hasCollision = false;");
-			result.AppendLine($"    for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+			result.AppendLine($"    for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 			result.AppendLine($"        if (IsColliding(&(**it), &(**other))) {{");
 			result.AppendLine($"            hasCollision = true;");
 			result.AppendLine($"        }}");
@@ -43,7 +43,7 @@ public class OverlappingObjectCondition : ConditionBase
 		}
 
 		//If no instances are selected, we go to the end label
-		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo)}->Count() == 0) goto {nextLabel};");
+		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}->Count() == 0) goto {nextLabel};");
 
 		return result.ToString();
 	}

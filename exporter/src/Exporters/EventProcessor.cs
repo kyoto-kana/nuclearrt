@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using CTFAK.CCN.Chunks.Frame;
+using CTFAK.CCN.Chunks.Objects;
 using CTFAK.MFA;
 using CTFAK.MMFParser.EXE.Loaders.Events.Expressions;
 using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
@@ -38,9 +39,9 @@ public class EventProcessor
 	{
 		var result = new StringBuilder();
 
-		for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+		for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 			string eventName = GetEventName(evt);
 
 			for (int k = 0; k < evt.RestrictCpt; k++) //TODO: check if this is correct
@@ -90,9 +91,9 @@ public class EventProcessor
 	{
 		var result = new StringBuilder();
 
-		for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+		for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 
 			if (ShouldSkipEvent(evt)) continue;
 
@@ -109,16 +110,16 @@ public class EventProcessor
 			string nextLabel = GenerateEventNextLabel(evt, 0, numberOfOrConditions);
 			string idName = GetEventBaseName(evt);
 
-			List<Tuple<int, string>> usedSelectors = new List<Tuple<int, string>>(); // if a selector has already been reset during this event, don't reset it again
+			List<Tuple<int, int, string>> usedSelectors = new List<Tuple<int, int, string>>(); // if a selector has already been reset during this event, don't reset it again
 
 			foreach (var condition in evt.Conditions)
 			{
 				//reset any selectors used in this condition if it wasn't reset in a previous condition
-				foreach (var obj in GetRelevantObjectInfos(condition, frameIndex, evt.IsGlobal).Item2.Distinct().ToList())
+				foreach (var obj in GetRelevantObjectInfos(condition).Distinct().ToList())
 				{
-					if (usedSelectors.Any(x => x.Item1 == obj.Item1)) continue;
+					if (usedSelectors.Any(x => x.Item1 == obj.Item1 && x.Item2 == obj.Item2)) continue;
 					usedSelectors.Add(obj);
-					result.AppendLine($"{StringUtils.SanitizeObjectName(obj.Item2)}_{obj.Item1}_selector->Reset();");
+					result.AppendLine($"{StringUtils.SanitizeObjectName(obj.Item3)}_{obj.Item1}_selector->Reset();");
 				}
 
 				var acBaseTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(ConditionBase))).ToList();
@@ -150,7 +151,7 @@ public class EventProcessor
 				};
 
 				var instance = Activator.CreateInstance(acBaseType) as ConditionBase;
-				instance.IsGlobal = evt.IsGlobal;
+				//instance.IsGlobal = evt.IsGlobal;
 				string ifStatement = (condition.OtherFlags & 1) == 0 ? "if (!" : "if (";
 				result.AppendLine(instance?.Build(condition, ref nextLabel, ref orConditionIndex, parameters, ifStatement));
 			}
@@ -168,11 +169,11 @@ public class EventProcessor
 			foreach (var action in evt.Actions)
 			{
 				//reset any selectors used in this action if it wasn't reset in a previous action
-				foreach (var obj in GetRelevantObjectInfos(action, frameIndex, evt.IsGlobal).Item2.Distinct().ToList())
+				foreach (var obj in GetRelevantObjectInfos(action).Distinct().ToList())
 				{
-					if (usedSelectors.Any(x => x.Item1 == obj.Item1)) continue;
+					if (usedSelectors.Any(x => x.Item1 == obj.Item1 && x.Item2 == obj.Item2)) continue;
 					usedSelectors.Add(obj);
-					result.AppendLine($"{StringUtils.SanitizeObjectName(obj.Item2)}_{obj.Item1}_selector->Reset();");
+					result.AppendLine($"{StringUtils.SanitizeObjectName(obj.Item3)}_{obj.Item1}_selector->Reset();");
 				}
 
 				var acBaseTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(ActionBase))).ToList();
@@ -202,7 +203,7 @@ public class EventProcessor
 				};
 
 				var instance = Activator.CreateInstance(acBaseType) as ActionBase;
-				instance.IsGlobal = evt.IsGlobal;
+				//instance.IsGlobal = evt.IsGlobal;
 				result.AppendLine(instance?.Build(action, ref nextLabel, ref orConditionIndex, parameters, ""));
 			}
 
@@ -223,9 +224,9 @@ public class EventProcessor
 		{
 			result.AppendLine($"void GeneratedFrame{frameIndex}::OnLoop(const std::string& loopName)");
 			result.AppendLine("{");
-			for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+			for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 			{
-				var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+				var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 				if (ShouldSkipEvent(evt)) continue;
 
 				foreach (var condition in evt.Conditions)
@@ -243,36 +244,35 @@ public class EventProcessor
 		return result.ToString();
 	}
 
-	public static List<Tuple<int, string>> GetRelevantObjectInfos(EventGroup eventGroup)
+	public static List<Tuple<int, int, string>> GetRelevantObjectInfos(EventGroup eventGroup)
 	{
-		List<Tuple<int, string>> relevantObjectInfos = new List<Tuple<int, string>>();
+		List<Tuple<int, int, string>> relevantObjectInfos = [];
 
 		foreach (var condition in eventGroup.Conditions)
 		{
-			relevantObjectInfos.AddRange(GetRelevantObjectInfos(condition, Exporter.Instance.CurrentFrame, eventGroup.IsGlobal).Item2);
+			relevantObjectInfos.AddRange(GetRelevantObjectInfos(condition));
 		}
 
 		foreach (var action in eventGroup.Actions)
 		{
-			relevantObjectInfos.AddRange(GetRelevantObjectInfos(action, Exporter.Instance.CurrentFrame, eventGroup.IsGlobal).Item2);
+			relevantObjectInfos.AddRange(GetRelevantObjectInfos(action));
 		}
 
 		return relevantObjectInfos.Distinct().ToList();
 	}
 
 	//TODO: this is a mess
-	//returns expected number of OIs and a list of all OIs used in this event condition or action
-	public static Tuple<int, List<Tuple<int, string>>> GetRelevantObjectInfos(EventBase eventBase, int frameIndex, bool isGlobal = false)
+	//returns list of all OIs used in this event condition or action
+	public static List<Tuple<int, int, string>> GetRelevantObjectInfos(EventBase eventBase)
 	{
-		int count = 0;
-		List<Tuple<int, string>> relevantObjectInfos = new List<Tuple<int, string>>();
+		List<Tuple<int, int, string>> relevantObjectInfos = [];
 
-		List<int> objectInfos = new List<int>();
+		//object info, object type
+		List<Tuple<int, int>> objectInfos = [];
 
 		if (eventBase.ObjectType > 0)
 		{
-			objectInfos.Add(eventBase.ObjectInfo);
-			count++;
+			objectInfos.Add(new Tuple<int, int>(eventBase.ObjectInfo, eventBase.ObjectType));
 		}
 
 		foreach (var expression in eventBase.Items)
@@ -283,8 +283,7 @@ public class EventProcessor
 				{
 					if (exp.ObjectType > 0)
 					{
-						objectInfos.Add(exp.ObjectInfo);
-						count++;
+						objectInfos.Add(new Tuple<int, int>(exp.ObjectInfo, exp.ObjectType));
 					}
 				}
 			}
@@ -292,88 +291,50 @@ public class EventProcessor
 			{
 				if ((expression.Loader as Position).ObjectInfoParent != ushort.MaxValue)
 				{
-					objectInfos.Add((int)(expression.Loader as Position).ObjectInfoParent);
-					count++;
+					objectInfos.Add(new Tuple<int, int>((int)(expression.Loader as Position).ObjectInfoParent, (expression.Loader as Position).TypeParent));
 				}
 			}
 			else if (expression.Loader is ParamObject)
 			{
-				objectInfos.Add((expression.Loader as ParamObject).ObjectInfo);
-				count++;
+				objectInfos.Add(new Tuple<int, int>((expression.Loader as ParamObject).ObjectInfo, (expression.Loader as ParamObject).ObjectType));
 			}
 			else if (expression.Loader is Create)
 			{
-				objectInfos.Add((expression.Loader as Create).ObjectInfo);
-				count++;
+				objectInfos.Add(new Tuple<int, int>((expression.Loader as Create).ObjectInfo, (expression.Loader as Create).Position.TypeParent));
 
 				if ((expression.Loader as Create).Position.ObjectInfoParent != ushort.MaxValue)
 				{
-					objectInfos.Add((int)(expression.Loader as Create).Position.ObjectInfoParent);
-					count++;
+					objectInfos.Add(new Tuple<int, int>((int)(expression.Loader as Create).Position.ObjectInfoParent, (expression.Loader as Create).Position.TypeParent));
 				}
 			}
 			else if (expression.Loader is Shoot)
 			{
-				objectInfos.Add((expression.Loader as Shoot).ObjectInfo);
-				count++;
+				objectInfos.Add(new Tuple<int, int>((expression.Loader as Shoot).ObjectInfo, (expression.Loader as Shoot).ShootPos.TypeParent));
 
 				if ((expression.Loader as Shoot).ShootPos.ObjectInfoParent != ushort.MaxValue)
 				{
-					objectInfos.Add((int)(expression.Loader as Shoot).ShootPos.ObjectInfoParent);
-					count++;
+					objectInfos.Add(new Tuple<int, int>((int)(expression.Loader as Shoot).ShootPos.ObjectInfoParent, (expression.Loader as Shoot).ShootPos.TypeParent));
 				}
 			}
 		}
 
 		foreach (var objectInfo in objectInfos)
 		{
-			List<EventObject> eventObjects = new List<EventObject>();
-			if (isGlobal)
-				eventObjects = Exporter.Instance.MfaData.GlobalEvents.Objects;
-			else
-				eventObjects = Exporter.Instance.MfaData.Frames[frameIndex].Events.Objects;
-
-			foreach (var evtObj in eventObjects)
+			if (objectInfo.Item1 > short.MaxValue) // qualifier
 			{
-				if (evtObj.Handle == objectInfo)
-				{
-					string objectName = evtObj.Name;
-					int objectType = evtObj.ObjectType;
-					int systemQualifier = evtObj.SystemQualifier;
+				string qualifierName = Utilities.GetQualifierName(objectInfo.Item1 & 0x7FFF, objectInfo.Item2);
+				relevantObjectInfos.Add(new Tuple<int, int, string>(objectInfo.Item1, objectInfo.Item2, qualifierName));
+			}
+			else
+			{
+				ObjectInfo evtObj = Exporter.Instance.GameData.frameitems[objectInfo.Item1];
+				string objectName = evtObj.name;
 
-					if (systemQualifier != 0 ||
-					(objectName == "Group.Player" && systemQualifier == 0 && evtObj.InstanceHandle == 0)) // temp fix since system qualifier returns 0 for the player group
-					{
-						string qualifierName;
-						Quailifer? ccnQualifier = Utilities.FindFrameQualifier(frameIndex, objectInfo, systemQualifier);
-						if (ccnQualifier != null)
-						{
-							qualifierName = Utilities.GetQualifierName(ccnQualifier.Qualifier, ccnQualifier.Type);
-						}
-						else
-						{
-							qualifierName = Utilities.GetQualifierName(systemQualifier, objectType - 1);
-						}
-
-						relevantObjectInfos.Add(new Tuple<int, string>(short.MaxValue + systemQualifier + 1, qualifierName));
-						break;
-					}
-
-					//Find object name in ccn frame
-					foreach (var ccnObj in Exporter.Instance.GameData.Frames[frameIndex].objects)
-					{
-						if (objectName == Exporter.Instance.GameData.frameitems[(int)ccnObj.objectInfo].name)
-						{
-							relevantObjectInfos.Add(new Tuple<int, string>(ccnObj.objectInfo, objectName));
-							break;
-						}
-					}
-					break;
-				}
+				relevantObjectInfos.Add(new Tuple<int, int, string>(objectInfo.Item1, objectInfo.Item2, objectName));
 			}
 		}
 
-		return new Tuple<int, List<Tuple<int, string>>>(count, relevantObjectInfos.Distinct().ToList());
+		return [.. relevantObjectInfos.Distinct().ToList()];
 	}
 
 
@@ -381,9 +342,9 @@ public class EventProcessor
 	{
 		var result = new StringBuilder();
 
-		for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+		for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 
 			if (ShouldSkipEvent(evt)) continue;
 
@@ -397,7 +358,7 @@ public class EventProcessor
 	{
 		List<string> loopNames = new();
 
-		foreach (var evt in _exporter.MfaData.Frames[frameIndex].Events.Items)
+		foreach (var evt in _exporter.GameData.Frames[frameIndex].events.Items)
 		{
 			string? loopName = DoesEventHaveLoop(evt);
 			if (loopName != null)
@@ -450,7 +411,7 @@ public class EventProcessor
 
 	private bool HasAnyLoopEvents(int frameIndex)
 	{
-		foreach (var evt in _exporter.MfaData.Frames[frameIndex].Events.Items)
+		foreach (var evt in _exporter.GameData.Frames[frameIndex].events.Items)
 		{
 			if (DoesEventHaveLoop(evt) != null) return true;
 		}
@@ -461,9 +422,9 @@ public class EventProcessor
 	{
 		StringBuilder result = new();
 
-		for (int i = 0; i < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; i++)
+		for (int i = 0; i < _exporter.GameData.Frames[frameIndex].events.Items.Count; i++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[i];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[i];
 			if (DoesEventHaveRunOnce(evt))
 			{
 				string idName = GetEventBaseName(evt);
@@ -488,9 +449,9 @@ public class EventProcessor
 	{
 		StringBuilder result = new();
 
-		for (int i = 0; i < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; i++)
+		for (int i = 0; i < _exporter.GameData.Frames[frameIndex].events.Items.Count; i++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[i];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[i];
 			if (DoesEventHaveOneActionLoop(evt))
 			{
 				string idName = GetEventBaseName(evt);
@@ -521,39 +482,24 @@ public class EventProcessor
 		return new AnimationOverCondition().Equals(evtGroup.Conditions[0]);
 	}
 
-	//Adds global events to the frame
 	public void PreProcessFrame(int frameIndex)
 	{
-		var frame = _exporter.MfaData.Frames[frameIndex];
+		var frame = _exporter.GameData.Frames[frameIndex];
 
-		foreach (var evt in _exporter.MfaData.GlobalEvents.Items)
-		{
-			//check if this event has an object not present in the current frame, if so, don't add the event to the frame
-			bool shouldSkipEvent = false;
-			foreach (var condition in evt.Conditions)
-			{
-				if (GetRelevantObjectInfos(condition, frameIndex, true).Item1 != GetRelevantObjectInfos(condition, frameIndex, true).Item2.Count) // some objects are not present in the current frame
-				{
-					shouldSkipEvent = true;
-					break;
-				}
-			}
-
-			if (shouldSkipEvent) continue;
-
-			evt.IsGlobal = true;
-			frame.Events.Items.Add(evt);
-		}
+		// was used for global events, probably no longer needed
 	}
+
 	// utilities
 	public static string GetEventBaseName(EventGroup evt)
 	{
-		return $"{(evt.IsGlobal ? "global_" : "")}event_{evt.Identifier}";
+		int index = Exporter.Instance.GameData.Frames[Exporter.Instance.CurrentFrame].events.Items.IndexOf(evt);
+		return $"event_{index}";
 	}
 
 	public static string GetEventName(EventGroup evt)
 	{
-		return $"{(evt.IsGlobal ? "Global_" : "")}Event_{evt.Identifier}";
+		int index = Exporter.Instance.GameData.Frames[Exporter.Instance.CurrentFrame].events.Items.IndexOf(evt);
+		return $"Event_{index}";
 	}
 
 	public static string GenerateEventNextLabel(EventGroup evt, int orConditionIndex, int totalOrs)

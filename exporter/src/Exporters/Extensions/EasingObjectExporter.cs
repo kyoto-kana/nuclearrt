@@ -43,22 +43,22 @@ public class EasingObjectExporter : ExtensionExporter
 		switch (actionNum)
 		{
 			case 0: // Move Object
-				result.AppendLine($"for (ObjectIterator it(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, isGlobal)}); !it.end(); ++it) {{");
+				result.AppendLine($"for (ObjectIterator it(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !it.end(); ++it) {{");
 				result.AppendLine($"    auto instance = *it;");
-				result.AppendLine($"	{GetExtensionInstance(eventBase.ObjectInfo)}->MoveObject(instance, {ReadEasingParam(eventBase.Items[1].Loader)}, {EvaluateExpression(eventBase, 2)}, {EvaluateExpression(eventBase, 3)}, {ReadTimeModeParam(eventBase.Items[4].Loader)}, {EvaluateExpression(eventBase, 5)});");
+				result.AppendLine($"	{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->MoveObject(instance, {ReadEasingParam(eventBase.Items[1].Loader)}, {EvaluateExpression(eventBase, 2)}, {EvaluateExpression(eventBase, 3)}, {ReadTimeModeParam(eventBase.Items[4].Loader)}, {EvaluateExpression(eventBase, 5)});");
 				result.AppendLine("}");
 				break;
 			case 4: // Set Overshoot
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetOvershoot({EvaluateExpression(eventBase, 0)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetOvershoot({EvaluateExpression(eventBase, 0)});");
 				break;
 			case 5: // Set Amplitude
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetAmplitude({EvaluateExpression(eventBase, 0)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetAmplitude({EvaluateExpression(eventBase, 0)});");
 				break;
 			case 6: // Set Period
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetPeriod({EvaluateExpression(eventBase, 0)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetPeriod({EvaluateExpression(eventBase, 0)});");
 				break;
 			case 10: // Move Object Explicit
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->MoveObjectExplicit({EvaluateExpression(eventBase, 0)}, {EvaluateExpression(eventBase, 1)}, {EvaluateExpression(eventBase, 2)}, {EvaluateExpression(eventBase, 3)}, {EvaluateExpression(eventBase, 4)}, {EvaluateExpression(eventBase, 5)}, {EvaluateExpression(eventBase, 6)}, {EvaluateExpression(eventBase, 7)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->MoveObjectExplicit({EvaluateExpression(eventBase, 0)}, {EvaluateExpression(eventBase, 1)}, {EvaluateExpression(eventBase, 2)}, {EvaluateExpression(eventBase, 3)}, {EvaluateExpression(eventBase, 4)}, {EvaluateExpression(eventBase, 5)}, {EvaluateExpression(eventBase, 6)}, {EvaluateExpression(eventBase, 7)});");
 				break;
 			default:
 				result.AppendLine($"// Easing action {actionNum} not implemented");

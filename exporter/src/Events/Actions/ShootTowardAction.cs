@@ -14,18 +14,18 @@ public class ShootTowardAction : ActionBase
 
 		Shoot shoot = (Shoot)eventBase.Items[0].Loader;
 		Position position = (Position)eventBase.Items[1].Loader;
-		var objectInfo = ExpressionConverter.GetObject(shoot.ObjectInfo, IsGlobal);
+		var objectInfo = ExpressionConverter.GetObject(shoot.ObjectInfo, shoot.ShootPos.TypeParent);
 
 		result.AppendLine($"// {position.ToString()}");
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 
 		result.AppendLine($"    int targetX = {position.X};");
 		result.AppendLine($"    int targetY = {position.Y};");
 
 		if (position.ObjectInfoParent != ushort.MaxValue) // we are shooting toward an object
 		{
-			result.AppendLine($"    if ({GetSelector((int)position.ObjectInfoParent)}->Count() == 0) continue;");
-			result.AppendLine($"    auto targetInstance = {GetSelector((int)position.ObjectInfoParent)}->begin();");
+			result.AppendLine($"    if ({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->Count() == 0) continue;");
+			result.AppendLine($"    auto targetInstance = {GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->begin();");
 			if ((position.Flags & 0x2) != 0) // shoot toward actionpoint
 			{
 				result.AppendLine($"    targetX += ((Active*)*targetInstance)->GetXActionPoint();");
@@ -41,7 +41,7 @@ public class ShootTowardAction : ActionBase
 
 		result.AppendLine($"    auto instance = *it;");
 		result.AppendLine($"    ObjectInstance* newCreatedInstance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), ((Active*)instance)->GetXActionPoint(), ((Active*)instance)->GetYActionPoint(), instance->Layer, 0, {objectInfo.Item1}, 0, true, nullptr);");
-		result.AppendLine($"    {GetSelector(shoot.ObjectInfo)}->AddInstance(newCreatedInstance);");
+		result.AppendLine($"    {GetSelector(shoot.ObjectInfo, shoot.ShootPos.TypeParent)}->AddInstance(newCreatedInstance);");
 
 
 		result.AppendLine($"    int shootDirection = 0;");

@@ -204,7 +204,7 @@ public class ExpressionConverter
 
 	private static StringBuilder HandleRuntimeObjectExpr(StringBuilder stringBuilder, Expression expression, EventBase eventBase = null)
 	{
-		var objectSelector = GetSelector(expression.ObjectInfo);
+		var objectSelector = GetSelector(expression.ObjectInfo, expression.ObjectType);
 		// common expressions
 		switch (expression.Num)
 		{
@@ -266,37 +266,37 @@ public class ExpressionConverter
 			case 13: // Flag(index)
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->Flags.GetFlag(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Flags.GetFlag(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->Flags.GetFlag(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Flags.GetFlag(");
 				}
 			case 30: // AltValN(index)
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->Values.GetValue(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Values.GetValue(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->Values.GetValue(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Values.GetValue(");
 				}
 			case 31: // AltStrN$(index)
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->Strings.GetString(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Strings.GetString(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->Strings.GetString(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Strings.GetString(");
 				}
 			case 19: // AltStr (alterable string A-J by fixed index)
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->Strings.GetString({((ShortExp)expression.Loader).Value})");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Strings.GetString({((ShortExp)expression.Loader).Value})");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->Strings.GetString({((ShortExp)expression.Loader).Value}) : std::string(\"\"))");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Strings.GetString({((ShortExp)expression.Loader).Value}) : std::string(\"\"))");
 				}
 			case 16: // Alterable Value
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->Values.GetValue({((ShortExp)expression.Loader).Value})");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Values.GetValue({((ShortExp)expression.Loader).Value})");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->Values.GetValue({((ShortExp)expression.Loader).Value}) : 0)");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Values.GetValue({((ShortExp)expression.Loader).Value}) : 0)");
 				}
 			case 32: // Distance with a point
 				{
@@ -315,16 +315,16 @@ public class ExpressionConverter
 			case 40: // Object Width
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->GetWidth()");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetWidth()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->GetWidth() : 0)");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->GetWidth() : 0)");
 				}
 			case 41: // Object Height
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->GetHeight()");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetHeight()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->GetHeight() : 0)");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->GetHeight() : 0)");
 				}
 		}
 
@@ -337,7 +337,7 @@ public class ExpressionConverter
 
 			if (exporter == null)
 			{
-				ObjectCommon? common = Exporter.Instance.GameData.frameitems.GetValueOrDefault(GetObject(expression.ObjectInfo, false, Exporter.Instance.CurrentFrame).Item1)?.properties as ObjectCommon;
+				ObjectCommon? common = Exporter.Instance.GameData.frameitems.GetValueOrDefault(GetObject(expression.ObjectInfo, Exporter.Instance.CurrentFrame).Item1)?.properties as ObjectCommon;
 				Logger.Log($"Extension exporter not found for ObjectInfo {expression.ObjectInfo} ({common?.Identifier ?? ""})");
 				stringBuilder.Append($"Extension exporter not found for ObjectInfo {expression.ObjectInfo} ({common?.Identifier ?? ""}). ({expression.ObjectType}, {expression.Num})");
 				HandleUnimplemented(stringBuilder, expression, eventBase);
@@ -361,9 +361,9 @@ public class ExpressionConverter
 				case 3: // Speed (real movement speed)
 					{
 						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-							return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo)}*)instance)->movements.GetCurrentMovement()->GetRealSpeed()");
+							return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->movements.GetCurrentMovement()->GetRealSpeed()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo)}*)*({objectSelector}->begin()))->movements.GetCurrentMovement()->GetRealSpeed() : 0)");
+							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->movements.GetCurrentMovement()->GetRealSpeed() : 0)");
 					}
 				case 6: // Dir (animation direction)
 					{
@@ -580,36 +580,15 @@ public class ExpressionConverter
 		}
 	}
 
-	public static string GetSelector(int objectInfo, bool isGlobal = false)
+	public static string GetSelector(int objectInfo, int objectType)
 	{
-		var obj = GetObject(objectInfo, isGlobal);
+		var obj = GetObject(objectInfo, objectType);
 		return $"{StringUtils.SanitizeObjectName(obj.Item2)}_{obj.Item1}_selector";
 	}
 
-	public static string GetObjectClassName(int objectInfo, bool isGlobal = false, bool convertToCCN = true)
+	public static string GetObjectClassName(int objectInfo, int objectType)
 	{
-		int ObjectType = 0;
-		int ObjectInfo = 0;
-		if (convertToCCN)
-		{
-			var obj = GetObject(objectInfo, isGlobal);
-			if (obj.Item1 >= short.MaxValue)
-			{
-				ObjectType = GetQualifierType(obj.Item2);
-			}
-			else
-			{
-				ObjectType = Exporter.Instance.GameData.frameitems[obj.Item1].ObjectType;
-				ObjectInfo = obj.Item1;
-			}
-		}
-		else
-		{
-			ObjectInfo = objectInfo;
-			ObjectType = Exporter.Instance.GameData.frameitems[objectInfo].ObjectType;
-		}
-
-		switch (ObjectType)
+		switch (objectType)
 		{
 			case 0: return "QuickBackdrop";
 			case 1: return "Backdrop";
@@ -619,7 +598,7 @@ public class ExpressionConverter
 			case 6: return "Lives";
 			case 7: return "Counter";
 			case >= 32:
-				ObjectCommon common = Exporter.Instance.GameData.frameitems[ObjectInfo].properties as ObjectCommon;
+				ObjectCommon common = Exporter.Instance.GameData.frameitems[objectInfo].properties as ObjectCommon;
 				ExtensionExporter exporter = ExtensionExporterRegistry.GetExporter(common.Identifier);
 				return exporter?.CppClassName ?? "Extension";
 			default: return "ObjectInstance";
@@ -641,69 +620,23 @@ public class ExpressionConverter
 		}
 	}
 
-	public static Tuple<int, string, ObjectInstance> GetObject(int objectInfo, bool isGlobal = false, int frame = -1)
+	public static Tuple<int, string> GetObject(int objectInfo, int objectType)
 	{
-		int FrameIndex = Exporter.Instance.CurrentFrame;
-		if (frame != -1) FrameIndex = frame;
+		string objectName;
 
-		string objectName = "";
-		int objectType = 0;
-		int systemQualifier = 0;
-		ObjectInstance objectInstance = null;
-		uint instanceHandle = 0;
-
-		List<EventObject> eventObjects;
-		if (isGlobal)
+		if (objectInfo > short.MaxValue) // is qualifier
 		{
-			eventObjects = Exporter.Instance.MfaData.GlobalEvents.Objects;
+			string qualifierName = Utilities.GetQualifierName(objectInfo & 0x7FFF, objectType);
+			objectName = qualifierName;
+
 		}
 		else
 		{
-			eventObjects = Exporter.Instance.MfaData.Frames[FrameIndex].Events.Objects;
+			ObjectInfo objInfo = Exporter.Instance.GameData.frameitems[objectInfo];
+			objectName = objInfo.name;
 		}
 
-		int mfaOIHandle = objectInfo;
-		foreach (var evtObj in eventObjects)
-		{
-			if (evtObj.Handle == objectInfo)
-			{
-				mfaOIHandle = objectInfo;
-				objectName = evtObj.Name;
-				objectType = evtObj.ObjectType;
-				systemQualifier = evtObj.SystemQualifier;
-				instanceHandle = evtObj.InstanceHandle;
-
-				//Find object name in ccn frame
-				foreach (var ccnObj in Exporter.Instance.GameData.Frames[FrameIndex].objects)
-				{
-					if (objectName == Exporter.Instance.GameData.frameitems[(int)ccnObj.objectInfo].name)
-					{
-						objectInfo = ccnObj.objectInfo;
-						objectInstance = ccnObj;
-						break;
-					}
-				}
-				break;
-			}
-		}
-
-		if (systemQualifier != 0 ||
-		(objectName == "Group.Player" && systemQualifier == 0 && instanceHandle == 0)) // temp fix since system qualifier returns 0 for the player group
-		{
-			Quailifer? ccnQualifier = Utilities.FindFrameQualifier(FrameIndex, mfaOIHandle, systemQualifier);
-			if (ccnQualifier != null)
-			{
-				objectName = Utilities.GetQualifierName(ccnQualifier.Qualifier, ccnQualifier.Type);
-			}
-			else
-			{
-				objectName = Utilities.GetQualifierName(systemQualifier, objectType - 1);
-			}
-
-			objectInfo = short.MaxValue + systemQualifier + 1;
-		}
-
-		return new Tuple<int, string, ObjectInstance>(objectInfo, objectName, objectInstance);
+		return new Tuple<int, string>(objectInfo, objectName);
 	}
 }
 

@@ -11,7 +11,7 @@ public class SetMovementDirectionAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		string direction = "";
 		if (eventBase.Items[0].Loader is IntParam intParam) {
@@ -24,7 +24,7 @@ public class SetMovementDirectionAction : ActionBase
 		}
 
 		// TODO: verify this works with both int and expression parameters
-		result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, IsGlobal)}*)instance)->movements.GetCurrentMovement()->SetMovementDirection({direction});");
+		result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->movements.GetCurrentMovement()->SetMovementDirection({direction});");
 		result.AppendLine("}");
 
 		return result.ToString();

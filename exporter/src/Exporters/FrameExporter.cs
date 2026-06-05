@@ -114,7 +114,7 @@ public class FrameExporter : BaseExporter
 
 			if (ColorUtils.ColorToRGB(layer.RGBCoeff) != "0xFFFFFFFF") layers.AppendLine($"{layerName}.RGBCoefficient = {ColorToRGB(layer.RGBCoeff)};");
 			if (layer.RGBCoeff.A != 255) layers.AppendLine($"{layerName}.SetEffectParameter({Math.Clamp(byte.MaxValue - layer.RGBCoeff.A, 0, 255)});");
-			
+
 			if (layer.Flags.GetFlag("SameEffectAsPreviousLayer")) layers.AppendLine($"{layerName}.usePreviousLayerEffect = true;");
 			if (layer.Effect != 0 && layer.Effect != 4096) layers.AppendLine($"{layerName}.Effect = {layer.Effect};");
 
@@ -194,12 +194,8 @@ public class FrameExporter : BaseExporter
 		// qualifiers
 		foreach (var qualifier in frame.events.QualifiersList)
 		{
-			if (!uniqueHandles.Contains((uint)qualifier.ObjectInfo))
-			{
-				uniqueHandles.Add((uint)qualifier.ObjectInfo);
-				string objectName = Utilities.GetQualifierName(qualifier.Qualifier, qualifier.Type);
-				eventObjects.AppendLine($"std::shared_ptr<ObjectSelector> {SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector;");
-			}
+			string objectName = Utilities.GetQualifierName(qualifier.Qualifier, qualifier.Type);
+			eventObjects.AppendLine($"std::shared_ptr<ObjectSelector> {SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector;");
 		}
 
 		return eventObjects.ToString();
@@ -223,12 +219,9 @@ public class FrameExporter : BaseExporter
 		// qualifiers
 		foreach (var qualifier in frame.events.QualifiersList)
 		{
-			if (!uniqueHandles.Contains((uint)qualifier.ObjectInfo))
-			{
-				uniqueHandles.Add((uint)qualifier.ObjectInfo);
-				string objectName = Utilities.GetQualifierName(qualifier.ObjectInfo & 0x7FFF, qualifier.Type);
-				objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector = std::make_shared<ObjectSelector>(ObjectInstances, {qualifier.ObjectInfo - 32768}, true);");
-			}
+			string objectName = Utilities.GetQualifierName(qualifier.ObjectInfo & 0x7FFF, qualifier.Type);
+			uint qualifierHandle = ((uint)qualifier.ObjectInfo & 0x7FFF) | ((uint)qualifier.Type << 16);
+			objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector = std::make_shared<ObjectSelector>(ObjectInstances, {qualifierHandle}, true);");
 		}
 
 		return objectSelectorsInit.ToString();
@@ -237,9 +230,9 @@ public class FrameExporter : BaseExporter
 	private string BuildGroupActive(int frameIndex)
 	{
 		var groupActive = new StringBuilder();
-		for (int j = 0; j < MfaData.Frames[frameIndex].Events.Items.Count; j++)
+		for (int j = 0; j < GameData.Frames[frameIndex].events.Items.Count; j++)
 		{
-			var evt = MfaData.Frames[frameIndex].Events.Items[j];
+			var evt = GameData.Frames[frameIndex].events.Items[j];
 			if (evt.Conditions[0].ObjectType == -1 && evt.Conditions[0].Num == -10)
 			{
 				int groupId = (evt.Conditions[0].Items[0].Loader as Group).Id;
