@@ -18,6 +18,7 @@ public static class ExtensionExporterRegistry
 		new PerspectiveExporter(),
 		new IniPlusPlusExporter(),
 		new EasingObjectExporter(),
+		new XBOXGamepadExporter(),
 	];
 
 	public static ExtensionExporter GetExporter(string extensionName)
