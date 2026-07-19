@@ -147,6 +147,16 @@ bool Input::IsKeyReleased(short key)
 #endif
 }
 
+bool Input::IsAnyKeyPressed()
+{
+    for (int i = 0; i < 256; i++)
+    {
+        if (IsKeyPressed(i))
+            return true;
+    }
+    return false;
+}
+
 int Input::GetControlType(int player)
 {
 	return Application::Instance().GetAppData()->GetControlTypes()[player];

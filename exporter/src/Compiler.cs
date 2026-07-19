@@ -2,6 +2,25 @@ using System.Diagnostics;
 
 public class Compiler
 {
+	private static readonly string[] MsysBashCandidates = new[]
+	{
+		"C:\\msys64\\usr\\bin\\bash.exe",
+		"C:\\devkitPro\\msys2\\usr\\bin\\bash.exe"
+	};
+
+	private static string GetMsysBashPath()
+	{
+		foreach (string candidate in MsysBashCandidates)
+		{
+			if (File.Exists(candidate))
+			{
+				return candidate;
+			}
+		}
+
+		return MsysBashCandidates[0];
+	}
+
 	public void Compile(BuildType buildType, DirectoryInfo outputPath)
 	{
 		if (buildType == BuildType.SourceCode) return;
@@ -201,7 +220,7 @@ public class Compiler
 			}
 
 			ProcessStartInfo buildInfo = new ProcessStartInfo();
-			buildInfo.FileName = "C:\\msys64\\usr\\bin\\bash.exe";
+			buildInfo.FileName = GetMsysBashPath();
 			buildInfo.Arguments =
 				$"-lc \"cd '{msysPath}' && " +
 				"export DEVKITPRO=/opt/devkitpro && " +
@@ -255,7 +274,7 @@ public class Compiler
 			}
 
 			ProcessStartInfo buildInfo = new ProcessStartInfo();
-			buildInfo.FileName = "C:\\msys64\\usr\\bin\\bash.exe";
+			buildInfo.FileName = GetMsysBashPath();
 			buildInfo.Arguments =
 				$"-lc \"cd '{msysPath}' && " +
 				"export DEVKITPRO=/opt/devkitpro && " +
@@ -404,7 +423,7 @@ public class Compiler
 			}
 
 			ProcessStartInfo buildInfo = new ProcessStartInfo();
-			buildInfo.FileName = "C:\\msys64\\usr\\bin\\bash.exe";
+			buildInfo.FileName = GetMsysBashPath();
 			buildInfo.Arguments =
 				$"-lc \"cd '{msysPath}' && " +
 				"export DEVKITPRO=/opt/devkitpro && " +
