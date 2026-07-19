@@ -1,8 +1,8 @@
 TARGET = nuclearrt-runtime
 
-SOURCES = source
+SOURCES = source libs/lz4
 DATA = data
-INCLUDES = include
+INCLUDES = include libs/lz4
 
 CFILES   = $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES = $(filter-out SDL3%.cpp SDL2WiiU%.cpp,$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
