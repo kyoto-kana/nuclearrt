@@ -111,9 +111,9 @@ public class EventProcessor
 	{
 		var result = new StringBuilder();
 
-		for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
+		for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
 		{
-			var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
+			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
 
 			if (ShouldSkipEvent(evt)) continue;
 
