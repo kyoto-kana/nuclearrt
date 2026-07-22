@@ -247,14 +247,13 @@ public class FrameExporter : BaseExporter
 
 	private string BuildPreloadSoundArrays(int frameIndex)
 	{
-		var sampleNames = _eventProcessor.GetLiteralSampleNamesUsed(frameIndex);
+		var samples = _eventProcessor.GetSamplesUsed(frameIndex);
 
 		var handles = new SortedSet<uint>();
 
-		foreach (string name in sampleNames)
+		foreach (Sample sample in samples)
 		{
-			var sound = MfaData.Sounds.Items.FirstOrDefault(s =>
-				s.Name.Replace("\0", "") == name);
+			var sound = MfaData.Sounds.Items.FirstOrDefault(s =>s.Handle == sample.Handle);
 
 			if (sound == null)
 				continue;

@@ -10,8 +10,7 @@ if(NOT PLATFORM_WEB)
         ${IMGUI_PATH}/imgui_draw.cpp
         ${IMGUI_PATH}/imgui_tables.cpp
         ${IMGUI_PATH}/imgui_widgets.cpp
-        ${IMGUI_PATH}/backends/imgui_impl_sdl3.cpp
-        ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_sdl2.cpp
     )
     
     include_directories(

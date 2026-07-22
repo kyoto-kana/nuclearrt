@@ -12,6 +12,21 @@ include(cmake/platform_setup.cmake)
 
 include(FetchContent)
 
+
+set(LZ4_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/lz4")
+
+set(LZ4_SOURCES
+    ${LZ4_PATH}/lz4.c
+    ${LZ4_PATH}/lz4file.c
+    ${LZ4_PATH}/lz4frame.c
+    ${LZ4_PATH}/lz4hc.c
+    ${LZ4_PATH}/xxhash.c
+)
+
+include_directories(
+    ${LZ4_PATH}
+)
+
 function(include_dependency libName gitURL gitTag)
     FetchContent_Declare(${libName}
         GIT_REPOSITORY ${gitURL}
@@ -23,7 +38,7 @@ function(include_dependency libName gitURL gitTag)
     FetchContent_MakeAvailable(${libName})
 endfunction()
 
-include(cmake/backend_sdl3_setup.cmake)
+include(cmake/backend_sdl2_setup.cmake)
 
 include(cmake/debug.cmake)
 
@@ -48,7 +63,7 @@ if(PLATFORM_MACOS OR PLATFORM_IOS)
         XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "YES"
     )
 elseif(PLATFORM_WINDOWS)
-    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES} resources.rc)
+    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES} ${LZ4_SOURCES} resources.rc)
 else()
 
     add_executable(
@@ -85,7 +100,7 @@ endif()
 
 include(cmake/assets.cmake)
 
-include(cmake/backend_sdl3_link.cmake)
+include(cmake/backend_sdl2_link.cmake)
 
 # Install target
 if(PLATFORM_MACOS)

@@ -18,24 +18,27 @@ public class EventProcessor
 		Normal,
 	}
 
-	private readonly Dictionary<int, HashSet<string>> _literalSampleNamesByFrame = new();
+	private readonly Dictionary<int, HashSet<Sample>> _samplesByFrame = new();
 
-	public IReadOnlyCollection<string> GetLiteralSampleNamesUsed(int frameIndex)
+	public IReadOnlyCollection<Sample> GetSamplesUsed(int frameIndex)
 	{
-		return _literalSampleNamesByFrame.TryGetValue(frameIndex, out var set)
-			? set
-			: Array.Empty<string>();
+		return _samplesByFrame.TryGetValue(frameIndex, out var samples)
+			? samples
+			: Array.Empty<Sample>();
 	}
 
-	private void RegisterLiteralSampleName(int frameIndex, string name)
+	private void RegisterSample(int frameIndex, Sample sample)
 	{
-		if (!_literalSampleNamesByFrame.TryGetValue(frameIndex, out var set))
+		if (!_samplesByFrame.TryGetValue(frameIndex, out var samples))
 		{
-			set = new HashSet<string>();
-			_literalSampleNamesByFrame[frameIndex] = set;
+			samples = new HashSet<Sample>(
+				ReferenceEqualityComparer.Instance
+			);
+
+			_samplesByFrame[frameIndex] = samples;
 		}
 
-		set.Add(name.Replace("\0", ""));
+		samples.Add(sample);
 	}
 
 	public EventProcessor(Exporter exporter)
@@ -59,9 +62,9 @@ public class EventProcessor
 	{
 		var result = new StringBuilder();
 
-		for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+		for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 			string eventName = GetEventName(evt);
 
 			for (int k = 0; k < evt.RestrictCpt; k++) //TODO: check if this is correct
@@ -111,9 +114,9 @@ public class EventProcessor
 	{
 		var result = new StringBuilder();
 
-		for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+		for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 
 			if (ShouldSkipEvent(evt)) continue;
 
@@ -192,7 +195,7 @@ public class EventProcessor
 				if (SoundPreloadingHelper.IsSampleAction(action) &&
 					SoundPreloadingHelper.TryGetLiteralSample(action, out var sample))
 				{
-					RegisterLiteralSampleName(frameIndex, sample.Name);
+					RegisterSample(frameIndex, sample);
 				}
 
 				//reset any selectors used in this action if it wasn't reset in a previous action
@@ -251,9 +254,9 @@ public class EventProcessor
 		{
 			result.AppendLine($"void GeneratedFrame{frameIndex}::OnLoop(const std::string& loopName)");
 			result.AppendLine("{");
-			for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+			for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 			{
-				var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+				var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 				if (ShouldSkipEvent(evt)) continue;
 
 				foreach (var condition in evt.Conditions)
@@ -369,9 +372,9 @@ public class EventProcessor
 	{
 		var result = new StringBuilder();
 
-		for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
+		for (int j = 0; j < _exporter.GameData.Frames[frameIndex].events.Items.Count; j++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[j];
 
 			if (ShouldSkipEvent(evt)) continue;
 
@@ -385,7 +388,7 @@ public class EventProcessor
 	{
 		List<string> loopNames = new();
 
-		foreach (var evt in _exporter.MfaData.Frames[frameIndex].Events.Items)
+		foreach (var evt in _exporter.GameData.Frames[frameIndex].events.Items)
 		{
 			string? loopName = DoesEventHaveLoop(evt);
 			if (loopName != null)
@@ -438,7 +441,7 @@ public class EventProcessor
 
 	private bool HasAnyLoopEvents(int frameIndex)
 	{
-		foreach (var evt in _exporter.MfaData.Frames[frameIndex].Events.Items)
+		foreach (var evt in _exporter.GameData.Frames[frameIndex].events.Items)
 		{
 			if (DoesEventHaveLoop(evt) != null) return true;
 		}
@@ -449,9 +452,9 @@ public class EventProcessor
 	{
 		StringBuilder result = new();
 
-		for (int i = 0; i < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; i++)
+		for (int i = 0; i < _exporter.GameData.Frames[frameIndex].events.Items.Count; i++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[i];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[i];
 			if (DoesEventHaveRunOnce(evt))
 			{
 				string idName = GetEventBaseName(evt);
@@ -476,9 +479,9 @@ public class EventProcessor
 	{
 		StringBuilder result = new();
 
-		for (int i = 0; i < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; i++)
+		for (int i = 0; i < _exporter.GameData.Frames[frameIndex].events.Items.Count; i++)
 		{
-			var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[i];
+			var evt = _exporter.GameData.Frames[frameIndex].events.Items[i];
 			if (DoesEventHaveOneActionLoop(evt))
 			{
 				string idName = GetEventBaseName(evt);

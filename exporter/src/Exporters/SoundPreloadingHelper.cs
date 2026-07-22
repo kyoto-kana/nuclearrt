@@ -10,18 +10,16 @@ public static class SoundPreloadingHelper
 {
 	public static bool TryGetLiteralSample(EventBase eventBase, out Sample sample)
 	{
-		sample = null;
+        sample = null!;
 
-		if (eventBase.Items.Count == 0)
-			return false;
+        if (eventBase.Items.Count == 0)
+            return false;
 
-		if (eventBase.Items[0].Loader is Sample s)
-		{
-			sample = s;
-			return true;
-		}
+        if (eventBase.Items[0].Loader is not Sample parsedSample)
+            return false;
 
-		return false;
+        sample = parsedSample;
+        return true;
 	}
 
 	public static bool IsSampleAction(EventBase action)
