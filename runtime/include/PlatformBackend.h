@@ -85,7 +85,7 @@ public:
 
 		std::string basePath = "images/masks/" + std::to_string(imageId);
 
-		std::vector<uint8_t> data = pakFile.GetData(basePath + ".mask.lz4");
+		std::vector<uint8_t> data = pakFile.GetData(basePath + ".bin.lz4");
 
 		if (!data.empty())
 		{
