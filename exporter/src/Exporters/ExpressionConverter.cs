@@ -6,6 +6,7 @@ using CTFAK.MFA;
 using CTFAK.MMFParser.EXE.Loaders.Events.Expressions;
 using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 using CTFAK.Utils;
+using System.Globalization;
 using System.Text;
 using static CTFAK.CCN.Constants;
 
@@ -123,7 +124,7 @@ public class ExpressionConverter
 		{ (ObjectType.System, 20), _ => "StringRight(" }, // String Right
 		{ (ObjectType.System, 21), _ => "Mid(" }, // Mid
 		{ (ObjectType.System, 22), _ => "StringLength(" }, // String Length
-	  	{ (ObjectType.System, 23), e => (e.Loader as DoubleExp).FloatValue.ToString() },
+	  	{ (ObjectType.System, 23), e => (e.Loader as DoubleExp).FloatValue.ToString(CultureInfo.InvariantCulture) },
 		{ (ObjectType.System, 24), e => $"Application::Instance().GetAppData()->GetGlobalValue({GetGlobalValueIndex(e.Loader as GlobalCommon)})" }, // Global Value
 		{ (ObjectType.System, 28), _ => "std::trunc(" }, // Int
 		{ (ObjectType.System, 29), _ => "std::abs(" }, // Abs(
@@ -193,7 +194,7 @@ public class ExpressionConverter
 				ExpressionLoader loader = (ExpressionLoader)expression.Loader;
 
 				if (loader is StringExp) stringBuilder.Append($"std::string(\"{(loader as StringExp).Value}\")");
-				else if (loader is DoubleExp) stringBuilder.Append((loader as DoubleExp).FloatValue);
+				else if (loader is DoubleExp) stringBuilder.Append((loader as DoubleExp).FloatValue.ToString(CultureInfo.InvariantCulture));
 				else stringBuilder.Append(loader.Value.ToString());
 				break;
 			default:

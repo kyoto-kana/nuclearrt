@@ -164,6 +164,20 @@ bool SDL2PlatformBackend::ShouldQuit() {
 		if (event.type == SDL_QUIT) {
 			return true;
 		}
+		if (event.type == SDL_CONTROLLERDEVICEADDED) {
+			SDL_GameController* controller = SDL_GameControllerOpen(event.cdevice.which);
+			if (controller) backend->GetInput()->gamepads.push_back(controller);
+		}
+		if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
+			for (size_t i = 0; i < backend->GetInput()->gamepads.size(); i++) {
+				SDL_GameController* controller = backend->GetInput()->gamepads.at(i);
+				if (SDL_GameControllerFromInstanceID(event.cdevice.which) == controller) {
+					SDL_GameControllerClose(controller);
+					backend->GetInput()->gamepads.erase(backend->GetInput()->gamepads.begin() + i);
+					break;
+				}
+			}
+		}
 	}
 	return false;
 }

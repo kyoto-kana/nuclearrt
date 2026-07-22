@@ -11,7 +11,7 @@ void SDL2InputBackend::GetKeyboardState(uint8_t* outBuffer) {
 
 void SDL2InputBackend::Update()
 {
-    SDL_PumpEvents();
+	SDL_PumpEvents();
     SDL_GameControllerUpdate();
 }
 
@@ -109,37 +109,16 @@ uint8_t SDL2InputBackend::GetGamepadButtonState(int index)
 		Sint16 leftX = SDL_GameControllerGetAxis(gamepads.at(index), SDL_CONTROLLER_AXIS_LEFTX);
 		Sint16 leftY = SDL_GameControllerGetAxis(gamepads.at(index), SDL_CONTROLLER_AXIS_LEFTY);
 
-		if (leftY < -16384) state |= 1 << 0; // Up
-		if (leftY >  16384) state |= 1 << 1; // Down
-		if (leftX < -16384) state |= 1 << 2; // Left
-		if (leftX >  16384) state |= 1 << 3; // Right
+		if (leftY < -16384 || SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_DPAD_UP)) state |= 1 << 0; // Up
+		if (leftY >  16384 || SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_DPAD_DOWN)) state |= 1 << 1; // Down
+		if (leftX < -16384 || SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_DPAD_LEFT)) state |= 1 << 2; // Left
+		if (leftX >  16384 || SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) state |= 1 << 3; // Right
 
 		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_A)) state |= 1 << 4; // A
 		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_B)) state |= 1 << 5; // B
 		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_X)) state |= 1 << 6; // X
 		if (SDL_GameControllerGetButton(gamepads.at(index), SDL_CONTROLLER_BUTTON_Y)) state |= 1 << 7; // Y
 	}
-
-#if defined(__wiiu__) || defined(__WIIU__)
-	state = 0;
-
-    SDL_Joystick* joy = SDL_JoystickOpen(index);
-    if (joy) {
-        Sint16 leftX = SDL_JoystickGetAxis(joy, 0);
-        Sint16 leftY = SDL_JoystickGetAxis(joy, 1);
-
-        if (leftY < -16384) state |= 1 << 0; // Up
-        if (leftY >  16384) state |= 1 << 1; // Down
-        if (leftX < -16384) state |= 1 << 2; // Left
-        if (leftX >  16384) state |= 1 << 3; // Right
-
-        if (SDL_JoystickGetButton(joy, 0)) state |= 1 << 4; // A
-        if (SDL_JoystickGetButton(joy, 1)) state |= 1 << 5; // B
-        if (SDL_JoystickGetButton(joy, 2)) state |= 1 << 6; // X
-        if (SDL_JoystickGetButton(joy, 3)) state |= 1 << 7; // Y
-    }
-#endif
-
 
 	return state;
 }

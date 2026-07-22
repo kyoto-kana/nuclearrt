@@ -77,7 +77,7 @@ public:
 #if defined(PLATFORM_PS2) || defined(PLATFORM_VITA) // audio doesnt work for some reason
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 #else
-		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
+		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
 #endif
 			SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 			return;
@@ -120,7 +120,6 @@ public:
 		#ifdef __wiiu__
 			SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1");
 			SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
-			SDL_JoystickOpen(0);
 		#endif
 
 
@@ -134,6 +133,11 @@ public:
 		gfx->SetBackend(this);
 		aud->SetBackend(this);
 		inp->SetBackend(this);
+
+		#ifdef __wiiu__
+			SDL_GameController* wiiuGamepad = SDL_GameControllerOpen(0);
+			if (wiiuGamepad) inp->gamepads.push_back(wiiuGamepad);
+		#endif
 
 		// Graphics needs the window/renderer created above
 		gfx->SetWindowAndRenderer(win, ren);
