@@ -11,7 +11,7 @@ public class ForceAnimationDirectionAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		string direction = "";
 		if (eventBase.Items[0].Loader is IntParam intParam) {

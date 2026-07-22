@@ -22,7 +22,7 @@ public class OrLogicalCondition : ConditionBase
 		//TODO: check if were are only resetting actually relevant instances
 		foreach (var relevantObjectInfo in EventProcessor.GetRelevantObjectInfos(parameters["eventGroup"] as EventGroup))
 		{
-			result.AppendLine($"{StringUtils.SanitizeObjectName(relevantObjectInfo.Item2)}_{relevantObjectInfo.Item1}_selector->Reset();");
+			result.AppendLine($"{StringUtils.SanitizeObjectName(relevantObjectInfo.Item3)}_{relevantObjectInfo.Item1}_selector->Reset();");
 		}
 
 		return result.ToString();

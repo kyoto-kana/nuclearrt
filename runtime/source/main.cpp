@@ -1,3 +1,7 @@
+#if defined(PLATFORM_IOS) && defined(NUCLEAR_BACKEND_SDL3)
+#include <SDL3/SDL_main.h>
+#endif
+
 #include "Application.h"
 
 #if defined(__PSP__)

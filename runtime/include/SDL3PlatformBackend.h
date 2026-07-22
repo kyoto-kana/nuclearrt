@@ -24,6 +24,10 @@ public:
 	std::string GetPlatformName() override;
 	std::string GetAssetsDirectory() override;
 
+	std::string GetAppDrive() override;
+	std::string GetAppDirectory() override;
+	std::string GetAppPath() override;
+
 	bool IsWindowFocused() const { return windowFocused; }
 
 	void Log(std::string text) override;

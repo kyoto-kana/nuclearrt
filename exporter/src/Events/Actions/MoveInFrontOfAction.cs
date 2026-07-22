@@ -11,9 +11,11 @@ public class MoveInFrontOfAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+		ParamObject paramObject = (ParamObject)eventBase.Items[0].Loader;
+
+		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    MoveObjectInFrontOf(instance, ({ExpressionConverter.GetObject(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, IsGlobal).Item1}));");
+		result.AppendLine($"    MoveObjectInFrontOf(instance, ({ExpressionConverter.GetObject(paramObject.ObjectInfo, paramObject.ObjectType).Item1}));");
 		result.AppendLine("}");
 
 		return result.ToString();

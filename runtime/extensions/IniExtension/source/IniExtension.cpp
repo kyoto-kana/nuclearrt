@@ -8,6 +8,8 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <KnownFolders.h>
+#elif defined(PLATFORM_IOS) && defined(NUCLEAR_BACKEND_SDL3)
+#include <SDL3/SDL_filesystem.h>
 #endif
 
 void IniExtension::Initialize()
@@ -83,7 +85,7 @@ void IniExtension::SetString(const std::string& group, const std::string& item, 
 void IniExtension::SavePosition(ObjectInstance* object)
 {
 	std::string item = "pos." + object->Name;
-	ini[CurrentGroup].set(item, std::to_string(object->X) + "," + std::to_string(object->Y));
+	ini[CurrentGroup].set(item, std::to_string(object->GetX()) + "," + std::to_string(object->GetY()));
 	iniFile->write(ini);
 }
 
@@ -99,8 +101,8 @@ void IniExtension::LoadPosition(ObjectInstance* object)
 	std::string xValue = value.substr(0, value.find(','));
 	std::string yValue = value.substr(value.find(',') + 1);
 
-	object->X = std::stoi(xValue);
-	object->Y = std::stoi(yValue);
+	object->SetX(std::stoi(xValue));
+	object->SetY(std::stoi(yValue));
 }
 
 int IniExtension::GetValue()
@@ -198,6 +200,10 @@ std::filesystem::path IniExtension::GetPlatformSaveDirectory()
 	return std::filesystem::path("ux0:/data/NuclearApplications");
 #elif defined(PLATFORM_WIIU)
 	return std::filesystem::path("/vol/external01/wiiu/NuclearApplications");
+#elif defined(PLATFORM_3DS)
+	return std::filesystem::path("sdmc:/3ds/NuclearApplications");
+#elif defined(PLATFORM_IOS)
+	return std::filesystem::path(SDL_GetPrefPath("NuclearApplications", "saves"));
 #else
 	return std::filesystem::path();
 #endif

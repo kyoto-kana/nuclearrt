@@ -43,7 +43,7 @@ public class CheckType
 		string type;
 		string val;
 		if (eventBase.Items[0].Loader is Sample)
-			val = $"\"{((Sample)eventBase.Items[0].Loader).Name}\"";
+			return ((Sample)eventBase.Items[0].Loader).Handle.ToString();
 		else
 			val = $"{ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}"; // Supposedly the String expression that uses the name of the sample.
 		type = $"Application::Instance().GetBackend()->audio->FindSample({val})";
@@ -119,6 +119,17 @@ public class StopAnySample : ActionBase
 		return "Application::Instance().GetBackend()->audio->StopSample(-1, false);\n";
 	}
 }
+
+public class StopChannel : ActionBase
+{
+	public override int[] ObjectType { get; set; } = [-2];
+	public override int Num { get; set; } = 15;
+	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
+	{
+		return $"Application::Instance().GetBackend()->audio->StopSample({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, true);\n";
+	}
+}
+
 public class PlayAndLoopSampleAtChannel : ActionBase
 {
 	public override int[] ObjectType { get; set; } = [-2];

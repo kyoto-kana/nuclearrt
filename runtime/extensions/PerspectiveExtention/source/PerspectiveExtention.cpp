@@ -10,7 +10,7 @@
 #include "SDL3GraphicsBackend.h"
 #endif
 
-#ifdef __EMSCRIPTEN__
+#if defined(PLATFORM_WEB) || defined(PLATFORM_IOS)
 #define SHADER_PREFIX "#version 300 es\r\nprecision highp float;\r\n"
 #else
 #define SHADER_PREFIX "#version 330 core\r\n"
@@ -285,5 +285,5 @@ void PerspectiveExtention::UpdateShaderParameters()
 
 void PerspectiveExtention::Draw()
 {
-    Application::Instance().GetBackend()->graphics->DrawEffectRect(X, Y, width, height, 0, 0, 0, effectInstance);
+    Application::Instance().GetBackend()->graphics->DrawEffectRect(GetX(), GetY(), width, height, 0, 0, 0, effectInstance);
 }

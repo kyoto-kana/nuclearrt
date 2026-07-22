@@ -12,15 +12,15 @@ public class LookAtAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		Position position = (Position)eventBase.Items[0].Loader;
 		if (position.ObjectInfoParent == ushort.MaxValue) {
 			result.AppendLine($"    ((Active*)instance)->movements.GetCurrentMovement()->LookAtPoint({position.X}, {position.Y});");
 		}
 		else {
-			result.AppendLine($"    auto parent = *({GetSelector((int)position.ObjectInfoParent)}->begin());");
-			result.AppendLine($"    if (parent != nullptr) {{");
+			result.AppendLine($"    if ({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->Count() > 0) {{");
+			result.AppendLine($"        auto parent = *({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->begin());");
 			result.AppendLine($"        ((Active*)instance)->movements.GetCurrentMovement()->LookAtObject(parent, {position.X}, {position.Y});");
 			result.AppendLine($"    }}");
 		}

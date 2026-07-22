@@ -11,9 +11,9 @@ public class MoveBehindOfAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    MoveObjectBehindOf(instance, ({ExpressionConverter.GetObject(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, IsGlobal).Item1}));");
+		result.AppendLine($"    MoveObjectBehindOf(instance, ({ExpressionConverter.GetObject(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType).Item1}));");
 		result.AppendLine("}");
 
 		return result.ToString();

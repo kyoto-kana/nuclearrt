@@ -10,8 +10,8 @@ public class SoundBankExporter : BaseExporter
 		var soundBank = File.ReadAllText(soundBankPath);
 
 		var soundBankData = new StringBuilder();
-		if (MfaData.Sounds.Items.Count != 0) { soundBankData.AppendLine($"Sounds.reserve({MfaData.Sounds.Items.Count});"); }
-		foreach (var sounds in MfaData.Sounds.Items)
+		if (GameData.Sounds.Items.Count != 0) { soundBankData.AppendLine($"Sounds.reserve({GameData.Sounds.Items.Count});"); }
+		foreach (var sounds in GameData.Sounds.Items)
 		{
 			soundBankData.AppendLine($"Sounds[{sounds.Handle}] = new SoundInfo({sounds.Handle}, \"{SanitizeString(sounds.Name.Replace("\0", ""))}\", \"ogg\", 0x{sounds.Flags:X});\n");
 		}
