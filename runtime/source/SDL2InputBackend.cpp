@@ -11,6 +11,7 @@ void SDL2InputBackend::GetKeyboardState(uint8_t* outBuffer) {
 
 void SDL2InputBackend::Update()
 {
+    SDL_PumpEvents();
     SDL_GameControllerUpdate();
 }
 

@@ -100,7 +100,7 @@ public class PakBuilder
 				oggData = ConvertAudioToVorbis(sound.Data, (int)sound.Handle);
 			}
 
-			var entry = new PakEntry { Path = $"sounds/{sound.Handle}.ogg" };
+			var entry = new PakEntry { Path = $"sounds/{sound.Handle-1}.ogg" };
 			entry.Size = (uint)oggData.Length;
 			entry.Data = oggData;
 			mainPak.AddEntry(entry);
