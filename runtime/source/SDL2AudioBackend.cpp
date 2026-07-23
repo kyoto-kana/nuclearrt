@@ -1012,21 +1012,32 @@ int SDL2AudioBackend::GetSamplePos(int id, bool channel)
 void SDL2AudioBackend::StopSample(int id, bool channel)
 {
 	AudioDeviceLock lock(audio_device);
+	StopSampleUnlocked(id, channel);
+}
 
-	if (channel) {
-		if (id < 1 || id >= static_cast<int>(SDL_arraysize(channels)))
+void SDL2AudioBackend::StopSampleUnlocked(int id, bool channel)
+{
+	if (channel)
+	{
+		if (id < 1 ||
+			id >= static_cast<int>(SDL_arraysize(channels)))
+		{
 			return;
+		}
 
 		Channel& ch = channels[id];
 
-		if (ch.decoder) {
-			if (ch.streamType == ChannelStreamType::OggFile) {
+		if (ch.decoder)
+		{
+			if (ch.streamType == ChannelStreamType::OggFile)
+			{
 				stb_vorbis_close(
 					static_cast<stb_vorbis*>(ch.decoder)
 				);
 			}
-			else if (ch.streamType == ChannelStreamType::Mp3File) {
-				drmp3* mp3 = static_cast<drmp3*>(ch.decoder);
+			else if (ch.streamType == ChannelStreamType::Mp3File)
+			{
+				auto* mp3 = static_cast<drmp3*>(ch.decoder);
 
 				drmp3_uninit(mp3);
 				SDL_free(mp3);
@@ -1035,18 +1046,20 @@ void SDL2AudioBackend::StopSample(int id, bool channel)
 			ch.decoder = nullptr;
 		}
 
-		if (ch.stream) {
+		if (ch.stream)
+		{
 			SDL_AudioStreamClear(ch.stream);
 			SDL_FreeAudioStream(ch.stream);
-			ch.compressedStreamData.clear();
 			ch.stream = nullptr;
 		}
 
-		if (ch.data) {
+		if (ch.data)
+		{
 			SDL_free(ch.data);
 			ch.data = nullptr;
 		}
 
+		ch.compressedStreamData.clear();
 		ch.data_len = 0;
 		ch.position = 0;
 		ch.finished = false;
@@ -1060,15 +1073,18 @@ void SDL2AudioBackend::StopSample(int id, bool channel)
 		ch.decodeBuffer.clear();
 		ch.curHandle = -1;
 		ch.name.clear();
-	}
-	
-	if (!channel) {
-		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-			if (id == -1 || channels[i].curHandle == id) {
-				StopSample(i, true);
-			}
-		}
+
 		return;
+	}
+
+	for (int i = 1;
+		i < static_cast<int>(SDL_arraysize(channels));
+		++i)
+	{
+		if (id == -1 || channels[i].curHandle == id)
+		{
+			StopSampleUnlocked(i, true);
+		}
 	}
 }
 
@@ -1087,7 +1103,7 @@ void SDL2AudioBackend::UpdateSample()
 			RefillStreamingChannel(ch);
 
 			if (ch.sourceEnded && SDL_AudioStreamAvailable(ch.stream) <= 0) {
-				StopSample(i, true);
+				StopSampleUnlocked(i, true);
 			}
 
 			continue;
@@ -1097,7 +1113,7 @@ void SDL2AudioBackend::UpdateSample()
 			ch.finished = false;
 
 			if (!ch.loop) {
-				StopSample(i, true);
+				StopSampleUnlocked(i, true);
 				continue;
 			}
 

@@ -117,6 +117,7 @@ public:
 	int GetSamplePos(int id, bool channel) override;
 	void SetSamplePos(int pos, int id, bool channel) override;
 	void StopSample(int id, bool channel) override;
+	void StopSampleUnlocked(int id, bool channel);
 	
 	void PreloadSample(int id) override;
 	void UnloadPreloadedSample(int id) override;
