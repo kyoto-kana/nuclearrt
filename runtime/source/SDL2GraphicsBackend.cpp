@@ -16,6 +16,8 @@
 #include <cstring>
 #include "lz4.h"
 
+#define ENABLE_SUBPIXEL_RENDERING 1
+
 SDL_Surface* SDL2GraphicsBackend::LoadLZ4SurfaceFromMemory(const std::vector<uint8_t>& data)
 {
 	if (data.size() < sizeof(uint16_t) * 2 + sizeof(uint32_t) + sizeof(int32_t))
@@ -345,6 +347,41 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 			break;
 	}
 
+#if ENABLE_SUBPIXEL_RENDERING
+	SDL_FRect rect = {
+		x - offsetX * scaleX,
+		y - offsetY * scaleY,
+		w * scaleX,
+		h * scaleY
+	};
+
+	SDL_FPoint center = {
+		offsetX* scaleX,
+		offsetY* scaleY
+	};
+
+	if (angle == 0)
+	{
+		SDL_RenderCopyF(
+			renderer,
+			tex,
+			&src,
+			&rect
+		);
+	}
+	else
+	{
+		SDL_RenderCopyExF(
+			renderer,
+			tex,
+			&src,
+			&rect,
+			360.0 - static_cast<double>(angle),
+			&center,
+			SDL_FLIP_NONE
+		);
+	}
+#else
 	SDL_Rect rect = {
 		static_cast<int>(x - (offsetX * scaleX)),
 		static_cast<int>(y - (offsetY * scaleY)),
@@ -365,6 +402,7 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 	{
 		SDL_RenderCopyEx(renderer, tex, &src, &rect, 360 - angle, &center, SDL_FLIP_NONE);
 	}
+#endif
 
 	SDL_SetTextureColorMod(tex, origR, origG, origB);
 	SDL_SetTextureAlphaMod(tex, origA);
