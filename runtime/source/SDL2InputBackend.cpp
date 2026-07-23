@@ -18,16 +18,13 @@ void SDL2InputBackend::Update()
 int SDL2InputBackend::GetMouseX() {
 
 #if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
-	if (backend->GetPlatform()->touchDown) {
-		int appWidth = Application::Instance().GetAppData()->GetWindowWidth();
+	int appWidth = Application::Instance().GetAppData()->GetWindowWidth();
 
 #if defined(__wiiu__)
-		return (backend->GetPlatform()->touchX * appWidth) / 1280;
+	return (backend->GetPlatform()->touchX * appWidth) / 1280;
 #else
-		return backend->GetPlatform()->touchX;
+	return backend->GetPlatform()->touchX;
 #endif
-	}
-	return 0;
 #endif
 
 	int mouseX;
@@ -48,16 +45,13 @@ int SDL2InputBackend::GetMouseX() {
 int SDL2InputBackend::GetMouseY() {
 
 #if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
-	if (backend->GetPlatform()->touchDown) {
-		int appHeight = Application::Instance().GetAppData()->GetWindowHeight();
+	int appHeight = Application::Instance().GetAppData()->GetWindowHeight();
 
 #if defined(__wiiu__)
-		return (backend->GetPlatform()->touchY * appHeight) / 720;
+	return (backend->GetPlatform()->touchY * appHeight) / 720;
 #else
-		return backend->GetPlatform()->touchY;
+	return backend->GetPlatform()->touchY;
 #endif
-	}
-	return 0;
 #endif
 
 	int mouseY;
