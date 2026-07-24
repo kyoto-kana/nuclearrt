@@ -51,8 +51,12 @@ void SDLCALL SDL2AudioBackend::AudioCallback(void* userdata, Uint8* stream, int 
 	SDL_memset(stream, 0, len);
 	if (!self) return;
 
-	float* out = reinterpret_cast<float*>(stream);
-	const int frames = len / (sizeof(float) * 2);
+	const int deviceBytesPerSample = SDL_AUDIO_BITSIZE(self->spec.format) / 8;
+	const int frames = len / (deviceBytesPerSample * 2);
+	const bool deviceIsFloat = self->spec.format == AUDIO_F32SYS;
+
+	float* floatOut = reinterpret_cast<float*>(stream);
+	int16_t* s16Out = reinterpret_cast<int16_t*>(stream);
 
 	for (int i = 0; i < frames; ++i) {
 		float left = 0.0f;
@@ -83,8 +87,16 @@ void SDLCALL SDL2AudioBackend::AudioCallback(void* userdata, Uint8* stream, int 
 			right += tempData[1] * rightGain;
 		}
 
-		out[i * 2 + 0] = SDL_clamp(left, -1.0f, 1.0f);
-		out[i * 2 + 1] = SDL_clamp(right, -1.0f, 1.0f);
+		left = SDL_clamp(left, -1.0f, 1.0f);
+		right = SDL_clamp(right, -1.0f, 1.0f);
+
+		if (deviceIsFloat) {
+			floatOut[i * 2 + 0] = left;
+			floatOut[i * 2 + 1] = right;
+		} else {
+			s16Out[i * 2 + 0] = static_cast<int16_t>(left * 32767.0f);
+			s16Out[i * 2 + 1] = static_cast<int16_t>(right * 32767.0f);
+		}
 	}
 }
 
@@ -92,9 +104,17 @@ void SDLCALL SDL2AudioBackend::AudioCallback(void* userdata, Uint8* stream, int 
 void SDL2AudioBackend::Initialize()
 {
 	SDL_AudioSpec want{};
-	want.freq = 44100;
 	want.channels = 2;
+#if defined(PLATFORM_3DS)
+	want.freq = 44100;
+	want.format = AUDIO_S16SYS;
+#elif defined(PLATFORM_VITA)
+	want.freq = 48000;
+	want.format = AUDIO_S16SYS;
+#else
+	want.freq = 44100;
 	want.format = AUDIO_F32SYS;
+#endif
 	want.samples = 4096;
 	want.callback = SDL2AudioBackend::AudioCallback;
 	want.userdata = this;
@@ -329,7 +349,7 @@ bool SDL2AudioBackend::LoadSampleFromMemory(
 		ch.spec.format,
 		ch.spec.channels,
 		ch.spec.freq,
-		spec.format,
+		AUDIO_F32SYS,
 		spec.channels,
 		spec.freq
 	);
@@ -404,7 +424,7 @@ bool SDL2AudioBackend::LoadStreamingSampleFromMemory(
 		ch.spec.format,
 		ch.spec.channels,
 		ch.spec.freq,
-		spec.format,
+		AUDIO_F32SYS,
 		spec.channels,
 		spec.freq
 	);
@@ -566,7 +586,7 @@ void SDL2AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 			ch.spec.format,
 			ch.spec.channels,
 			ch.spec.freq,
-			spec.format,
+			AUDIO_F32SYS,
 			spec.channels,
 			spec.freq
 		);
@@ -686,7 +706,7 @@ void SDL2AudioBackend::PlaySampleFile(std::string path, int channel, int loops)
 		ch.spec.format,
 		ch.spec.channels,
 		ch.spec.freq,
-		spec.format,
+		AUDIO_F32SYS,
 		spec.channels,
 		spec.freq
 	);

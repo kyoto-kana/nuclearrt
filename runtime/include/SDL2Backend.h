@@ -74,8 +74,10 @@ public:
 #endif
 
 
-#if defined(PLATFORM_PS2) || defined(PLATFORM_VITA) // audio doesnt work for some reason
+#if defined(PLATFORM_PS2)
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+#elif defined(PLATFORM_VITA)
+		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 #else
 		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
 #endif
