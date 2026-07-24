@@ -11,10 +11,10 @@ Currently supported platforms:
 | Platform | Status | Notes | SDK |
 | :--- | :---: | :--- | :--- |
 | PSP | ✅ Working | Slow with large projects, but it runs well. | PSPDEV |
-| PS Vita | 🟠 Experimental | It should *work* in theory, but for some reason, the audio streaming system causes it to crash, and I'm not sure why. It's the only platform on the list to have any proper input support (touch as mouse input) however. | Vita SDK |
+| PS Vita | ✅ Working | It should *work* in theory, needs to be tested. It's the only platform on the list to have any proper input support (touch as mouse input) however. | Vita SDK |
 | Nintendo Wii | ✅ Working | The aspect ratio doesn't quite work correctly for 16:9 games, but it runs. | devkitPro |
 | Nintendo Wii U | ✅ Working | I can't remember any big errors or crashes with Wii U. | devkitPro |
-| Nintendo 3DS | 🟠 Experimental | Uses software rendering, would likely need to have a 3DS-specific renderer created for best performance. Playing sounds will crash the system. Supports the Ini Extension now (I think?).| devkitPro |
+| Nintendo 3DS | 🟠 Experimental | Uses software rendering, would likely need to have a 3DS-specific renderer created for best performance. Playing sounds works now. Supports the Ini Extension now (Need testing for Audio and Ini).| devkitPro |
 | PS2 | 🟠 Experimental | It chugs heavily with higher-resolution games. Sound doesn't work, and I'm not sure why. Also, there's an issue with SDL2, that results in the colors being blown out, it's only fixed in SDL3. | ps2dev |
 
 # 
