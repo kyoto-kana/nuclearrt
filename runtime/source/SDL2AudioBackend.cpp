@@ -104,11 +104,15 @@ void SDLCALL SDL2AudioBackend::AudioCallback(void* userdata, Uint8* stream, int 
 void SDL2AudioBackend::Initialize()
 {
 	SDL_AudioSpec want{};
-	want.freq = 44100;
 	want.channels = 2;
-#ifdef PLATFORM_3DS
+#if defined(PLATFORM_3DS)
+	want.freq = 44100;
+	want.format = AUDIO_S16SYS;
+#elif defined(PLATFORM_VITA)
+	want.freq = 48000;
 	want.format = AUDIO_S16SYS;
 #else
+	want.freq = 44100;
 	want.format = AUDIO_F32SYS;
 #endif
 	want.samples = 4096;
