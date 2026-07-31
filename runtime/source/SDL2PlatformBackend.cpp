@@ -62,6 +62,9 @@ void SDL2PlatformBackend::Deinitialize()
 
 void SDL2PlatformBackend::Log(std::string text)
 {
+#ifndef DEBUG
+    return;
+#endif
     auto now = std::chrono::system_clock::now();
 
     std::time_t nowTime = std::chrono::system_clock::to_time_t(now);

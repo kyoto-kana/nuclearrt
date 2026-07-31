@@ -20,12 +20,12 @@ CONTENT     := wuhb_content
 
 APP_VERSION := 1.0
 
-export APP_NAME      := FNaF World
-export APP_SHORTNAME := FNaF World
-export APP_AUTHOR    := Scott Cawthon
+export APP_NAME      := NuclearRT Runtime
+export APP_SHORTNAME := NuclearRT
+export APP_AUTHOR    := shishkabob
 
 # Icon and splash exports — wut_rules looks for APP_ICON, APP_TV_SPLASH, APP_DRC_SPLASH
-export APP_ICON      := $(TOPDIR)/icon.png
+export APP_ICON      := $(TOPDIR)/icons/raw/256.png
 export APP_TV_SPLASH := $(TOPDIR)/bootTvTex.png
 export APP_DRC_SPLASH := $(TOPDIR)/bootDrcTex.png
 
