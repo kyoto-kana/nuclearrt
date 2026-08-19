@@ -624,7 +624,9 @@ void SDL2AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 		ch.loop = loops <= 0;
 		ch.loopsRemaining = ch.loop ? -1 : loops;
 
-		for (int i = 0; i < 4; ++i)
+		lock.Unlock();
+
+		for (int i = 0; i < 2; ++i)
 			RefillStreamingChannel(ch);
 	}
 
@@ -719,59 +721,148 @@ void SDL2AudioBackend::PlaySampleFile(std::string path, int channel, int loops)
 
 	ch.decodeBuffer.resize(8192 * ch.spec.channels);
 
+	lock.Unlock();
+
 	// Prebuffer a bit so playback does not start empty.
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < 2; ++i)
 		RefillStreamingChannel(ch);
 }
+
 void SDL2AudioBackend::RefillStreamingChannel(Channel& ch)
 {
-	if (!ch.streaming || !ch.stream || ch.pause)
+	if (!ch.streaming ||
+		ch.pause ||
+		ch.sourceEnded ||
+		!ch.decoder)
+	{
+		return;
+	}
+
+	int queuedBytes = 0;
+
+	{
+		AudioDeviceLock lock(audio_device);
+
+		if (!ch.stream)
+			return;
+
+		queuedBytes = SDL_AudioStreamAvailable(ch.stream);
+	}
+
+	if (queuedBytes < 0)
+	{
+		backend->GetPlatform()->Log(
+			"SDL_AudioStreamAvailable failed: " +
+			std::string(SDL_GetError())
+		);
+		return;
+	}
+
+	int STREAM_TARGET_BYTES = 128 * 1024;
+
+	if (queuedBytes >= STREAM_TARGET_BYTES)
 		return;
 
-	const int maxQueuedBytes = 256 * 1024;
-
-	while (SDL_AudioStreamAvailable(ch.stream) < maxQueuedBytes && !ch.sourceEnded) {
-		int framesRead = 0;
-
-		if (ch.streamType == ChannelStreamType::OggFile) {
+	auto DecodeOneChunk = [&ch]() -> int
+	{
+		if (ch.streamType == ChannelStreamType::OggFile)
+		{
 			auto* ogg = static_cast<stb_vorbis*>(ch.decoder);
 
-			framesRead = stb_vorbis_get_samples_short_interleaved(
+			return stb_vorbis_get_samples_short_interleaved(
 				ogg,
 				ch.spec.channels,
 				ch.decodeBuffer.data(),
 				static_cast<int>(ch.decodeBuffer.size())
 			);
 		}
-		else if (ch.streamType == ChannelStreamType::Mp3File) {
+
+		if (ch.streamType == ChannelStreamType::Mp3File)
+		{
 			auto* mp3 = static_cast<drmp3*>(ch.decoder);
 
-			framesRead = static_cast<int>(
-				drmp3_read_pcm_frames_s16(mp3, 8192, ch.decodeBuffer.data())
+			return static_cast<int>(
+				drmp3_read_pcm_frames_s16(
+					mp3,
+					8192,
+					ch.decodeBuffer.data()
+				)
 			);
 		}
 
-		if (framesRead <= 0) {
-			if (ch.loop || ch.loopsRemaining > 1) {
-				if (ch.loopsRemaining > 1)
-					ch.loopsRemaining--;
+		return 0;
+	};
 
-				if (ch.streamType == ChannelStreamType::OggFile) {
-					stb_vorbis_seek_start(static_cast<stb_vorbis*>(ch.decoder));
-				}
-				else if (ch.streamType == ChannelStreamType::Mp3File) {
-					drmp3_seek_to_pcm_frame(static_cast<drmp3*>(ch.decoder), 0);
-				}
+	int framesRead = DecodeOneChunk();
 
-				continue;
-			}
+	if (framesRead <= 0)
+	{
+		const bool shouldLoop =
+			ch.loop || ch.loopsRemaining > 1;
 
+		if (!shouldLoop)
+		{
 			ch.sourceEnded = true;
-			break;
+			return;
 		}
 
-		const int bytes = framesRead * ch.spec.channels * sizeof(int16_t);
-		SDL_AudioStreamPut(ch.stream, ch.decodeBuffer.data(), bytes);
+		if (ch.loopsRemaining > 1)
+			--ch.loopsRemaining;
+
+		bool rewindSucceeded = false;
+
+		if (ch.streamType == ChannelStreamType::OggFile)
+		{
+			auto* ogg = static_cast<stb_vorbis*>(ch.decoder);
+			rewindSucceeded = stb_vorbis_seek_start(ogg) != 0;
+		}
+		else if (ch.streamType == ChannelStreamType::Mp3File)
+		{
+			auto* mp3 = static_cast<drmp3*>(ch.decoder);
+			rewindSucceeded =
+				drmp3_seek_to_pcm_frame(mp3, 0) != DRMP3_FALSE;
+		}
+
+		if (!rewindSucceeded)
+		{
+			backend->GetPlatform()->Log(
+				"Failed to rewind streaming audio: " + ch.name
+			);
+
+			ch.sourceEnded = true;
+			return;
+		}
+
+		framesRead = DecodeOneChunk();
+
+		if (framesRead <= 0)
+		{
+			ch.sourceEnded = true;
+			return;
+		}
+	}
+
+	const int decodedBytes =
+		framesRead *
+		ch.spec.channels *
+		static_cast<int>(sizeof(int16_t));
+
+	{
+		AudioDeviceLock lock(audio_device);
+
+		if (!ch.streaming || !ch.stream || ch.pause)
+			return;
+
+		if (SDL_AudioStreamPut(
+			ch.stream,
+			ch.decodeBuffer.data(),
+			decodedBytes) < 0)
+		{
+			backend->GetPlatform()->Log(
+				"SDL_AudioStreamPut failed: " +
+				std::string(SDL_GetError())
+			);
+		}
 	}
 }
 
@@ -1110,37 +1201,62 @@ void SDL2AudioBackend::StopSampleUnlocked(int id, bool channel)
 
 void SDL2AudioBackend::UpdateSample()
 {
-	AudioDeviceLock lock(audio_device);
+	for (int i = 1;
+		i < static_cast<int>(SDL_arraysize(channels));
+		++i)
+	{
+		bool isStreaming = false;
 
-	for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-		Channel& ch = channels[i];
-		ch.volume = SDL_clamp(ch.volume, 0.0f, 1.0f);
+		{
+			AudioDeviceLock lock(audio_device);
 
-		if (!ch.stream)
-			continue;
+			Channel& ch = channels[i];
 
-		if (ch.streaming) {
-			RefillStreamingChannel(ch);
+			ch.volume = SDL_clamp(ch.volume, 0.0f, 1.0f);
 
-			if (ch.sourceEnded && SDL_AudioStreamAvailable(ch.stream) <= 0) {
-				StopSampleUnlocked(i, true);
+			if (!ch.stream)
+				continue;
+
+			isStreaming = ch.streaming;
+
+			if (!isStreaming && ch.finished)
+			{
+				ch.finished = false;
+
+				if (!ch.loop)
+				{
+					StopSampleUnlocked(i, true);
+					continue;
+				}
+
+				SDL_AudioStreamPut(
+					ch.stream,
+					ch.data,
+					ch.data_len
+				);
 			}
-
-			continue;
 		}
 
-		if (ch.finished) {
-			ch.finished = false;
+		if (!isStreaming)
+			continue;
 
-			if (!ch.loop) {
+		RefillStreamingChannel(channels[i]);
+
+		{
+			AudioDeviceLock lock(audio_device);
+
+			Channel& ch = channels[i];
+
+			if (ch.sourceEnded &&
+				ch.stream &&
+				SDL_AudioStreamAvailable(ch.stream) <= 0)
+			{
 				StopSampleUnlocked(i, true);
-				continue;
 			}
-
-			SDL_AudioStreamPut(ch.stream, ch.data, ch.data_len);
 		}
 	}
 }
+
 void SDL2AudioBackend::PreloadSample(int id)
 {
 	if (id < 0)

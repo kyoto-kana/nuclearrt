@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+
 .SUFFIXES:
 
 ifeq ($(strip $(VITASDK)),)
@@ -8,10 +11,9 @@ PKG_CONFIG := $(VITASDK)/bin/arm-vita-eabi-pkg-config
 
 TARGET      := nuclearrt-runtime
 BUILD       := build_vita
-SOURCES     := source
+SOURCES     := source libs/lz4
+INCLUDES    := include libs/lz4
 DATA        := data
-INCLUDES  := include
-PAK_FILE := copy/all/assets.pak
 
 APP_TITLE   := NuclearRT Runtime
 APP_AUTHOR  := shishkabob
@@ -57,6 +59,7 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 
 export OUTPUT   := $(CURDIR)/$(TARGET)
 export TOPDIR   := $(CURDIR)
+export COPY_ALL := $(TOPDIR)/copy/all
 
 export VPATH    := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
                    $(foreach dir,$(DATA),$(CURDIR)/$(dir))
@@ -75,9 +78,10 @@ export OFILES_SRC   := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 export OFILES       := $(OFILES_BIN) $(OFILES_SRC)
 export HFILES_BIN   := $(addsuffix .h,$(subst .,_,$(BINFILES)))
 
-export INCLUDE  := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-                   -I$(VITASDK)/arm-vita-eabi/include \
-                   -I$(CURDIR)/$(BUILD)
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+                  -I$(VITASDK)/arm-vita-eabi/include \
+                  -I$(VITASDK)/arm-vita-eabi/include/SDL2 \
+                  -I$(CURDIR)/$(BUILD)
 
 export LIBPATHS := -L$(VITASDK)/arm-vita-eabi/lib
 
@@ -105,9 +109,19 @@ all: $(OUTPUT).vpk
 $(OUTPUT).vpk: $(OUTPUT).velf
 	vita-make-fself -s $(OUTPUT).velf eboot.bin
 	vita-mksfoex -s TITLE_ID=$(TITLE_ID) "$(APP_TITLE)" param.sfo
-	vita-pack-vpk -s param.sfo -b eboot.bin \
-		$(if $(wildcard $(TOPDIR)/$(PAK_FILE)),-a $(TOPDIR)/$(PAK_FILE)=assets.pak) \
-		$(OUTPUT).vpk
+	@set -e; \
+	EXTRA_ARGS=(); \
+	if [ -d "$(COPY_ALL)" ]; then \
+		while IFS= read -r -d '' FILE; do \
+			RELATIVE="$${FILE#$(COPY_ALL)/}"; \
+			EXTRA_ARGS+=(-a "$$FILE=$$RELATIVE"); \
+		done < <(find "$(COPY_ALL)" -type f -print0); \
+	fi; \
+	vita-pack-vpk \
+		-s param.sfo \
+		-b eboot.bin \
+		"$${EXTRA_ARGS[@]}" \
+		"$(OUTPUT).vpk"
 
 $(OUTPUT).velf: $(OUTPUT).elf
 	vita-elf-create $(OUTPUT).elf $(OUTPUT).velf

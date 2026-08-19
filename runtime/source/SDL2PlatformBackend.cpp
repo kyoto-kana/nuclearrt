@@ -152,16 +152,30 @@ bool SDL2PlatformBackend::ShouldQuit() {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
 #if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
-		if (event.type == SDL_FINGERDOWN || event.type == SDL_FINGERMOTION) {
-			SDL_Window* win = backend->GetGraphics()->GetWindow();
-			int windowWidth, windowHeight;
-			SDL_GetWindowSize(win, &windowWidth, &windowHeight);
-			touchX = static_cast<int>(event.tfinger.x * windowWidth);
-			touchY = static_cast<int>(event.tfinger.y * windowHeight);
-			touchDown = true;
-		}
-		else if (event.type == SDL_FINGERUP) {
-			touchDown = false;
+		if (event.type == SDL_FINGERDOWN || event.type == SDL_FINGERMOTION)
+        {
+            const int appWidth =
+                Application::Instance().GetAppData()->GetWindowWidth();
+
+            const int appHeight =
+                Application::Instance().GetAppData()->GetWindowHeight();
+
+            touchX = static_cast<int>(
+                std::lround(event.tfinger.x * appWidth)
+            );
+
+            touchY = static_cast<int>(
+                std::lround(event.tfinger.y * appHeight)
+            );
+
+            touchX = std::clamp(touchX, 0, appWidth - 1);
+            touchY = std::clamp(touchY, 0, appHeight - 1);
+
+            touchDown = true;
+        }
+        if (event.type == SDL_FINGERUP)
+        {
+            touchDown = false;
         }
 #endif
 		if (event.type == SDL_QUIT) {

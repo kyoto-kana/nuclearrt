@@ -2,6 +2,8 @@
 
 #include "SDL2InputBackend.h"
 #include "SDL2Backend.h"
+#include <algorithm>
+#include <cmath>
 
 void SDL2InputBackend::GetKeyboardState(uint8_t* outBuffer) {
 	const uint8_t* state = SDL_GetKeyboardState(nullptr);
@@ -15,60 +17,78 @@ void SDL2InputBackend::Update()
     SDL_GameControllerUpdate();
 }
 
-int SDL2InputBackend::GetMouseX() {
+int SDL2InputBackend::GetMouseX()
+{
+#if defined(PLATFORM_SWITCH) || \
+    defined(PLATFORM_VITA) ||   \
+    defined(PLATFORM_WIIU)
 
-#if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
-	int appWidth = Application::Instance().GetAppData()->GetWindowWidth();
+    const int appWidth =
+        Application::Instance().GetAppData()->GetWindowWidth();
 
-#if defined(__wiiu__)
-	return (backend->GetPlatform()->touchX * appWidth) / 1280;
+    return std::clamp(
+        backend->GetPlatform()->touchX,
+        0,
+        appWidth - 1
+    );
+
 #else
-	return backend->GetPlatform()->touchX;
+
+    int mouseX = 0;
+    int mouseY = 0;
+    SDL_GetMouseState(&mouseX, &mouseY);
+
+    float logicalX = 0.0f;
+    float logicalY = 0.0f;
+
+    SDL_RenderWindowToLogical(
+        backend->GetGraphics()->GetRenderer(),
+        mouseX,
+        mouseY,
+        &logicalX,
+        &logicalY
+    );
+
+    return static_cast<int>(std::lround(logicalX));
+
 #endif
-#endif
-
-	int mouseX;
-	SDL_GetMouseState(&mouseX, nullptr);
-
-	int windowWidth = Application::Instance().GetAppData()->GetWindowWidth();
-	
-	int actualWidth;
-	SDL_GetWindowSize(backend->GetGraphics()->GetWindow(), &actualWidth, nullptr);
-
-	if (actualWidth > 0) {
-		float scaleX = (float)windowWidth / (float)actualWidth;
-		return (int)(mouseX * scaleX);
-	}
-	return mouseX;
 }
 
-int SDL2InputBackend::GetMouseY() {
+int SDL2InputBackend::GetMouseY()
+{
+#if defined(PLATFORM_SWITCH) || \
+    defined(PLATFORM_VITA) ||   \
+    defined(PLATFORM_WIIU)
 
-#if defined(__SWITCH__) || defined(__vita__) || defined(__wiiu__)
-	int appHeight = Application::Instance().GetAppData()->GetWindowHeight();
+    const int appHeight =
+        Application::Instance().GetAppData()->GetWindowHeight();
 
-#if defined(__wiiu__)
-	return (backend->GetPlatform()->touchY * appHeight) / 720;
+    return std::clamp(
+        backend->GetPlatform()->touchY,
+        0,
+        appHeight - 1
+    );
+
 #else
-	return backend->GetPlatform()->touchY;
+
+    int mouseX = 0;
+    int mouseY = 0;
+    SDL_GetMouseState(&mouseX, &mouseY);
+
+    float logicalX = 0.0f;
+    float logicalY = 0.0f;
+
+    SDL_RenderWindowToLogical(
+        backend->GetGraphics()->GetRenderer(),
+        mouseX,
+        mouseY,
+        &logicalX,
+        &logicalY
+    );
+
+    return static_cast<int>(std::lround(logicalY));
+
 #endif
-#endif
-
-	int mouseY;
-	SDL_GetMouseState(nullptr, &mouseY);
-
-	int windowHeight = Application::Instance().GetAppData()->GetWindowHeight();
-	
-	
-
-	int actualHeight;
-	SDL_GetWindowSize(backend->GetGraphics()->GetWindow(), nullptr, &actualHeight);
-
-	if (actualHeight > 0) {
-		float scaleY = (float)windowHeight / (float)actualHeight;
-		return (int)(mouseY * scaleY);
-	}
-	return mouseY;
 }
 
 int SDL2InputBackend::GetMouseWheelMove() {
