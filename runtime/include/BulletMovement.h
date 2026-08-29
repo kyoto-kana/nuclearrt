@@ -11,7 +11,7 @@ public:
 	short speed;
 	bool useInstanceDirection;
 
-	int GetRealSpeed() override { return static_cast<int>(speed); }
+	CValue GetRealSpeed() override { return CValue(speed); }
 	int GetMinimumSpeed() override { return 0; }
 	int GetMaximumSpeed() override { return static_cast<int>(speed); }
 	int GetMovementDirection() override { return movementDirection; }

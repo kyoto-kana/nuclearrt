@@ -17,36 +17,36 @@ public class ShootTowardAction : ActionBase
 		var objectInfo = ExpressionConverter.GetObject(shoot.ObjectInfo, shoot.ShootPos.TypeParent);
 
 		result.AppendLine($"// {position.ToString()}");
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 
 		result.AppendLine($"    int targetX = {position.X};");
 		result.AppendLine($"    int targetY = {position.Y};");
 
 		if (position.ObjectInfoParent != ushort.MaxValue) // we are shooting toward an object
 		{
-			result.AppendLine($"    if ({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->Count() == 0) continue;");
-			result.AppendLine($"    auto targetInstance = {GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->begin();");
+			result.AppendLine($"    if ({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}.Count() == 0) continue;");
+			result.AppendLine($"    auto targetInstance = {GetSelector((int)position.ObjectInfoParent, position.TypeParent)}.begin();");
 			if ((position.Flags & 0x2) != 0) // shoot toward actionpoint
 			{
-				result.AppendLine($"    targetX += ((Active*)*targetInstance)->GetXActionPoint();");
-				result.AppendLine($"    targetY += ((Active*)*targetInstance)->GetYActionPoint();");
+				result.AppendLine($"    targetX += ((Active*)*targetInstance)->GetXActionPoint().GetIntValue();");
+				result.AppendLine($"    targetY += ((Active*)*targetInstance)->GetYActionPoint().GetIntValue();");
 			}
 			else // shoot toward x/y
 			{
-				result.AppendLine($"    targetX += ((Active*)*targetInstance)->GetX();");
-				result.AppendLine($"    targetY += ((Active*)*targetInstance)->GetY();");
+				result.AppendLine($"    targetX += ((Active*)*targetInstance)->GetX().GetIntValue();");
+				result.AppendLine($"    targetY += ((Active*)*targetInstance)->GetY().GetIntValue();");
 			}
 
 		}
 
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    ObjectInstance* newCreatedInstance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), ((Active*)instance)->GetXActionPoint(), ((Active*)instance)->GetYActionPoint(), instance->Layer, 0, {objectInfo.Item1}, 0, true, nullptr);");
-		result.AppendLine($"    {GetSelector(shoot.ObjectInfo, shoot.ShootPos.TypeParent)}->AddInstance(newCreatedInstance);");
+		result.AppendLine($"    ObjectInstance* newCreatedInstance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), ((Active*)instance)->GetXActionPoint().GetIntValue(), ((Active*)instance)->GetYActionPoint().GetIntValue(), instance->Layer, 0, {objectInfo.Item1}, 0, true, nullptr);");
+		result.AppendLine($"    {GetSelector(shoot.ObjectInfo, shoot.ShootPos.TypeParent)}.AddInstance(newCreatedInstance);");
 
 
 		result.AppendLine($"    int shootDirection = 0;");
-		result.AppendLine($"    double dx = static_cast<double>(targetX - newCreatedInstance->GetX());");
-		result.AppendLine($"    double dy = static_cast<double>(targetY - newCreatedInstance->GetY());");
+		result.AppendLine($"    double dx = static_cast<double>(targetX - newCreatedInstance->GetX().GetIntValue());");
+		result.AppendLine($"    double dy = static_cast<double>(targetY - newCreatedInstance->GetY().GetIntValue());");
 		result.AppendLine($"    double angle = std::atan2(-dy, dx);");
 		result.AppendLine($"    shootDirection = (int)std::round(angle * (32.0 / (2.0 * 3.14159265358979323846)));");
 		result.AppendLine($"    shootDirection = shootDirection & 31;");

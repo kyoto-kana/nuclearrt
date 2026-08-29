@@ -52,50 +52,50 @@ public class ExpressionConverter
 		// { (ObjectType.Player, 4), _ => "" }, // Player Name
 
 		//Keyboard / Mouse
-		{ (ObjectType.Keyboard, 0), _ => "GetMouseX()" }, // XMouse
-		{ (ObjectType.Keyboard, 1), _ => "GetMouseY()" }, // YMouse
+		{ (ObjectType.Keyboard, 0), _ => "CValue(GetMouseX())" }, // XMouse
+		{ (ObjectType.Keyboard, 1), _ => "CValue(GetMouseY())" }, // YMouse
 		{ (ObjectType.Keyboard, 2), _ => "Application::Instance().GetInput()->GetMouseWheelMove()" }, // WheelDelta
 
 		//Create
-		{ (ObjectType.Create, 0), _ => $"ObjectInstances.size()" }, // Total Objects
+		{ (ObjectType.Create, 0), _ => $"CValue(ObjectInstances.size())" }, // Total Objects
 
 		//Timer
-		{ (ObjectType.Timer, 0), _ => "GameTimer.GetTime()" }, // Timer
-		{ (ObjectType.Timer, 1), _ => "GameTimer.GetHundreds()" }, // Hundreds
-		{ (ObjectType.Timer, 2), _ => "GameTimer.GetSeconds()" }, // seconds
-		{ (ObjectType.Timer, 3), _ => "GameTimer.GetHours()" }, // Hours
-		{ (ObjectType.Timer, 4), _ => "GameTimer.GetMinutes()" }, // Minutes
-		{ (ObjectType.Timer, 5), _ => $"0" }, // Event Index // TODO
+		{ (ObjectType.Timer, 0), _ => "CValue(GameTimer.GetTime())" }, // Timer
+		{ (ObjectType.Timer, 1), _ => "CValue(GameTimer.GetHundreds())" }, // Hundreds
+		{ (ObjectType.Timer, 2), _ => "CValue(GameTimer.GetSeconds())" }, // seconds
+		{ (ObjectType.Timer, 3), _ => "CValue(GameTimer.GetHours())" }, // Hours
+		{ (ObjectType.Timer, 4), _ => "CValue(GameTimer.GetMinutes())" }, // Minutes
+		{ (ObjectType.Timer, 5), _ => "CValue(GameTimer.GetEventIndex())" }, // Event Index
 
 		//Game
-		{ (ObjectType.Game, 0),  _ => $"Index + 1" }, // Frame
+		{ (ObjectType.Game, 0),  _ => $"CValue(Index + 1)" }, // Frame
 		{ (ObjectType.Game, 2), _ => $"GetXLeftEdge()" }, // XLeftEdge
 		{ (ObjectType.Game, 3), _ => $"GetXRightEdge()" }, // XRightEdge
 		{ (ObjectType.Game, 4), _ => $"GetYTopEdge()" }, // YTopEdge
 		{ (ObjectType.Game, 5), _ => $"GetYBottomEdge()" }, // YBottomEdge
-		{ (ObjectType.Game, 6), _ => $"Width" }, // Frame Width
-		{ (ObjectType.Game, 7), _ => $"Height" }, // Frame Height
-		{ (ObjectType.Game, 8),  _ => $"Index + 1" }, // Frame
-		{ (ObjectType.Game, 10), _ => "Application::Instance().GetAppData()->GetTargetFPS()" }, // FrameRate // TODO: Verify this
-		{ (ObjectType.Game, 11), _ => $"Width" }, // VirtualWidth
-		{ (ObjectType.Game, 12), _ => $"Height" }, // VirtualHeight
-		{ (ObjectType.Game, 13), _ => "BackgroundColor" }, // FrameBkdColor
+		{ (ObjectType.Game, 6), _ => $"CValue(Width)" }, // Frame Width
+		{ (ObjectType.Game, 7), _ => $"CValue(Height)" }, // Frame Height
+		{ (ObjectType.Game, 8),  _ => $"CValue(Index + 1)" }, // Frame
+		{ (ObjectType.Game, 10), _ => "CValue(Application::Instance().GetAppData()->GetTargetFPS())" }, // FrameRate // TODO: Verify this
+		{ (ObjectType.Game, 11), _ => $"CValue(Width)" }, // VirtualWidth
+		{ (ObjectType.Game, 12), _ => $"CValue(Height)" }, // VirtualHeight
+		{ (ObjectType.Game, 13), _ => "CValue(BackgroundColor)" }, // FrameBkdColor
 		{ (ObjectType.Game, 14), _ => "0" }, // DisplayMode // TODO
 		{ (ObjectType.Game, 15), _ => "0" }, // PixelShaderVersion // TODO
 
 		//Speaker
-		{ (ObjectType.Speaker, 0), _ => "Application::Instance().GetBackend()->audio->GetSampleVolume(-1)" }, // Main Volume
+		{ (ObjectType.Speaker, 0), _ => "Application::Instance().GetBackend()->audio->GetSampleVolume(CValue(-1))" }, // Main Volume
 		{ (ObjectType.Speaker, 1), e => $"Application::Instance().GetBackend()->audio->GetSampleVolume(" }, // Sample Volume
 		{ (ObjectType.Speaker, 2), e => $"Application::Instance().GetBackend()->audio->GetChannelVolume("}, // Channel Volume
-		{ (ObjectType.Speaker, 3), _ => "Application::Instance().GetBackend()->audio->GetSamplePan(-1, false)" }, // Main Pan
+		{ (ObjectType.Speaker, 3), _ => "Application::Instance().GetBackend()->audio->GetSamplePan(CValue(-1), false)" }, // Main Pan
 		{ (ObjectType.Speaker, 4), e => $"Application::Instance().GetBackend()->audio->GetSamplePan(Application::Instance().GetBackend()->audio->FindSample({(e.Loader as StringExp).Value}), false)" }, // Sample Pan
-		{ (ObjectType.Speaker, 5), e => $"Application::Instance().GetBackend()->audio->GetSamplePan({(e.Loader as DoubleExp).Value}, true)"}, // Channel Pan
+		{ (ObjectType.Speaker, 5), e => $"Application::Instance().GetBackend()->audio->GetSamplePan(CValue({(e.Loader as DoubleExp).Value}), true)"}, // Channel Pan
 		{ (ObjectType.Speaker, 6), e => $"Application::Instance().GetBackend()->audio->GetSamplePos({(e.Loader as StringExp).Value}, false)" }, // Sample Position
-		{ (ObjectType.Speaker, 7), e => $"Application::Instance().GetBackend()->audio->GetSamplePos({(e.Loader as DoubleExp).Value}, true)" }, // Channel Position
+		{ (ObjectType.Speaker, 7), e => $"Application::Instance().GetBackend()->audio->GetSamplePos(CValue({(e.Loader as DoubleExp).Value}), true)" }, // Channel Position
 		{ (ObjectType.Speaker, 8), e => $"Application::Instance().GetBackend()->audio->GetSampleDuration({(e.Loader as StringExp).Value}, false)"}, // Sample Duration
-		{ (ObjectType.Speaker, 9), e => $"Application::Instance().GetBackend()->audio->GetSampleDuration({(e.Loader as DoubleExp).Value}, true)" }, // Channel Duration
-		{ (ObjectType.Speaker, 10), e => $"Application::Instance().GetBackend()->audio->GetSampleFreq({(e.Loader as StringExp).Value}, true" }, // Sample Frequency
-		{ (ObjectType.Speaker, 11), e => $"Application::Instance().GetBackend()->audio->GetSampleFreq({(e.Loader as DoubleExp).Value}, true" }, // Channel Frequency
+		{ (ObjectType.Speaker, 9), e => $"Application::Instance().GetBackend()->audio->GetSampleDuration(CValue({(e.Loader as DoubleExp).Value}), true)" }, // Channel Duration
+		{ (ObjectType.Speaker, 10), e => $"Application::Instance().GetBackend()->audio->GetSampleFreq(CValue({(e.Loader as StringExp).Value}), true" }, // Sample Frequency
+		{ (ObjectType.Speaker, 11), e => $"Application::Instance().GetBackend()->audio->GetSampleFreq(CValue({(e.Loader as DoubleExp).Value}), true" }, // Channel Frequency
 		{ (ObjectType.Speaker, 12), _ => $"Application::Instance().GetBackend()->audio->GetChannelName(" }, // Channel Sample Name
 
 		// System
@@ -104,17 +104,17 @@ public class ExpressionConverter
 		{ (ObjectType.System, -1), _ => "(" },
 		{ (ObjectType.System, 1),  _ => "Application::Instance().Random(" }, // Random(
 		{ (ObjectType.System, 2),  _ => $"Application::Instance().GetAppData()->GetGlobalValue(" }, // Global Value
-		{ (ObjectType.System, 3),  e => $"std::string(\"{e.Loader.ToString()}\")" },
-		{ (ObjectType.System, 4),  _ => $"std::to_string(" }, // Str$
-		{ (ObjectType.System, 5),  _ => $"MathHelper::Stoi(" }, // Val(
-		{ (ObjectType.System, 6),  _ => "Application::Instance().GetBackend()->platform->GetAppDrive()" }, // Appdrive$
-		{ (ObjectType.System, 7),  _ => "Application::Instance().GetBackend()->platform->GetAppDirectory()" }, // Appdir$
-		{ (ObjectType.System, 8),  _ => "Application::Instance().GetBackend()->platform->GetAppPath()" }, // Apppath$
-		{ (ObjectType.System, 9),  _ => "std::string(\"\")" }, // Appname$ // TODO
+		{ (ObjectType.System, 3),  e => $"CValue(\"{e.Loader.ToString()}\")" },
+		{ (ObjectType.System, 4),  _ => $"CValue(" }, // Str$
+		{ (ObjectType.System, 5),  _ => $"MathHelper::ToValue(" }, // Val(
+		{ (ObjectType.System, 6),  _ => "CValue(Application::Instance().GetBackend()->platform->GetAppDrive())" }, // Appdrive$
+		{ (ObjectType.System, 7),  _ => "CValue(Application::Instance().GetBackend()->platform->GetAppDirectory())" }, // Appdir$
+		{ (ObjectType.System, 8),  _ => "CValue(Application::Instance().GetBackend()->platform->GetAppPath())" }, // Apppath$
+		{ (ObjectType.System, 9),  _ => "CValue(\"\")" }, // Appname$ // TODO
 		{ (ObjectType.System, 10), _ => "MathHelper::Sin(" }, // Sin
 		{ (ObjectType.System, 11), _ => "MathHelper::Cos(" }, // Cos
 		{ (ObjectType.System, 12), _ => "MathHelper::Tan(" }, // Tan
-		{ (ObjectType.System, 13), _ => "std::sqrt(" }, // Square Root
+		{ (ObjectType.System, 13), _ => "MathHelper::Sqrt(" }, // Square Root
 		{ (ObjectType.System, 14), _ => "std::log10(" }, // Log10
 		{ (ObjectType.System, 15), _ => "std::log(" }, // Ln
 		{ (ObjectType.System, 16), _ => "Hex(" }, // Hex
@@ -124,12 +124,12 @@ public class ExpressionConverter
 		{ (ObjectType.System, 20), _ => "StringRight(" }, // String Right
 		{ (ObjectType.System, 21), _ => "Mid(" }, // Mid
 		{ (ObjectType.System, 22), _ => "StringLength(" }, // String Length
-	  	{ (ObjectType.System, 23), e => (e.Loader as DoubleExp).FloatValue.ToString(CultureInfo.InvariantCulture) },
+	  	{ (ObjectType.System, 23), e => $"CValue({(e.Loader as DoubleExp).FloatValue.ToString(CultureInfo.InvariantCulture)})" },
 		{ (ObjectType.System, 24), e => $"Application::Instance().GetAppData()->GetGlobalValue({GetGlobalValueIndex(e.Loader as GlobalCommon)})" }, // Global Value
 		{ (ObjectType.System, 28), _ => "std::trunc(" }, // Int
-		{ (ObjectType.System, 29), _ => "std::abs(" }, // Abs(
+		{ (ObjectType.System, 29), _ => "MathHelper::Abs(" }, // Abs(
 		{ (ObjectType.System, 30), _ => "std::ceil(" }, // Ceil
-		{ (ObjectType.System, 31), _ => "std::floor(" }, // Floor
+		{ (ObjectType.System, 31), _ => "MathHelper::Floor(" }, // Floor
 		{ (ObjectType.System, 32), _ => "MathHelper::ACos(" }, // ACos
 		{ (ObjectType.System, 33), _ => "MathHelper::ASin(" }, // ASin
 		{ (ObjectType.System, 34), _ => "MathHelper::ATan(" }, // ATan
@@ -146,15 +146,15 @@ public class ExpressionConverter
 		{ (ObjectType.System, 45), _ => "MathHelper::GetBlue(" }, // GetBlue
 		{ (ObjectType.System, 46), _ => "Loopindex(" }, // LoopIndex
 		{ (ObjectType.System, 47), _ => "NewLine()" },
-		{ (ObjectType.System, 48), _ => "std::round(" },
+		{ (ObjectType.System, 48), _ => "MathHelper::Round(" },
 		{ (ObjectType.System, 49), _ => "Application::Instance().GetAppData()->GetGlobalString(" },
 		{ (ObjectType.System, 50), e => $"Application::Instance().GetAppData()->GetGlobalString({GetGlobalValueIndex(e.Loader as GlobalCommon)})" },
 		{ (ObjectType.System, 51), _ => "Lower(" },
 		{ (ObjectType.System, 52), _ => "Upper(" },
 		{ (ObjectType.System, 53), _ => "Find(" },
 		{ (ObjectType.System, 54), _ => "ReverseFind(" },
-		{ (ObjectType.System, 56), _ => "std::string(\"\")" }, // AppTempPath$ // TODO
-		{ (ObjectType.System, 58), _ => "std::to_string(" },
+		{ (ObjectType.System, 56), _ => "CValue(\"\")" }, // AppTempPath$ // TODO
+		{ (ObjectType.System, 58), _ => "CValue(" },
 		{ (ObjectType.System, 59), _ => "MathHelper::ATan2(" },
 		{ (ObjectType.System, 62), _ => "MathHelper::Distance(" },
 		{ (ObjectType.System, 63), _ => "MathHelper::VAngle(" },
@@ -168,7 +168,7 @@ public class ExpressionConverter
 		{ (ObjectType.Arithmetic, 2), _ => " + " }, // Add
 		{ (ObjectType.Arithmetic, 4), _ => " - " }, // Sub
 		{ (ObjectType.Arithmetic, 6), _ => " * " }, // Multiply
-		{ (ObjectType.Arithmetic, 8), _ => " /MathHelper::GetSafeDivision()/ " }, // Division
+		{ (ObjectType.Arithmetic, 8), _ => " / " }, // Division
 		{ (ObjectType.Arithmetic, 10), _ => " % " },
 		{ (ObjectType.Arithmetic, 12), _ => " /MathHelper::GetPower()/ " },
 		{ (ObjectType.Arithmetic, 14), _ => " & " },
@@ -192,15 +192,23 @@ public class ExpressionConverter
 		{
 			case 0: //
 				ExpressionLoader loader = (ExpressionLoader)expression.Loader;
-
-				if (loader is StringExp) stringBuilder.Append($"std::string(\"{(loader as StringExp).Value}\")");
-				else if (loader is DoubleExp) stringBuilder.Append((loader as DoubleExp).FloatValue.ToString(CultureInfo.InvariantCulture));
-				else stringBuilder.Append(loader.Value.ToString());
+				
+				if (loader is StringExp) stringBuilder.Append($"CValue(\"{(loader as StringExp).Value}\")");
+				else if (loader is DoubleExp) stringBuilder.Append($"CValue({(loader as DoubleExp).FloatValue.ToString(CultureInfo.InvariantCulture)})");
+				else stringBuilder.Append($"CValue({loader.Value})");
 				break;
 			default:
 				HandleUnimplemented(stringBuilder, expression, eventBase);
 				break;
 		}
+	}
+
+	private static bool UseInstance(Expression expression, EventBase eventBase)
+	{
+		return eventBase != null
+			&& eventBase.ObjectType > 0
+			&& expression.ObjectInfo == eventBase.ObjectInfo
+			&& expression.ObjectInfoList == eventBase.ObjectInfoList;
 	}
 
 	private static StringBuilder HandleRuntimeObjectExpr(StringBuilder stringBuilder, Expression expression, EventBase eventBase = null)
@@ -211,121 +219,128 @@ public class ExpressionConverter
 		{
 			case 12: // Fixed Value
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append("instance->FixedValue");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->FixedValue : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->FixedValue : 0)");
 				}
 			case 15: // NObjects (number of this object)
-				return stringBuilder.Append($"{objectSelector}->Size()");
+				return stringBuilder.Append($"CValue({objectSelector}.Size())");
 			case 45: // NSelectedObjects (number of selected objects)
-				return stringBuilder.Append($"{objectSelector}->Count()");
+				return stringBuilder.Append($"CValue({objectSelector}.Count())");
 			case 46: // InstanceValue
-				return stringBuilder.Append("instance->InstanceValue");
+				return stringBuilder.Append("CValue(instance->InstanceValue)");
 			case 23: // Layer
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append("instance->Layer");
+					if (UseInstance(expression, eventBase))
+						return stringBuilder.Append("CValue(instance->Layer)");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->Layer : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? CValue((*{objectSelector}.begin())->Layer) : CValue(0))");
 				}
 			case 27: // Alpha Coefficient
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append("instance->GetEffectParameter()");
+					if (UseInstance(expression, eventBase))
+						return stringBuilder.Append("instance->GetBlendCoefficient()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->GetEffectParameter() : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->GetBlendCoefficient() : 0)");
 				}
 			case 28: // RGBCoef
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append("instance->RGBCoefficient");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->RGBCoefficient : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->RGBCoefficient : 0)");
+				}
+			case 29: // Effect Parameter
+				{
+					if (UseInstance(expression, eventBase))
+						return stringBuilder.Append("instance->GetEffectInstanceParameter(");
+					else
+						return stringBuilder.Append($"(*{objectSelector}.begin())->GetEffectInstanceParameter(");
 				}
 			case 44: // OName$
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append("instance->Name");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->Name : std::string(\"\"))");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->Name : CValue(\"\"))");
 				}
 			case 1: // Y Position
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append("instance->GetY()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->GetY() : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->GetY() : CValue(0))");
 				}
 			case 11: // X Position
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append("instance->GetX()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->GetX() : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->GetX() : CValue(0))");
 				}
 			case 13: // Flag(index)
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Flags.GetFlag(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Flags.GetFlag(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Flags.GetFlag(");
 				}
 			case 30: // AltValN(index)
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Values.GetValue(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Values.GetValue(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Values.GetValue(");
 				}
 			case 31: // AltStrN$(index)
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Strings.GetString(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Strings.GetString(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Strings.GetString(");
 				}
 			case 19: // AltStr (alterable string A-J by fixed index)
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Strings.GetString({((ShortExp)expression.Loader).Value})");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Strings.GetString({((ShortExp)expression.Loader).Value}) : std::string(\"\"))");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Strings.GetString({((ShortExp)expression.Loader).Value}) : CValue(\"\"))");
 				}
 			case 16: // Alterable Value
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Values.GetValue({((ShortExp)expression.Loader).Value})");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->Values.GetValue({((ShortExp)expression.Loader).Value}) : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Values.GetValue({((ShortExp)expression.Loader).Value}) : CValue(0))");
 				}
 			case 32: // Distance with a point
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"ODistance(instance, ");
 					else
 						return stringBuilder.Append($"ODistance({objectSelector}, ");
 				}
 			case 33: // OAngle
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"OAngle(instance, ");
 					else
 						return stringBuilder.Append($"OAngle({objectSelector}, ");
 				}
 			case 40: // Object Width
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetWidth()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->GetWidth() : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->GetWidth() : CValue(0))");
 				}
 			case 41: // Object Height
 				{
-					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetHeight()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->GetHeight() : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->GetHeight() : CValue(0))");
 				}
 		}
 
@@ -354,73 +369,73 @@ public class ExpressionConverter
 			{
 				case 2: // Image
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Active*)instance)->animations.GetCurrentFrameIndex()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->animations.GetCurrentFrameIndex() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->animations.GetCurrentFrameIndex() : 0)");
 					}
 				case 3: // Speed (real movement speed)
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->movements.GetCurrentMovement()->GetRealSpeed()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}->begin()))->movements.GetCurrentMovement()->GetRealSpeed() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->movements.GetCurrentMovement()->GetRealSpeed() : 0)");
 					}
 				case 6: // Dir (animation direction)
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Active*)instance)->animations.GetCurrentDirection()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->animations.GetCurrentDirection() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->animations.GetCurrentDirection() : 0)");
 					}
 				case 14: // Anim Number
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Active*)instance)->animations.GetCurrentSequenceIndex()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->animations.GetCurrentSequenceIndex() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->animations.GetCurrentSequenceIndex() : 0)");
 					}
 				case 18: // NMovement
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Active*)instance)->movements.currentMovementIndex");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->movements.currentMovementIndex : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->movements.currentMovementIndex : 0)");
 					}
 				case 25: // XActionPoint
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Active*)instance)->GetXActionPoint()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->GetXActionPoint() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->GetXActionPoint() : 0)");
 					}
 				case 26: // YActionPoint
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Active*)instance)->GetYActionPoint()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->GetYActionPoint() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->GetYActionPoint() : 0)");
 					}
 				case 81: // XScale
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-							return stringBuilder.Append("((Active*)instance)->GetXScale()");
+						if (UseInstance(expression, eventBase))
+							return stringBuilder.Append("CValue(((Active*)instance)->GetXScale())");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->GetXScale() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? CValue(((Active*)*({objectSelector}.begin()))->GetXScale()) : CValue(0))");
 					}
 				case 82: // YScale
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Active*)instance)->GetYScale()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->GetYScale() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? CValue(((Active*)*({objectSelector}.begin()))->GetYScale()) : CValue(0))");
 					}
 				case 83: // Angle
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-							return stringBuilder.Append("instance->GetAngle()");
+						if (UseInstance(expression, eventBase))
+							return stringBuilder.Append("CValue(instance->GetAngle())");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->GetAngle() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? CValue((*{objectSelector}.begin())->GetAngle()) : CValue(0))");
 					}
 			}
 		}
@@ -434,38 +449,38 @@ public class ExpressionConverter
 						// since it attempts to get a instance even tho it isn't applicable
 						// so we just check for the first instance in the selector for now
 
-						//if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						//if (UseInstance(expression, eventBase))
 						//	return stringBuilder.Append("((Counter*)instance)->GetValue()");
 						//else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Counter*)*({objectSelector}->begin()))->GetValue() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Counter*)*({objectSelector}.begin()))->GetValue() : CValue(0))");
 					}
 				case 81: // minvalue
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Counter*)instance)->MinValue");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Counter*)*({objectSelector}->begin()))->MinValue : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Counter*)*({objectSelector}.begin()))->MinValue : CValue(0))");
 					}
 				case 82: // MaxValue
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Counter*)instance)->MaxValue");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Counter*)*({objectSelector}->begin()))->MaxValue : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Counter*)*({objectSelector}.begin()))->MaxValue : CValue(0))");
 					}
 				case 83: // cColor (Color1)
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Counter*)instance)->shape.Color1");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Counter*)*({objectSelector}->begin()))->shape.Color1 : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Counter*)*({objectSelector}.begin()))->shape.Color1 : CValue(0))");
 					}
 				case 84: // cColor2 (Color2)
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((Counter*)instance)->shape.Color2");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Counter*)*({objectSelector}->begin()))->shape.Color2 : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Counter*)*({objectSelector}.begin()))->shape.Color2 : CValue(0))");
 					}
 			}
 		}
@@ -475,33 +490,33 @@ public class ExpressionConverter
 			{
 				case 3: // paragraph
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((StringObject*)instance)->GetNumberOfCurrentParagraph()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((StringObject*)*({objectSelector}->begin()))->GetNumberOfCurrentParagraph() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((StringObject*)*({objectSelector}.begin()))->GetNumberOfCurrentParagraph() : 0)");
 					}
 				case 22: // Font Color
 					return stringBuilder.Append("0");
 				case 81: // string$ (text content)
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((StringObject*)instance)->GetText()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((StringObject*)*({objectSelector}->begin()))->GetText() : std::string(\"\"))");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((StringObject*)*({objectSelector}.begin()))->GetText() : CValue(\"\"))");
 					}
 				case 82: // paragraph$ (get text of paragraph)
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((StringObject*)instance)->GetTextOfParagraph(");
 						else
 							return stringBuilder.Append($"StringObject::GetTextOfParagraph({objectSelector}, ");
 					}
 				case 84: // npara (num paragraphs)
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						if (UseInstance(expression, eventBase))
 							return stringBuilder.Append("((StringObject*)instance)->GetParagraphCount()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((StringObject*)*({objectSelector}->begin()))->GetParagraphCount() : 0)");
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((StringObject*)*({objectSelector}.begin()))->GetParagraphCount() : 0)");
 					}
 			}
 		}

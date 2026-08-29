@@ -11,9 +11,10 @@ public class SetAlterableTextAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"  auto instance = *it;");
-		result.AppendLine($"  ((StringObject*)instance)->SetAlterableText({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
+		//kinda shity hack so the CValue starts as a string - shishkabob
+		result.AppendLine($"  ((StringObject*)instance)->SetAlterableText(CValue(\"\") + {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 		result.AppendLine("}");
 
 		return result.ToString();

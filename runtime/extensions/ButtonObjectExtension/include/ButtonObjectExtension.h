@@ -13,7 +13,7 @@ public:
 	
 	void Initialize() override;
 	void Update(float deltaTime) override;
-	void Draw() override;
+	void Draw(int scrollX, int scrollY) override;
 	
 	void ButtonDraw();
 	void CheckboxDraw();

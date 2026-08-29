@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CValue.h"
+
 #include <vector>
 
 class AlterableFlags
@@ -8,27 +10,30 @@ public:
 	AlterableFlags() = default;
 	AlterableFlags(const std::vector<bool>& flags) : Flags(flags) {}
 
-	void SetFlag(int index, bool value) {
+	void SetFlag(const CValue& index, bool value) {
+		int i = index.GetIntValue();
 		// Resize the vector if needed
-		if (index >= Flags.size())
-			Flags.resize(index + 1, 0);
-		Flags[index] = value;
+		if (i >= (int)Flags.size())
+			Flags.resize(i + 1, 0);
+		Flags[i] = value;
 	}
 
-	void ToggleFlag(int index) {
+	void ToggleFlag(const CValue& index) {
 		SetFlag(index, !GetFlag(index));
 	}
 
-	bool GetFlag(int index) const {
-		if (index < 0 || index >= Flags.size())
+	bool GetFlag(const CValue& index) const {
+		int i = index.GetIntValue();
+		if (i < 0 || i >= (int)Flags.size())
 			return false;
-		return Flags[index];
+		return Flags[i];
 	}
 
-	int GetFlagValue(int index) const {
-		if (index < 0 || index >= Flags.size())
-			return 0;
-		return Flags[index] ? 1 : 0;
+	CValue GetFlagValue(const CValue& index) const {
+		int i = index.GetIntValue();
+		if (i < 0 || i >= (int)Flags.size())
+			return CValue(0);
+		return Flags[i] ? CValue(1) : CValue(0);
 	}
 private:
 	std::vector<bool> Flags;

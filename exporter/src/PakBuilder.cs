@@ -1,5 +1,7 @@
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Drawing.Text;
+using System.Runtime.InteropServices;
 using CTFAK.EXE;
 using CTFAK.FileReaders;
 using CTFAK.Memory;
@@ -108,24 +110,30 @@ public class PakBuilder
 
 		//fonts
 		Dictionary<string, List<string>> fontNames = new Dictionary<string, List<string>>(); // font family name, font file names
-		var fontsFolder = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Fonts));
-		FileInfo[] fontFiles = fontsFolder.GetFiles();
-		foreach (var fontFile in fontFiles)
+		var fontsFolders = new DirectoryInfo[] {
+			new(Environment.GetFolderPath(Environment.SpecialFolder.Fonts)),
+			new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "Fonts"))
+		};
+		foreach (var fontsFolder in fontsFolders)
 		{
-			//go through each file and try to find one with the same name as a Application Font
-			List<string> appFontNames = [];
-			using (PrivateFontCollection fontCollection = new PrivateFontCollection())
+			FileInfo[] fontFiles = fontsFolder.GetFiles();
+			foreach (var fontFile in fontFiles)
 			{
-				fontCollection.AddFontFile(fontFile.FullName);
-				foreach (var font in fontCollection.Families)
+				//go through each file and try to find one with the same name as a Application Font
+				List<string> appFontNames = [];
+				using (PrivateFontCollection fontCollection = new PrivateFontCollection())
 				{
-					if (!fontNames.TryGetValue(font.Name, out List<string> fontFileNames))
+					fontCollection.AddFontFile(fontFile.FullName);
+					foreach (var font in fontCollection.Families)
 					{
-						fontFileNames = [];
-						fontNames.Add(font.Name, fontFileNames);
-					}
+						if (!fontNames.TryGetValue(font.Name, out List<string> fontFileNames))
+						{
+							fontFileNames = [];
+							fontNames.Add(font.Name, fontFileNames);
+						}
 
-					fontFileNames.Add(fontFile.Name);
+						fontFileNames.Add(fontFile.FullName);
+					}
 				}
 			}
 		}
@@ -136,8 +144,8 @@ public class PakBuilder
 			{
 				foreach (var fontFileName in fontFileNames)
 				{
-					var entry = new PakEntry { Path = $"fonts/{fontFileName}" };
-					entry.Data = File.ReadAllBytes(Path.Combine(fontsFolder.FullName, fontFileName));
+					var entry = new PakEntry { Path = $"fonts/{Path.GetFileName(fontFileName)}" };
+					entry.Data = File.ReadAllBytes(fontFileName);
 					entry.Size = (uint)entry.Data.Length;
 					mainPak.AddEntry(entry);
 				}
@@ -228,6 +236,7 @@ public class PakBuilder
 
 		return "wav";
 	}
+	
 	private static byte[] ConvertAudioToVorbis(byte[] inputData, int handle)
 	{
 		GlobalFFOptions.Configure(options => options.BinaryFolder = @"C:\ffmpeg\bin");

@@ -1,9 +1,8 @@
 #include "Input.h"
 
-#include <cstring>
-
 #include "Application.h"
 #include "InputBackend.h"
+#include "PlatformBackend.h"
 
 void Input::Update()
 {
@@ -14,6 +13,48 @@ void Input::Update()
 
 	previousMouseState = currentMouseState;
 	currentMouseState = Application::Instance().GetBackend()->input->GetMouseState();
+
+	doubleClickButton = -1;
+
+	if (currentMouseState & ~previousMouseState)
+	{
+		int button = -1;
+		for (int i = 0; i < 3; i++)
+		{
+			if ((currentMouseState & ~previousMouseState) & (1 << i))
+			{
+				button = i;
+				break;
+			}
+		}
+
+		if (button != -1)
+		{
+			int mouseX = GetMouseX();
+			int mouseY = GetMouseY();
+			
+			unsigned int now = Application::Instance().GetBackend()->platform->GetTicks();
+
+			bool isDoubleClick = (button == lastClickButton)
+				&& (now - lastClickTicks) < DOUBLE_CLICK_MS
+				&& mouseX == lastClickMouseX
+				&& mouseY == lastClickMouseY;
+
+			if (isDoubleClick)
+			{
+				doubleClickButton = button;
+				lastClickButton = -1;
+			}
+			else
+			{
+				lastClickButton = button;
+				lastClickTicks = now;
+			}
+
+			lastClickMouseX = mouseX;
+			lastClickMouseY = mouseY;
+		}
+	}
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -27,6 +68,11 @@ void Input::Reset()
 
 	previousMouseState = 0;
 	currentMouseState = 0;
+	lastClickMouseX = 0;
+	lastClickMouseY = 0;
+	lastClickButton = -1;
+	doubleClickButton = -1;
+	lastClickTicks = 0;
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -62,25 +108,31 @@ bool Input::IsAnyKeyPressed()
     return false;
 }
 
+bool Input::IsAnyMouseButtonPressed()
+{
+	return (currentMouseState & ~previousMouseState) != 0;
+}
+
 int Input::GetControlType(int player)
 {
 	return Application::Instance().GetAppData()->GetControlTypes()[player];
 }
 
-void Input::SetControlType(int player, int type)
+void Input::SetControlType(int player, const CValue& type)
 {
-	if (type >= 1 && type <= 4) //is gamepad
+	int controlType = type.GetIntValue();
+	if (controlType >= 1 && controlType <= 4) //is gamepad
 	{
-		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(type-1))
-			type = 0; //reset back to keyboard
+		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(controlType - 1))
+			controlType = 0; //reset back to keyboard
 	}
 	
-	Application::Instance().GetAppData()->GetControlTypes()[player] = type;
+	Application::Instance().GetAppData()->GetControlTypes()[player] = controlType;
 }
 
-void Input::SetControlKey(int player, short control, unsigned short key)
+void Input::SetControlKey(int player, const CValue& control, unsigned short key)
 {
-	Application::Instance().GetAppData()->GetControlKeys()[player][control] = key;
+	Application::Instance().GetAppData()->GetControlKeys()[player][control.GetIntValue()] = key;
 }
 
 void Input::RestoreControl(int player)
@@ -171,9 +223,15 @@ bool Input::IsMouseButtonDown(int button)
 
 bool Input::IsMouseButtonPressed(int button, bool doubleClick)
 {
-	if (doubleClick) return false; // TODO: implement double click
-	
 	if (button == 1) button = 0;
 	else if (button == 4) button = 1;
-	return (currentMouseState & (1 << button)) && !(previousMouseState & (1 << button));
+
+	bool isPressed = (currentMouseState & (1u << button)) && !(previousMouseState & (1u << button));
+	if (!isPressed)
+		return false;
+
+	if (doubleClick)
+		return button == doubleClickButton;
+
+	return button != doubleClickButton;
 }

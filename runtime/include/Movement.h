@@ -28,7 +28,7 @@ public:
 	virtual void Initialize() {} // called for each movement at the start of the frame
 	virtual void OnEnabled() {} // called when the movement is switched to
 	virtual void OnDisabled() {} // called when the movement is switched to another movement
-	virtual int GetRealSpeed() { return 0; }
+	virtual CValue GetRealSpeed() { return CValue(0); }
 	virtual int GetMinimumSpeed() { return 0; }
 	virtual int GetMaximumSpeed() { return 0; }
 	virtual bool IsStopped() { return GetRealSpeed() == 0; }
@@ -42,7 +42,7 @@ public:
 			}
 		}
 		//todo: only set valid directions
-		movementDirection = directions[Application::Instance().RandomRange(0, static_cast<short>(directions.size() - 1))];
+		movementDirection = directions[Application::Instance().RandomRange(0, static_cast<short>(directions.size() - 1)).GetIntValue()];
 	}
 
 	bool IsDirectionValid(int direction, int validDirectionsMask) {

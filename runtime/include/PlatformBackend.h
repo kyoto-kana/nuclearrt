@@ -28,6 +28,8 @@ public:
 	virtual float GetTimeDelta() { return 0.0f; }
 	virtual void Delay(unsigned int ms) {}
 
+	virtual void SetFullscreen(bool fullscreen) {}
+
 	//Pak file stuff, maybe move to application class? - shish
 	virtual bool PakFileEntryExists(std::string entry) { return pakFile.Exists(entry); }
 	virtual std::vector<uint8_t> GetPakFileEntryData(std::string entry) { return pakFile.GetData(entry); }

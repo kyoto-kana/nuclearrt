@@ -43,7 +43,7 @@ public class EasingObjectExporter : ExtensionExporter
 		switch (actionNum)
 		{
 			case 0: // Move Object
-				result.AppendLine($"for (ObjectIterator it(*{GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !it.end(); ++it) {{");
+				result.AppendLine($"for (ObjectIterator it({GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !it.end(); ++it) {{");
 				result.AppendLine($"    auto instance = *it;");
 				result.AppendLine($"	{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->MoveObject(instance, {ReadEasingParam(eventBase.Items[1].Loader)}, {EvaluateExpression(eventBase, 2)}, {EvaluateExpression(eventBase, 3)}, {ReadTimeModeParam(eventBase.Items[4].Loader)}, {EvaluateExpression(eventBase, 5)});");
 				result.AppendLine("}");

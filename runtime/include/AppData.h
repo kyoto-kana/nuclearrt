@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CValue.h"
 #include <string>
 #include <vector>
 
@@ -29,6 +30,9 @@ public:
 	int GetBorderColor() const { return m_borderColor; }
 	void SetBorderColor(int color) { m_borderColor = color; }
 
+	bool& GetFullscreenOnStart() { return m_fullscreenOnStart; }
+	void SetFullscreenOnStart(bool fullscreen) { m_fullscreenOnStart = fullscreen; }
+	
 	bool& GetFitInside() { return m_fitInside; }
 	void SetFitInside(bool fit) { m_fitInside = fit; }
 
@@ -47,63 +51,63 @@ public:
 	bool& GetSampleFocus() { return m_sampleFocus; }
 	void SetSampleFocus(bool sampleFocus) { m_sampleFocus = sampleFocus; }
 
-	std::vector<int>& GetGlobalValues() { return m_globalValues; }
-	void SetGlobalValues(const std::vector<int>& values) { m_globalValues = values; }
+	std::vector<CValue>& GetGlobalValues() { return m_globalValues; }
+	void SetGlobalValues(const std::vector<CValue>& values) { m_globalValues = values; }
 
-	int GetGlobalValue(int index) { // 0-indexed
+	CValue GetGlobalValue(int index) { // 0-indexed
 		if (index < 0 || index > static_cast<int>(m_globalValues.size()) - 1) {
-			return 0;
+			return CValue(0);
 		}
 		return m_globalValues[index];
 	}
 	
-	void SetGlobalValue(int index, int value) { // 0-indexed
+	void SetGlobalValue(int index, const CValue& value) { // 0-indexed
 		if (index < 0) {
 			return;
 		}
 
 		if (index > static_cast<int>(m_globalValues.size()) - 1) {
-			m_globalValues.resize(index + 1, 0);
+			m_globalValues.resize(index + 1, CValue(0));
 		}
 
 		m_globalValues[index] = value;
 	}
 
-	void AddGlobalValue(int index, int value) { // 0-indexed
+	void AddGlobalValue(int index, const CValue& value) { // 0-indexed
 		if (index < 0) {
 			return;
 		}
 
 		if (index > static_cast<int>(m_globalValues.size()) - 1) {
-			m_globalValues.resize(index + 1, 0);
+			m_globalValues.resize(index + 1, CValue(0));
 		}
 
-		m_globalValues[index] += value;
+		m_globalValues[index] = m_globalValues[index] + value;
 	}
 
-	void SubtractGlobalValue(int index, int value) { // 0-indexed
+	void SubtractGlobalValue(int index, const CValue& value) { // 0-indexed
 		if (index < 0) {
 			return;
 		}
 
 		if (index > static_cast<int>(m_globalValues.size()) - 1) {
-			m_globalValues.resize(index + 1, 0);
+			m_globalValues.resize(index + 1, CValue(0));
 		}
 
-		m_globalValues[index] -= value;
+		m_globalValues[index] = m_globalValues[index] - value;
 	}
 
 	std::vector<std::string>& GetGlobalStrings() { return m_globalStrings; }
 	void SetGlobalStrings(const std::vector<std::string>& strings) { m_globalStrings = strings; }
 
-	std::string GetGlobalString(int index) {
+	CValue GetGlobalString(int index) {
 		if (index < 0 || index > static_cast<int>(m_globalStrings.size()) - 1) {
-			return "";
+			return CValue("");
 		}
-		return m_globalStrings[index];
+		return CValue(m_globalStrings[index]);
 	}
 
-	void SetGlobalString(int index, const std::string& string) {
+	void SetGlobalString(int index, const CValue& string) {
 		if (index < 0) {
 			return;
 		}
@@ -112,7 +116,7 @@ public:
 			m_globalStrings.resize(index + 1, "");
 		}
 
-		m_globalStrings[index] = string;
+		m_globalStrings[index] = string.GetStringValue();
 	}
 
 	std::vector<int>& GetControlTypes() { return m_controlTypes; }
@@ -122,24 +126,24 @@ public:
 	void SetControlKeys(const std::vector<std::vector<int>>& keys) { m_controlKeys = keys; }
 
 	std::vector<int>& GetPlayerScores() { return m_playerScores; }
-	int GetPlayerScore(int playerIndex) { return m_playerScores[playerIndex]; }
+	CValue GetPlayerScore(int playerIndex) { return CValue(m_playerScores[playerIndex]); }
 	void SetPlayerScores(const std::vector<int>& scores) { m_playerScores = scores; }
-	void SetScore(int playerIndex, int score) { m_playerScores[playerIndex] = score; }
-	void AddScore(int playerIndex, int score) { m_playerScores[playerIndex] += score; }
-	void SubtractScore(int playerIndex, int score) {
-		m_playerScores[playerIndex] -= score;
+	void SetScore(int playerIndex, const CValue& score) { m_playerScores[playerIndex] = score.GetIntValue(); }
+	void AddScore(int playerIndex, const CValue& score) { m_playerScores[playerIndex] = m_playerScores[playerIndex] + score.GetIntValue(); }
+	void SubtractScore(int playerIndex, const CValue& score) {
+		m_playerScores[playerIndex] = m_playerScores[playerIndex] - score.GetIntValue();
 		if (m_playerScores[playerIndex] < 0) {
 			m_playerScores[playerIndex] = 0;
 		}
 	}
 
 	std::vector<int>& GetPlayerLives() { return m_playerLives; }
-	int GetPlayerLives(int playerIndex) { return m_playerLives[playerIndex]; }
+	CValue GetPlayerLives(int playerIndex) { return CValue(m_playerLives[playerIndex]); }
 	void SetPlayerLives(const std::vector<int>& lives) { m_playerLives = lives; }
-	void SetLives(int playerIndex, int lives) { m_playerLives[playerIndex] = lives; }
-	void AddLives(int playerIndex, int lives) { m_playerLives[playerIndex] += lives; }
-	void SubtractLives(int playerIndex, int lives) {
-		m_playerLives[playerIndex] -= lives;
+	void SetLives(int playerIndex, const CValue& lives) { m_playerLives[playerIndex] = lives.GetIntValue(); }
+	void AddLives(int playerIndex, CValue lives) { m_playerLives[playerIndex] += lives.GetIntValue(); }
+	void SubtractLives(int playerIndex, CValue lives) {
+		m_playerLives[playerIndex] = m_playerLives[playerIndex] - lives.GetIntValue();
 		if (m_playerLives[playerIndex] < 0) {
 			m_playerLives[playerIndex] = 0;
 		}
@@ -153,6 +157,7 @@ private:
 	int m_windowHeight = 480;
 	int m_targetFPS = 60;
 	int m_borderColor = 0;
+	bool m_fullscreenOnStart = false;
 	bool m_fitInside = false;
 	bool m_resizeDisplay = false;
 	bool m_antiAliasingWhenResizing = false;
@@ -160,7 +165,7 @@ private:
 	bool m_sampleOverFrame = false;
 	bool m_multiSamples = true;
 	bool m_sampleFocus = false;
-	std::vector<int> m_globalValues;
+	std::vector<CValue> m_globalValues;
 	std::vector<std::string> m_globalStrings;
 
 	std::vector<int> m_controlTypes = { 5, 5, 5, 5 };

@@ -43,9 +43,6 @@ void GeneratedFrame{{ FRAME_INDEX }}::Initialize() {
 void GeneratedFrame{{ FRAME_INDEX }}::Update() {
 	Frame::Update();
 
-	//Animation events
-	{{ EVENT_ANIMATION_UPDATE_LOOP }}
-
 	//Timer events
 	{{ EVENT_TIMER_UPDATE_LOOP }}
 

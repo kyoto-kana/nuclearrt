@@ -1,4 +1,5 @@
 using CTFAK.CCN.Chunks.Frame;
+using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class ACBase
 {
@@ -14,6 +15,11 @@ public class ACBase
 	public string GetSelector(int objectInfo, int objectType)
 	{
 		return ExpressionConverter.GetSelector(objectInfo, objectType);
+	}
+
+	public static string ConvertExpression(EventBase eventBase, int index)
+	{
+		return ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[index].Loader, eventBase);
 	}
 
 	public override bool Equals(object? obj)

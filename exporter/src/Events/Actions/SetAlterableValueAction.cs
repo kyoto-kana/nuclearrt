@@ -4,14 +4,14 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class SetAlterableValueAction : ActionBase
 {
-	public override int[] ObjectType { get; set; } = [2];
+	public override int[] ObjectType { get; set; } = [2, 3, 7];
 	public override int Num { get; set; } = 31;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
 		StringBuilder result = new();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->Values.SetValue({((Short)eventBase.Items[0].Loader).Value}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
 		result.AppendLine("}");

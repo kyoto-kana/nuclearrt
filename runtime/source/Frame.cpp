@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include "Application.h"
+#include "Active.h"
 #include "Counter.h"
 #include "Extension.h"
 #include "FontBank.h"
@@ -27,12 +28,27 @@ void Frame::PostInitialize()
 
 void Frame::Update()
 {
+	updateCount++;
+	
 	float deltaTime = Application::Instance().GetBackend()->platform->GetTimeDelta();
 	GameTimer.Update(deltaTime);
 	scrollDirty = false;
 
+	DispatchTrueEvents();
+
+	std::vector<unsigned int> handles;
+	handles.reserve(ObjectInstances.size());
 	for (auto& [handle, instance] : ObjectInstances)
 	{
+		handles.push_back(handle);
+	}
+
+	for (unsigned int handle : handles)
+	{
+		auto found = ObjectInstances.find(handle);
+		if (found == ObjectInstances.end()) continue;
+		ObjectInstance* instance = found->second;
+
 		//Animation update
 		if (instance->Type == 2) // Common object with possible animation
 		{
@@ -43,7 +59,7 @@ void Frame::Update()
 			int movementMaximumSpeed = 0;
 			auto* movement = ((Active*)instance)->movements.GetCurrentMovement();
 			if (movement != nullptr) {
-				movementSpeed = movement->GetRealSpeed();
+				movementSpeed = movement->GetRealSpeed().GetIntValue();
 				movementMinimumSpeed = movement->GetMinimumSpeed();
 				movementMaximumSpeed = movement->GetMaximumSpeed();
 			}
@@ -59,6 +75,41 @@ void Frame::Update()
 			((Extension*)instance)->Update(deltaTime);
 		}
 	}
+
+	//TODO: should timer update be here?
+	GameTimer.ProcessNamedEvents([this](const std::string& eventName) {
+		OnTimerEvent(eventName);
+	});
+}
+
+void Frame::DispatchTrueEvents()
+{
+	if (updateCount == 1)
+	{
+		GenerateEvent(-3, -1);
+	}
+
+	auto input = Application::Instance().GetInput();
+	if (input->IsAnyKeyPressed())
+	{
+		GenerateEvent(-6, -9); // Upon pressing any key
+	}
+
+	if (input->IsAnyMouseButtonPressed())
+	{
+		GenerateEvent(-6, -5); // Upon clicking
+		GenerateEvent(-6, -6); // Upon clicking in zone
+		GenerateEvent(-6, -7); // Upon clicking on object
+	}
+
+	for (int player = 0; player < 4; player++)
+	{
+		if (input->IsControlsPressed(player, 0xFF))
+		{
+			GenerateEvent(-7, -4);
+			break;
+		}
+	}
 }
 
 void Frame::Draw()
@@ -68,6 +119,8 @@ void Frame::Draw()
 	for (unsigned int i = 0; i < Layers.size(); i++)
 	{
 		Layer& layer = Layers[i];
+		if (!layer.Visible) continue;
+		
 		bool hasLayerEffect = (layer.usePreviousLayerEffect && i > 0) || layer.Effect != 0 || layer.GetEffectParameter() != 0 || layer.RGBCoefficient != 0xFFFFFFFF;
 		if (!hasLayerEffect)
 		{
@@ -108,73 +161,134 @@ void Frame::Draw()
 	}
 }
 
-void Frame::SetScroll(int x, int y, int layer)
+void Frame::SetScroll(const CValue& x, const CValue& y, int layer)
 {
 	int windowWidth = Application::Instance().GetAppData()->GetWindowWidth();
 	int windowHeight = Application::Instance().GetAppData()->GetWindowHeight();
 
-	x -= windowWidth / 2;
-	y -= windowHeight / 2;
+	float requestedX = static_cast<float>(x.GetIntValue());
+	float requestedY = static_cast<float>(y.GetIntValue());
 
-	if (layer != -1)
+	requestedX -= windowWidth / 2.0f;
+	requestedY -= windowHeight / 2.0f;
+
+	if (layer != -1 && layer < static_cast<int>(Layers.size()))
 	{
-		x = x / Layers[layer].XCoefficient;
-		y = y / Layers[layer].YCoefficient;
+		if (Layers[layer].XCoefficient > 1.0f)
+		{
+			float dxf = (requestedX - scrollX);
+			dxf /= Layers[layer].XCoefficient;
+			requestedX = scrollX + dxf;
+		}
+
+		if (Layers[layer].YCoefficient > 1.0f)
+		{
+			float dyf = (requestedY - scrollY);
+			dyf /= Layers[layer].YCoefficient;
+			requestedY = scrollY + dyf;
+		}
 	}
 
-	x = std::max(0, x);
-	y = std::max(0, y);
-	x = std::min(Width - windowWidth, x);
-	y = std::min(Height - windowHeight, y);
+	int intX = static_cast<int>(requestedX);
+	int intY = static_cast<int>(requestedY);
 
-	if (x == scrollX && y == scrollY) return;
-	scrollX = x;
-	scrollY = y;
+	intX = std::max(0, intX);
+	intY = std::max(0, intY);
+	intX = std::min(std::max(0, Width - windowWidth), intX);
+	intY = std::min(std::max(0, Height - windowHeight), intY);
+
+	if (intX == scrollX && intY == scrollY) return;
+	UpdateScrolling(intX, intY);
 	scrollDirty = true;
 }
 
-void Frame::SetScrollX(int x)
+void Frame::SetScrollX(const CValue& x)
 {
-	if (x == scrollX) return;
 	int windowWidth = Application::Instance().GetAppData()->GetWindowWidth();
-	x -= windowWidth / 2;
-	x = std::max(0, x);
-	x = std::min(Width - windowWidth, x);
-	if (x == scrollX) return;
-	scrollX = x;
+	int intX = x.GetIntValue();
+	intX -= windowWidth / 2;
+	intX = std::max(0, intX);
+	intX = std::min(std::max(0, Width - windowWidth), intX);
+	if (intX == scrollX) return;
+	UpdateScrolling(intX, scrollY);
 	scrollDirty = true;
 }
 
-void Frame::SetScrollY(int y)
+void Frame::SetScrollY(const CValue& y)
 {
-	if (y == scrollY) return;
 	int windowHeight = Application::Instance().GetAppData()->GetWindowHeight();
-	y -= windowHeight / 2;
-	y = std::max(0, y);
-	y = std::min(Height - windowHeight, y);
-	if (y == scrollY) return;
-	scrollY = y;
+	int intY = y.GetIntValue();
+	intY -= windowHeight / 2;
+	intY = std::max(0, intY);
+	intY = std::min(std::max(0, Height - windowHeight), intY);
+	if (intY == scrollY) return;
+	UpdateScrolling(scrollX, intY);
 	scrollDirty = true;
 }
 
-int Frame::GetXLeftEdge()
+void Frame::UpdateScrolling(int newX, int newY)
 {
-	return scrollX;
+	int oldX = scrollX;
+	int oldY = scrollY;
+	int deltaX = newX - oldX;
+	int deltaY = newY - oldY;
+
+	scrollX = newX;
+	scrollY = newY;
+
+	if (deltaX == 0 && deltaY == 0) return;
+
+	for (auto& [handle, instance] : ObjectInstances)
+	{
+		if (instance->Type == 0 || instance->Type == 1) continue;
+
+		if (!instance->FollowFrame)
+		{
+			if (deltaX != 0)
+				instance->SetX(CValue(instance->GetX().GetIntValue() + deltaX));
+			if (deltaY != 0)
+				instance->SetY(CValue(instance->GetY().GetIntValue() + deltaY));
+			continue;
+		}
+
+		if (instance->Layer >= Layers.size()) continue;
+		const Layer& layer = Layers[instance->Layer];
+
+		int oldLayerDx = oldX;
+		int oldLayerDy = oldY;
+		int newLayerDx = newX;
+		int newLayerDy = newY;
+
+		oldLayerDx = static_cast<int>(layer.XCoefficient * oldLayerDx);
+		newLayerDx = static_cast<int>(layer.XCoefficient * newLayerDx);
+		oldLayerDy = static_cast<int>(layer.YCoefficient * oldLayerDy);
+		newLayerDy = static_cast<int>(layer.YCoefficient * newLayerDy);
+
+		int nX = (instance->GetX().GetIntValue() + oldLayerDx) - newLayerDx + deltaX;
+		int nY = (instance->GetY().GetIntValue() + oldLayerDy) - newLayerDy + deltaY;
+
+		instance->SetPosition(CValue(nX), CValue(nY));
+	}
 }
 
-int Frame::GetXRightEdge()
+CValue Frame::GetXLeftEdge()
 {
-	return scrollX + Application::Instance().GetAppData()->GetWindowWidth();
+	return CValue(scrollX);
 }
 
-int Frame::GetYTopEdge()
+CValue Frame::GetXRightEdge()
 {
-	return scrollY;
+	return CValue(scrollX + Application::Instance().GetAppData()->GetWindowWidth());
 }
 
-int Frame::GetYBottomEdge()
+CValue Frame::GetYTopEdge()
 {
-	return scrollY + Application::Instance().GetAppData()->GetWindowHeight();
+	return CValue(scrollY);
+}
+
+CValue Frame::GetYBottomEdge()
+{
+	return CValue(scrollY + Application::Instance().GetAppData()->GetWindowHeight());
 }
 
 void Frame::DrawLayer(Layer& layer)
@@ -187,8 +301,8 @@ void Frame::DrawLayer(Layer& layer)
 			unsigned int imageId = ((Backdrop*)instance)->Image;
 
 			Application::Instance().GetBackend()->graphics->DrawTexture(
-				imageId, instance->GetX() - (scrollX * layer.XCoefficient), instance->GetY() - (scrollY * layer.YCoefficient),
-				0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+				imageId, instance->GetX().GetIntValue() - (scrollX * layer.XCoefficient), instance->GetY().GetIntValue() - (scrollY * layer.YCoefficient),
+				0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
 		}
 		else if (instance->Type == 2)
 		{
@@ -198,14 +312,6 @@ void Frame::DrawLayer(Layer& layer)
 			auto& imageBank = ImageBank::Instance();
 			auto& animations = ((Active*)instance)->animations;
 			unsigned int imageId = animations.GetCurrentImageHandle();
-
-			int scrollXOffset = 0;
-			int scrollYOffset = 0;
-			if (instance->FollowFrame)
-			{
-				scrollXOffset = scrollX * layer.XCoefficient;
-				scrollYOffset = scrollY * layer.YCoefficient;
-			}
 
 			auto imageInfo = imageBank.GetImage(imageId);
 			if (imageInfo)
@@ -225,29 +331,20 @@ void Frame::DrawLayer(Layer& layer)
 				}
 
 				Application::Instance().GetBackend()->graphics->DrawTexture(
-					imageId, instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset,
+					imageId, instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY,
 					imageInfo->HotspotX, imageInfo->HotspotY, 
-					angle, ((Active*)instance)->GetXScale(), ((Active*)instance)->GetYScale(), instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+					angle, ((Active*)instance)->GetXScale().GetDoubleValue(), ((Active*)instance)->GetYScale().GetDoubleValue(), instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
 			}
 		}
 		else if (instance->Type == 3) // Text
 		{
 			if (!((StringObject*)instance)->Visible) continue;
 
-			int scrollXOffset = 0;
-			int scrollYOffset = 0;
-
-			if (instance->FollowFrame)
-			{
-				scrollXOffset = scrollX * layer.XCoefficient;
-				scrollYOffset = scrollY * layer.YCoefficient;
-			}
-
-			std::string text = ((StringObject*)instance)->GetText();
+			std::string text = ((StringObject*)instance)->GetText().GetStringValue();
 			Application::Instance().GetBackend()->graphics->DrawText(
 				FontBank::Instance().GetFont(((StringObject*)instance)->GetFont()),
-				instance->GetX() - scrollXOffset,
-				instance->GetY() - scrollYOffset,
+				instance->GetX().GetIntValue() - scrollX,
+				instance->GetY().GetIntValue() - scrollY,
 				((StringObject*)instance)->Width,
 				((StringObject*)instance)->Height,
 				((StringObject*)instance)->GetHorizontalAlignment(),
@@ -257,7 +354,7 @@ void Frame::DrawLayer(Layer& layer)
 				instance->Handle,
 				instance->RGBCoefficient,
 				instance->Effect,
-				instance->GetEffectParameter(),
+				instance->GetBlendCoefficient().GetIntValue(),
 				instance->effectInstance
 			);
 		}
@@ -266,22 +363,15 @@ void Frame::DrawLayer(Layer& layer)
 			CounterBase* counter = (CounterBase*)instance;
 			if (!counter->Visible) continue;
 			
-			int scrollXOffset = 0;
-			int scrollYOffset = 0;
-			if (counter->FollowFrame)
-			{
-				scrollXOffset = scrollX * layer.XCoefficient;
-				scrollYOffset = scrollY * layer.YCoefficient;
-			}
 
 			//TODO: Add support for other display types
 			if (counter->DisplayType == 1) // Numbers
 			{				
-				DrawCounterNumbers(counter, counter->GetValue(), instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset);
+				DrawCounterNumbers(counter, counter->GetValue().GetIntValue(), instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY);
 			}
 			else if (counter->DisplayType == 2 || counter->DisplayType == 3) // Bar
 			{
-				Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset, (Counter*)counter);
+				Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY, (Counter*)counter);
 			}
 			else if (counter->DisplayType == 4) // Animation
 			{
@@ -290,17 +380,17 @@ void Frame::DrawLayer(Layer& layer)
 					int count = Application::Instance().GetAppData()->GetPlayerLives()[counter->Player];
 					int imageWidth = ImageBank::Instance().GetImage(counter->Frames[0])->Width;
 					int imageHeight = ImageBank::Instance().GetImage(counter->Frames[0])->Height;
-					int x = instance->GetX() - scrollXOffset;
-					int y = instance->GetY() - scrollYOffset;
+					int x = instance->GetX().GetIntValue() - scrollX;
+					int y = instance->GetY().GetIntValue() - scrollY;
 					for (int i = 0; i < count; i++)
 					{
-						if (counter->Width > 0 && (x - (instance->GetX() - scrollXOffset)) >= counter->Width)
+						if (counter->Width > 0 && (x - (instance->GetX().GetIntValue() - scrollX)) >= counter->Width)
 						{
-							x = instance->GetX() - scrollXOffset; 
+							x = instance->GetX().GetIntValue() - scrollX; 
 							y += imageHeight;
 						}
 
-						Application::Instance().GetBackend()->graphics->DrawTexture(counter->Frames[0], x, y, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+						Application::Instance().GetBackend()->graphics->DrawTexture(counter->Frames[0], x, y, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
 						x += imageWidth;
 					}
 				}
@@ -312,9 +402,9 @@ void Frame::DrawLayer(Layer& layer)
 					
 					if (imageCount > 1)
 					{
-						int value = ((Counter*)instance)->GetValue();
-						int minValue = ((Counter*)instance)->MinValue;
-						int maxValue = ((Counter*)instance)->MaxValue;
+						int value = ((Counter*)instance)->GetValue().GetIntValue();
+						int minValue = ((Counter*)instance)->MinValue.GetIntValue();
+						int maxValue = ((Counter*)instance)->MaxValue.GetIntValue();
 
 						if (value >= maxValue)
 						{
@@ -329,7 +419,7 @@ void Frame::DrawLayer(Layer& layer)
 					
 					imageID = counter->Frames[frameIndex];
 
-					Application::Instance().GetBackend()->graphics->DrawTexture(imageID, instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+					Application::Instance().GetBackend()->graphics->DrawTexture(imageID, instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
 				}
 			}
 		}
@@ -337,12 +427,12 @@ void Frame::DrawLayer(Layer& layer)
 		{
 			int scrollXOffset = scrollX * layer.XCoefficient;
 			int scrollYOffset = scrollY * layer.YCoefficient;
-			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
+			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->GetX().GetIntValue() - scrollXOffset, instance->GetY().GetIntValue() - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
 		}
 		else if (instance->Type >= 32) // Extension
 		{
 			if (!((Extension*)instance)->Visible) continue;
-			((Extension*)instance)->Draw();
+			((Extension*)instance)->Draw(scrollX, scrollY);
 		}
 	}
 }
@@ -409,7 +499,7 @@ void Frame::DrawCounterNumbers(CounterBase *counter, int value, int x, int y)
 		}
 
 		int imageIndex = charMap.find(valueString[i]);
-		MaxHeight = std::max(MaxHeight, ImageBank::Instance().GetImage(counter->Frames[imageIndex])->Height);
+		MaxHeight = std::max((unsigned short)MaxHeight, ImageBank::Instance().GetImage(counter->Frames[imageIndex])->Height);
 	}
 
 	int currentX = x - totalWidth;
@@ -428,7 +518,7 @@ void Frame::DrawCounterNumbers(CounterBase *counter, int value, int x, int y)
 		{
 			Application::Instance().GetBackend()->graphics->DrawTexture(
 				counter->Frames[imageIndex], currentX, y - MaxHeight,
-				0, 0, 0, 1.0f, 1.0f, counter->RGBCoefficient, counter->Effect, counter->GetEffectParameter(), counter->effectInstance);
+				0, 0, 0, 1.0f, 1.0f, counter->RGBCoefficient, counter->Effect, counter->GetBlendCoefficient().GetIntValue(), counter->effectInstance);
 			currentX += imageInfo->Width;
 		}
 	}
@@ -915,8 +1005,8 @@ CollisionInstanceBounds Frame::GetInstanceBounds(ObjectInstance* instance) {
 		bounds.scaleY = 1.0f;
 
 		unsigned int imageId = 0;
-		int drawX = instance->GetX();
-		int drawY = instance->GetY();
+		int drawX = instance->GetX().GetIntValue();
+		int drawY = instance->GetY().GetIntValue();
 		int hotspotX = 0, hotspotY = 0;
 
 		if (instance->Type == 0) { // Quick backdrop
@@ -954,8 +1044,8 @@ CollisionInstanceBounds Frame::GetInstanceBounds(ObjectInstance* instance) {
 		} else { // Active object
 			Active* active = (Active*)instance;
 			imageId = active->animations.GetCurrentImageHandle();
-			bounds.scaleX = active->GetXScale();
-			bounds.scaleY = active->GetYScale();
+			bounds.scaleX = active->GetXScale().GetDoubleValue();
+			bounds.scaleY = active->GetYScale().GetDoubleValue();
 			auto imageInfo = ImageBank::Instance().GetImage(imageId);
 			if (imageInfo) {
 				bounds.maskWidth = imageInfo->Width;
@@ -1014,10 +1104,18 @@ CollisionInstanceBounds Frame::GetInstanceBounds(ObjectInstance* instance) {
 	CollisionInstanceBounds result = instance->collisionBounds;
 	result.scrollX = 0;
 	result.scrollY = 0;
-	if (instance->FollowFrame || instance->Type == 0 || instance->Type == 1) // Quick backdrop or backdrop
+	if (instance->Layer < Layers.size())
 	{
-		result.scrollX = scrollX * Layers[instance->Layer].XCoefficient;
-		result.scrollY = scrollY * Layers[instance->Layer].YCoefficient;
+		if (instance->Type == 0 || instance->Type == 1) // Quick backdrop or backdrop
+		{
+			result.scrollX = static_cast<short>(scrollX * Layers[instance->Layer].XCoefficient);
+			result.scrollY = static_cast<short>(scrollY * Layers[instance->Layer].YCoefficient);
+		}
+		else
+		{
+			result.scrollX = static_cast<short>(scrollX);
+			result.scrollY = static_cast<short>(scrollY);
+		}
 	}
 	return result;
 }

@@ -11,7 +11,7 @@ public class MakeInvisibleAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->Visible = {(eventBase.Num == 26 ? false : true).ToString().ToLower()};");
 		result.AppendLine("}");

@@ -14,33 +14,33 @@ public:
 
 	void Initialize() override;
 
-	void SetFileName(const std::string& name);
+	void SetFileName(CValue name);
 
-	void SetCurrentGroup(const std::string& group);
-	void SetCurrentItem(const std::string& item);
+	void SetCurrentGroup(CValue group);
+	void SetCurrentItem(CValue item);
 
-	void SetValue(int value);
-	void SetValue(const std::string& item, int value);
-	void SetValue(const std::string& group, const std::string& item, int value);
+	void SetValue(CValue value);
+	void SetValue(CValue item, CValue value);
+	void SetValue(CValue group, CValue item, CValue value);
 
-	void SetString(const std::string& value);
-	void SetString(const std::string& item, const std::string& value);
-	void SetString(const std::string& group, const std::string& item, const std::string& value);
+	void SetString(CValue value);
+	void SetString(CValue item, CValue value);
+	void SetString(CValue group, CValue item, CValue value);
 
 	void SavePosition(ObjectInstance* object);
 	void LoadPosition(ObjectInstance* object);
 
-	int GetValue();
-	int GetValue(const std::string& item);
-	int GetValue(const std::string& group, const std::string& item);
+	CValue GetValue();
+	CValue GetValue(CValue item);
+	CValue GetValue(CValue group, CValue item);
 
-	std::string GetString();
-	std::string GetString(const std::string& item);
-	std::string GetString(const std::string& group, const std::string& item);
+	CValue GetString();
+	CValue GetString(CValue item);
+	CValue GetString(CValue group, CValue item);
 	
-	void DeleteGroup(const std::string& group);
-	void DeleteItem(const std::string& group, const std::string& item);
-	void DeleteItem(const std::string& item);
+	void DeleteGroup(CValue group);
+	void DeleteItem(CValue group, CValue item);
+	void DeleteItem(CValue item);
 private:
 	int Flags;
 	std::string Name;

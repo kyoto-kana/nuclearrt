@@ -8,6 +8,7 @@ void AppData::Initialize()
 	m_windowHeight = {{ window_height }};
 	m_targetFPS = {{ target_fps }};
 	m_borderColor = {{ border_color }};
+	m_fullscreenOnStart = {{ fullscreen_on_start }};
 	m_fitInside = {{ fit_inside }};
 	m_resizeDisplay = {{ resize_display }};
 	m_dontCenterFrame = {{ dont_center_frame }};

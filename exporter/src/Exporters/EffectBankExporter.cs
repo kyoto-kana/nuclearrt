@@ -65,7 +65,7 @@ public class EffectBankExporter : BaseExporter
 			if (i < shader.Parameters.Count - 1) result.AppendLine(",");
 			else result.AppendLine();
 		}
-		result.AppendLine($"    }});");
+		result.AppendLine($"    }}, {( (shader.BackgroundTexture & 1) != 0 ? "true" : "false")});");
 		result.AppendLine($"}}");
 
 		return result.ToString();

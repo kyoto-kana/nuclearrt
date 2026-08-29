@@ -11,6 +11,7 @@
 
 #include "AppData.h"
 #include "Backend.h"
+#include "CValue.h"
 #include "GameState.h"
 #include "Input.h"
 #include "ObjectGlobalData.h"
@@ -50,8 +51,11 @@ public:
 	void QueueStateChange(GameState newState, int frameIndex = -1);
 	GameState GetCurrentState() const { return currentState; }
 
-	short Random(short max);
-	short RandomRange(short min, short max);
+	CValue Random(CValue max);
+	CValue Random(short max);
+	CValue RandomRange(CValue min, CValue max);
+	CValue RandomRange(short min, short max);
+	bool RandomChance(CValue chance, CValue max);
 	bool RandomChance(short chance, short max);
 
 	Application();

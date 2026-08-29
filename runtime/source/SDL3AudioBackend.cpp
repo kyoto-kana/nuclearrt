@@ -327,7 +327,7 @@ void SDL3AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 	}
 	if (volume > -1) channels[channel].volume = volume;
 	if (pan != -2 ) channels[channel].pan = pan;
-	if (freq > 0 || freq != NULL) SetSampleFreq(freq, channel, true);
+	if (freq > 0 || freq != 0.0f) SetSampleFreq(freq, channel, true);
 	channels[channel].curHandle = id;
 	SetSampleVolume(mainVol, channel, true); // Set volume to the main one.
 	
@@ -398,15 +398,12 @@ bool SDL3AudioBackend::SampleState(int id, bool channel, bool pause) {
 	}
 	if (id > -1 && !channel) { // Check for specific sample not playing/paused.
 		for (int i = 1; i < SDL_arraysize(channels); i++) {
+			//TODO: come back to this to verify paused state
 			if (channels[i].curHandle == id) {
-				if (pause && channels[i].pause) {
+				if (pause == channels[i].pause) {
 					return true;
 				}
-				if (!channels[i].stream && !pause) return true;
-			}
-			else { 
-				if (!pause) return true;
-				else return false;
+				if (channels[i].stream && !pause) return true;
 			}
 		}
 	}
@@ -442,7 +439,7 @@ void SDL3AudioBackend::PauseSample(int id, bool channel, bool pause) {
 void SDL3AudioBackend::SetSamplePan(float pan, int id, bool channel) {
 	AudioStreamLock lock(masterStream);
 	bool setMain = false;
-	pan /= 100;
+	pan = pan / 100;
 	if (pan < -1.0f) pan = -1.0f;
 	if (pan > 1.0f) pan = 1.0f;
 	if (!channel && id <= -1) { // Set Main Pan
@@ -465,19 +462,19 @@ void SDL3AudioBackend::SetSamplePan(float pan, int id, bool channel) {
 		}
 	}
 }
-int SDL3AudioBackend::GetSamplePan(int id, bool channel) {
+CValue SDL3AudioBackend::GetSamplePan(int id, bool channel) {
 	AudioStreamLock lock(masterStream);
-	if (id == -1 && !channel) return mainPan;
+	if (id == -1 && !channel) return CValue(mainPan);
 	if (channel) { // Get Channel Volume
-		if (id < 1 || id >= SDL_arraysize(channels)) return 0;
-		return channels[id].pan * 100;
+		if (id < 1 || id >= SDL_arraysize(channels)) return CValue(0);
+		return CValue(channels[id].pan * 100);
 	}
 	if (!channel && id >= 0) {
 		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) return channels[i].pan * 100;
+			if (channels[i].curHandle == id) return CValue(channels[i].pan * 100);
 		}
 	}
-	return 0;
+	return CValue(0);
 }
 void SDL3AudioBackend::SetSamplePos(int pos, int id, bool channel)
 {
@@ -489,7 +486,7 @@ void SDL3AudioBackend::SetSamplePos(int pos, int id, bool channel)
 		pos = SDL_clamp(pos, 0, length);
 		channels[id].position = pos;
 		SDL_ClearAudioStream(channels[id].stream);
-		Uint8* positionData = channels[id].data + pos * sizeof(float) * 2;
+		Uint8* positionData = channels[id].data + static_cast<int>(pos) * sizeof(float) * 2;
 		Uint32 positionLength = channels[id].data_len - pos * sizeof(float) * 2;
 		SDL_PutAudioStreamData(channels[id].stream, positionData, positionLength);
 	}
@@ -507,7 +504,7 @@ void SDL3AudioBackend::SetSampleVolume(float volume, int id, bool channel) {
 		mainVol = volume;
 		setMain = true;
 		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			SetSampleVolume(volume, i, true);
+			SetSampleVolume(mainVol, i, true);
 		}
 	}
 	if (channel) { // Set Channel Volume
@@ -544,44 +541,44 @@ void SDL3AudioBackend::SetSampleFreq(int freq, int id, bool channel) {
 		}
 	}
 }
-int SDL3AudioBackend::GetSampleFreq(int id, bool channel) {
+CValue SDL3AudioBackend::GetSampleFreq(int id, bool channel) {
 	AudioStreamLock lock(masterStream);
 	if (channel) { // Get Channel Freq
-		if (id < 1 || id >= SDL_arraysize(channels) || !channels[id].stream) return 0;
-		return channels[id].spec.freq * SDL_GetAudioStreamFrequencyRatio(channels[id].stream);
+		if (id < 1 || id >= SDL_arraysize(channels) || !channels[id].stream) return CValue(0);
+		return CValue(channels[id].spec.freq * SDL_GetAudioStreamFrequencyRatio(channels[id].stream));
 	}
 	if (id > -1 && !channel) {
 		for (int i = 1; i < SDL_arraysize(channels); ++i) {
-			if (channels[i].curHandle == id && channels[i].stream) return channels[i].spec.freq * SDL_GetAudioStreamFrequencyRatio(channels[i].stream);
+			if (channels[i].curHandle == id && channels[i].stream) return CValue(channels[i].spec.freq * SDL_GetAudioStreamFrequencyRatio(channels[i].stream));
 		}
 	}
-	return 0;
+	return CValue(0);
 }
-int SDL3AudioBackend::GetSampleVolume(int id) {
+CValue SDL3AudioBackend::GetSampleVolume(CValue id) {
 	AudioStreamLock lock(masterStream);
-	if (id == -1) return mainVol;
-	if (id > -1) { // Get Sample Volume
+	if (id.GetIntValue() == -1) return CValue(mainVol);
+	if (id.GetIntValue() > -1) { // Get Sample Volume
 		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id && channels[i].stream) return channels[i].volume;
+			if (channels[i].curHandle == id.GetIntValue() && channels[i].stream) return CValue(channels[i].volume);
 		}
 	}
-	return 0;
+	return CValue(0);
 }
 
-int SDL3AudioBackend::GetSampleVolume(std::string name) {
+CValue SDL3AudioBackend::GetSampleVolume(std::string name) {
 	return GetSampleVolume(FindSample(name));
 }
 
-int SDL3AudioBackend::GetChannelVolume(int id) {
+CValue SDL3AudioBackend::GetChannelVolume(CValue id) {
 	AudioStreamLock lock(masterStream);
-	if (id < 1 || id >= SDL_arraysize(channels)) return -1;
-	return channels[id].volume;
+	if (id.GetIntValue() < 1 || id.GetIntValue() >= SDL_arraysize(channels)) return CValue(-1);
+	return CValue(channels[id.GetIntValue()].volume);
 }
 
-std::string SDL3AudioBackend::GetChannelName(int channel) {
+CValue SDL3AudioBackend::GetChannelName(CValue channel) {
 	AudioStreamLock lock(masterStream);
-	if (channel < 0 || channel >= SDL_arraysize(channels)) return "";
-	return channels[channel].name;
+	if (channel.GetIntValue() < 0 || channel.GetIntValue() >= SDL_arraysize(channels)) return CValue("");
+	return CValue(channels[channel.GetIntValue()].name);
 }
 
 void SDL3AudioBackend::LockChannel(int channel, bool unlock) {
@@ -590,22 +587,22 @@ void SDL3AudioBackend::LockChannel(int channel, bool unlock) {
 	channels[channel].lock = !unlock;
 }
 
-int SDL3AudioBackend::GetSampleDuration(int id, bool channel) {
+CValue SDL3AudioBackend::GetSampleDuration(int id, bool channel) {
 	AudioStreamLock lock(masterStream);
-	if (channel && id > 0 && id < SDL_arraysize(channels)) return static_cast<int>(channels[id].data_len);
+	if (channel && id > 0 && id < SDL_arraysize(channels)) return CValue(static_cast<int>(channels[id].data_len));
 	if (!channel && id > -1) {
-		for (int i = 1; i < SDL_arraysize(channels); ++i) if (channels[i].curHandle == id) return static_cast<int>(channels[i].data_len);
+		for (int i = 1; i < SDL_arraysize(channels); ++i) if (channels[i].curHandle == id) return CValue(static_cast<int>(channels[i].data_len));
 	}
-	return 0;
+	return CValue(0);
 }
 
-int SDL3AudioBackend::GetSamplePos(int id, bool channel) {
+CValue SDL3AudioBackend::GetSamplePos(int id, bool channel) {
 	AudioStreamLock lock(masterStream);
-	if (channel && id > 0 && id < SDL_arraysize(channels)) return channels[id].position;
+	if (channel && id > 0 && id < SDL_arraysize(channels)) return CValue(channels[id].position);
 	if (!channel && id > -1) {
-		for (int i = 1; i < SDL_arraysize(channels); ++i) if (channels[i].curHandle == id) return channels[i].position;
+		for (int i = 1; i < SDL_arraysize(channels); ++i) if (channels[i].curHandle == id) return CValue(channels[i].position);
 	}
-	return 0;
+	return CValue(0);
 }
 
 void SDL3AudioBackend::StopSample(int id, bool channel) {

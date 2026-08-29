@@ -3,14 +3,14 @@
 #include <cmath>
 
 void PathMovement::Initialize() {
-	originX = Instance->GetX();
-	originY = Instance->GetY();
+	originX = Instance->GetX().GetIntValue();
+	originY = Instance->GetY().GetIntValue();
 	currentNodeIndex = 0;
 }
 
 void PathMovement::OnEnabled() {
-	originX = Instance->GetX();
-	originY = Instance->GetY();
+	originX = Instance->GetX().GetIntValue();
+	originY = Instance->GetY().GetIntValue();
 	currentNodeIndex = 0;
 	movingForward = true;
 	stopped = false;
@@ -38,12 +38,12 @@ void PathMovement::Update(float deltaTime) {
 			bool wasMovingForward = movingForward;
 			
 			if (RepositionAtEnd) {
-				Instance->SetX(static_cast<float>(originX));
-				Instance->SetY(static_cast<float>(originY));
+				Instance->SetX(CValue(originX));
+				Instance->SetY(CValue(originY));
 			} else {
 				if (!ReverseAtEnd) {
-					originX = static_cast<int>(Instance->GetX());
-					originY = static_cast<int>(Instance->GetY());
+					originX = static_cast<int>(Instance->GetX().GetIntValue());
+					originY = static_cast<int>(Instance->GetY().GetIntValue());
 				}
 			}
 
@@ -56,8 +56,8 @@ void PathMovement::Update(float deltaTime) {
 						endX += Nodes[i].DestinationX;
 						endY += Nodes[i].DestinationY;
 					}
-					Instance->SetX(static_cast<float>(endX));
-					Instance->SetY(static_cast<float>(endY));
+					Instance->SetX(CValue(endX));
+					Instance->SetY(CValue(endY));
 				}
 			}
 
@@ -71,12 +71,12 @@ void PathMovement::Update(float deltaTime) {
 			bool wasMovingForward = movingForward;
 			
 			if (RepositionAtEnd) {
-				Instance->SetX(static_cast<float>(originX));
-				Instance->SetY(static_cast<float>(originY));
+				Instance->SetX(CValue(originX));
+				Instance->SetY(CValue(originY));
 			} else {
 				if (!ReverseAtEnd) {
-					originX = static_cast<int>(Instance->GetX());
-					originY = static_cast<int>(Instance->GetY());
+					originX = static_cast<int>(Instance->GetX().GetIntValue());
+					originY = static_cast<int>(Instance->GetY().GetIntValue());
 				}
 			}
 
@@ -89,8 +89,8 @@ void PathMovement::Update(float deltaTime) {
 						endX += Nodes[i].DestinationX;
 						endY += Nodes[i].DestinationY;
 					}
-					Instance->SetX(static_cast<float>(endX));
-					Instance->SetY(static_cast<float>(endY));
+					Instance->SetX(CValue(endX));
+					Instance->SetY(CValue(endY));
 				}
 				
 				if (movingForward) {
@@ -106,13 +106,13 @@ void PathMovement::Update(float deltaTime) {
 	}
 	
 	if (currentNodeIndex < 0 && !movingForward) {
-		float dx = static_cast<float>(originX) - Instance->GetX();
-		float dy = static_cast<float>(originY) - Instance->GetY();
+		float dx = static_cast<float>(originX) - Instance->GetX().GetIntValue();
+		float dy = static_cast<float>(originY) - Instance->GetY().GetIntValue();
 		float distanceToOrigin = sqrtf(dx * dx + dy * dy);
 		
 		if (distanceToOrigin <= 0.0001f) {
-			Instance->SetX(static_cast<float>(originX));
-			Instance->SetY(static_cast<float>(originY));
+			Instance->SetX(CValue(originX));
+			Instance->SetY(CValue(originY));
 			
 			if (Loop && ReverseAtEnd) {
 				movingForward = !movingForward;
@@ -132,8 +132,8 @@ void PathMovement::Update(float deltaTime) {
 			
 			float step = nodeSpeed * scaledDelta;
 			if (step >= distanceToOrigin) {
-				Instance->SetX(static_cast<float>(originX));
-				Instance->SetY(static_cast<float>(originY));
+				Instance->SetX(CValue(originX));
+				Instance->SetY(CValue(originY));
 				
 				if (Loop && ReverseAtEnd) {
 					movingForward = !movingForward;
@@ -148,8 +148,8 @@ void PathMovement::Update(float deltaTime) {
 			} else {
 				float nx = dx / distanceToOrigin;
 				float ny = dy / distanceToOrigin;
-				Instance->SetX(Instance->GetX() + nx * step);
-				Instance->SetY(Instance->GetY() + ny * step);
+				Instance->SetX(CValue(Instance->GetX().GetIntValue() + nx * step));
+				Instance->SetY(CValue(Instance->GetY().GetIntValue() + ny * step));
 			}
 		}
 		return;
@@ -171,13 +171,13 @@ void PathMovement::Update(float deltaTime) {
 
 	deltaTime *= 10.0f;
 
-	float dx = static_cast<float>(targetX) - Instance->GetX();
-	float dy = static_cast<float>(targetY) - Instance->GetY();
+	float dx = static_cast<float>(targetX) - Instance->GetX().GetIntValue();
+	float dy = static_cast<float>(targetY) - Instance->GetY().GetIntValue();
 	float distanceToTarget = sqrtf(dx * dx + dy * dy);
 
 	if (distanceToTarget <= 0.0001f) {
-		Instance->SetX(static_cast<float>(targetX));
-		Instance->SetY(static_cast<float>(targetY));
+		Instance->SetX(CValue(targetX));
+		Instance->SetY(CValue(targetY));
 		currentNodeIndex += movingForward ? 1 : -1;
 		return;
 	}
@@ -188,31 +188,31 @@ void PathMovement::Update(float deltaTime) {
 
 	float step = nodeSpeed * deltaTime;
 	if (step >= distanceToTarget) {
-		Instance->SetX(static_cast<float>(targetX));
-		Instance->SetY(static_cast<float>(targetY));
+		Instance->SetX(CValue(targetX));
+		Instance->SetY(CValue(targetY));
 		currentNodeIndex += movingForward ? 1 : -1;
 	} else {
 		float nx = dx / distanceToTarget;
 		float ny = dy / distanceToTarget;
-		Instance->SetX(Instance->GetX() + nx * step);
-		Instance->SetY(Instance->GetY() + ny * step);
+		Instance->SetX(CValue(Instance->GetX().GetIntValue() + nx * step));
+		Instance->SetY(CValue(Instance->GetY().GetIntValue() + ny * step));
 	}
 }
 
-int PathMovement::GetRealSpeed() {
+CValue PathMovement::GetRealSpeed() {
 	if (Nodes.empty()) {
-		return 0;
+		return CValue(0);
 	}
 
 	if (stopped) {
-		return 0;
+		return CValue(0);
 	}
 
 	if (currentNodeIndex >= static_cast<int>(Nodes.size()) || currentNodeIndex < 0) {
-		return 0;
+		return CValue(0);
 	}
 
-	return static_cast<int>(Nodes[currentNodeIndex].Speed);
+	return CValue(Nodes[currentNodeIndex].Speed);
 }
 
 int PathMovement::GetMovementDirection() {

@@ -21,12 +21,12 @@ public:
 		items.at(currentMovementIndex)->Update(deltaTime);
 	}
 
-	void SetMovement(int index) {
+	void SetMovement(const CValue& index) {
 		if (items.find(currentMovementIndex) != items.end()) {
 			items.at(currentMovementIndex)->OnDisabled();
 		}
 
-		currentMovementIndex = index;
+		currentMovementIndex = index.GetIntValue();
 
 		if (items.find(currentMovementIndex) != items.end()) {
 			items.at(currentMovementIndex)->OnEnabled();

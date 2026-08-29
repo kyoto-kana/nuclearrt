@@ -8,10 +8,11 @@ class ObjectInstance;
 
 class Layer {
 public:
-	Layer(std::string name, float XCoefficient, float YCoefficient)
+	Layer(std::string name, float XCoefficient, float YCoefficient, bool VisibleOnStart = true)
 		: Name(name)
 		, XCoefficient(XCoefficient)
 		, YCoefficient(YCoefficient)
+		, Visible(VisibleOnStart)
 	{
 	}
 
@@ -25,6 +26,8 @@ public:
 	bool usePreviousLayerEffect = false;
     EffectInstance* effectInstance = nullptr;
 
+	bool Visible = true;
+	
 	std::vector<ObjectInstance*> instances;
 
 	unsigned char GetEffectParameter() const {

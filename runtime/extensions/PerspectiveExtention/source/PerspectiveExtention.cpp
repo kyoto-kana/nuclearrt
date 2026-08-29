@@ -218,33 +218,33 @@ void PerspectiveExtention::SetPerspectiveDirection(bool perspectiveDir)
 	UpdateShaderParameters();
 }
 
-void PerspectiveExtention::SetWidth(int width)
+void PerspectiveExtention::SetWidth(CValue width)
 {
-	this->width = width;
+	this->width = width.GetIntValue();
 	UpdateShaderParameters();
 }
 
-void PerspectiveExtention::SetHeight(int height)
+void PerspectiveExtention::SetHeight(CValue height)
 {
-	this->height = height;
+	this->height = height.GetIntValue();
 	UpdateShaderParameters();
 }
 
-void PerspectiveExtention::SetZoomValue(int zoomValue)
+void PerspectiveExtention::SetZoomValue(CValue zoomValue)
 {
-	this->zoomValue = zoomValue;
+	this->zoomValue = zoomValue.GetIntValue();
 	UpdateShaderParameters();
 }
 
-void PerspectiveExtention::SetOffset(int offset)
+void PerspectiveExtention::SetOffset(CValue offset)
 {
-	this->offset = offset;
+	this->offset = offset.GetIntValue();
 	UpdateShaderParameters();
 }
 
-void PerspectiveExtention::SetSineWaveWaves(int sineWaveWaves)
+void PerspectiveExtention::SetSineWaveWaves(CValue sineWaveWaves)
 {
-	this->sineWaveWaves = sineWaveWaves;
+	this->sineWaveWaves = sineWaveWaves.GetIntValue();
 	UpdateShaderParameters();
 }
 
@@ -283,7 +283,7 @@ void PerspectiveExtention::UpdateShaderParameters()
     }
 }
 
-void PerspectiveExtention::Draw()
+void PerspectiveExtention::Draw(int scrollX, int scrollY)
 {
-    Application::Instance().GetBackend()->graphics->DrawEffectRect(GetX(), GetY(), width, height, 0, 0, 0, effectInstance);
+    Application::Instance().GetBackend()->graphics->DrawEffectRect(GetX().GetIntValue() - scrollX, GetY().GetIntValue() - scrollY, width, height, 0, 0, 0, effectInstance);
 }

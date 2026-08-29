@@ -6,6 +6,7 @@ public class UponClickingOnObjectCondition : ConditionBase
 {
 	public override int[] ObjectType { get; set; } = [-6];
 	public override int Num { get; set; } = -7;
+	public override bool IsTrueEvent => true;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
@@ -23,10 +24,10 @@ public class UponClickingOnObjectCondition : ConditionBase
 
 		//Check mouse is over object
 		ParamObject paramObj = (ParamObject)eventBase.Items[1].Loader;
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(paramObj.ObjectInfo, paramObj.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(paramObj.ObjectInfo, paramObj.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    {ifStatement} (IsColliding(&(**it), GetMouseX(), GetMouseY()))) it.deselect();");
 		result.AppendLine("}");
-		result.AppendLine($"if ({GetSelector(paramObj.ObjectInfo, paramObj.ObjectType)}->Count() == 0) goto {nextLabel};");
+		result.AppendLine($"if ({GetSelector(paramObj.ObjectInfo, paramObj.ObjectType)}.Count() == 0) goto {nextLabel};");
 
 		return result.ToString();
 	}

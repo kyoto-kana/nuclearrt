@@ -157,6 +157,11 @@ std::string SDL3PlatformBackend::GetAppPath()
 #endif
 }
 
+void SDL3PlatformBackend::SetFullscreen(bool fullscreen)
+{
+	SDL_SetWindowFullscreen(backend->GetGraphics()->GetSDLWindow(), fullscreen);
+}
+
 void SDL3PlatformBackend::Log(std::string text) {
 	#ifdef __EMSCRIPTEN__
 	emscripten_console_log(text.c_str());

@@ -42,12 +42,12 @@ public:
 
 	void Update(float deltaTime) override;
 
-	void MoveObject(ObjectInstance* instance, uint8_t easingMethod, uint8_t firstFunction, uint8_t secondFunction, int x, int y, uint8_t timeMode, int time);
-	void MoveObjectExplicit(uint32_t fixedValue, uint8_t easingMethod, uint8_t firstFunction, uint8_t secondFunction, int x, int y, uint8_t timeMode, int time);
+	void MoveObject(ObjectInstance* instance, uint8_t easingMethod, uint8_t firstFunction, uint8_t secondFunction, CValue x, CValue y, uint8_t timeMode, CValue time);
+	void MoveObjectExplicit(CValue fixedValue, CValue easingMethod, CValue firstFunction, CValue secondFunction, CValue x, CValue y, CValue timeMode, CValue time);
 
-	void SetOvershoot(float overshoot) { Overshoot = overshoot; }
-	void SetAmplitude(float amplitude) { Amplitude = amplitude; }
-	void SetPeriod(float period) { Period = period; }
+	void SetOvershoot(CValue overshoot) { Overshoot = (float)overshoot.GetDoubleValue(); }
+	void SetAmplitude(CValue amplitude) { Amplitude = (float)amplitude.GetDoubleValue(); }
+	void SetPeriod(CValue period) { Period = (float)period.GetDoubleValue(); }
 
 	double CalculateEasingValue(int mode, int functionA, int functionB, double step, EaseVars vars);
 

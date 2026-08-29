@@ -15,9 +15,9 @@ void BulletMovement::OnEnabled()
 	}
 
 	if (!validDirections.empty())
-		movementDirection = validDirections[Application::Instance().RandomRange(0, static_cast<short>(validDirections.size() - 1))];
+		movementDirection = validDirections[Application::Instance().RandomRange(0, static_cast<short>(validDirections.size() - 1)).GetIntValue()];
 	else //all directions are valid
-		movementDirection = Application::Instance().RandomRange(0, 31);
+		movementDirection = Application::Instance().RandomRange(0, 31).GetIntValue();
 
 	if (!((Active *)Instance)->AutomaticRotation)
 	{

@@ -11,14 +11,12 @@ public:
 	using iterator = std::vector<ObjectInstance*>::iterator;
 	using const_iterator = std::vector<ObjectInstance*>::const_iterator;
 
-	// Constructor that references an external collection
-	ObjectSelector(const std::unordered_map<unsigned int, ObjectInstance*>& allInstances, unsigned int objectInfoId, bool isQualifier = false)
-		: AllInstances(allInstances), ObjectInfoId(objectInfoId), IsQualifier(isQualifier), IsDirty(false) {
-		Initialize(allInstances);
-	}
+	ObjectSelector() = default;
 
 	// called after all object instances are created on frame initialization and when a new object is created that needs to be added to the selector
-	void Initialize(const std::unordered_map<unsigned int, ObjectInstance*>& allInstances) {
+	void Initialize(const std::unordered_map<unsigned int, ObjectInstance*>& allInstances, unsigned int objectInfoId, bool isQualifier = false) {
+		ObjectInfoId = objectInfoId;
+		IsQualifier = isQualifier;
 		AllSelectorObjectInstances.clear();
 		for (const auto& [handle, instance] : allInstances) {
 			instance->isSelected = false; 
@@ -37,8 +35,36 @@ public:
 			[](ObjectInstance* a, ObjectInstance* b) { return a->Handle < b->Handle; });
 	}
 
+	std::vector<ObjectInstance*> SaveSelection() {
+		EnsureSorted();
+		return SelectedInstances;
+	}
+
+	void RestoreSelection(const std::vector<ObjectInstance*>& snap) {
+		for (auto* obj : SelectedInstances) {
+			obj->isSelected = false;
+		}
+		SelectedInstances.clear();
+		for (auto* obj : snap) {
+			if (obj == nullptr) continue;
+			auto it = std::find(AllSelectorObjectInstances.begin(), AllSelectorObjectInstances.end(), obj);
+			if (it == AllSelectorObjectInstances.end()) continue;
+			obj->isSelected = true;
+			SelectedInstances.push_back(obj);
+		}
+		IsDirty = false;
+	}
+
 	// Called during a event to scope all objects that are relevant to the event
-	void Reset() {
+	void Reset(ObjectInstance* restrictTo = nullptr) {
+		if (restrictTo) {
+			for (auto* obj : AllSelectorObjectInstances) {
+				if (obj == restrictTo) {
+					SelectOnly(restrictTo);
+					return;
+				}
+			}
+		}
 		for (auto* obj : SelectedInstances) {
 			obj->isSelected = false;
 		}
@@ -114,10 +140,16 @@ public:
 
 	void SelectRandom() {
 		if (!SelectedInstances.empty()) {
-			size_t randomIndex = Application::Instance().RandomRange(0, static_cast<short>(SelectedInstances.size() - 1));
+			size_t randomIndex = Application::Instance().RandomRange(0, static_cast<short>(SelectedInstances.size() - 1)).GetIntValue();
 			ObjectInstance* instance = SelectedInstances[randomIndex];
 			SelectOnly(instance);
 		}
+	}
+
+	void DeselectAll() {
+		for (auto* obj : SelectedInstances) obj->isSelected = false;
+		SelectedInstances.clear();
+		IsDirty = false;
 	}
 
 	// Get number of selected instances
@@ -157,12 +189,11 @@ private:
 		}
 	}
 
-	const std::unordered_map<unsigned int, ObjectInstance*>& AllInstances;
-	std::vector<ObjectInstance*> SelectedInstances;	  
+	std::vector<ObjectInstance*> SelectedInstances;
 	std::vector<ObjectInstance*> AllSelectorObjectInstances; // list of all object instance handles for this selector
-	unsigned int ObjectInfoId;
-	bool IsQualifier;
-	bool IsDirty; 
+	unsigned int ObjectInfoId = 0;
+	bool IsQualifier = false;
+	bool IsDirty = false;
 };
 
 // Add ObjectIterator class to support the requested iteration pattern

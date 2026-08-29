@@ -13,11 +13,11 @@ public class DestroyAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		result.AppendLine($"    MarkForDeletion(instance);");
 		result.AppendLine($"    it.deselect();");
-		result.AppendLine($"	{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}->RemoveInstance(instance->Handle);");
+		result.AppendLine($"	{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}.RemoveInstance(instance->Handle);");
 		//remove from qualifier selectors
 		var obj = ExpressionConverter.GetObject(eventBase.ObjectInfo, eventBase.ObjectType);
 		if (obj.Item1 < short.MaxValue && Exporter.Instance.GameData.frameitems[(int)obj.Item1].properties is ObjectCommon common)
@@ -29,7 +29,7 @@ public class DestroyAction : ActionBase
 					string qualifierSelector = StringUtils.SanitizeObjectName(Utilities.GetQualifierName(qualifier & 0x7FFF, eventBase.ObjectType)) + "_" + (32768 + qualifier) + "_selector";
 					if (qualifierSelector != GetSelector(eventBase.ObjectInfo, eventBase.ObjectType))
 					{
-						result.AppendLine($"	{qualifierSelector}->RemoveInstance(instance->Handle);");
+						result.AppendLine($"	{qualifierSelector}.RemoveInstance(instance->Handle);");
 					}
 				}
 			}

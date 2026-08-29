@@ -64,36 +64,36 @@ void IniPlusPlusExtension::Update(float deltaTime)
 	}
 }
 
-void IniPlusPlusExtension::SetCurrentGroup(const std::string &group)
+void IniPlusPlusExtension::SetCurrentGroup(CValue group)
 {
-	CurrentGroup = group;
+	CurrentGroup = group.GetStringValue();
 }
 
-void IniPlusPlusExtension::SetCurrentGroupItemValue(const std::string &item, int type, double value)
+void IniPlusPlusExtension::SetCurrentGroupItemValue(CValue item, CValue type, CValue value)
 {
 	SetItemValue(CurrentGroup, item, type, value);
 }
 
-void IniPlusPlusExtension::SetCurrentGroupItemString(const std::string &item, const std::string &value)
+void IniPlusPlusExtension::SetCurrentGroupItemString(CValue item, CValue value)
 {
 	SetItemString(CurrentGroup, item, value);
 }
 
-void IniPlusPlusExtension::SetItemValue(const std::string &group, const std::string &item, int type, double value)
+void IniPlusPlusExtension::SetItemValue(CValue group, CValue item, CValue type, CValue value)
 {
 	if (!currentData) return;
 	
 	if (type == 0) // int
-		currentData->SetValue(group, item, std::to_string(static_cast<int>(value)));
+		currentData->SetValue(group.GetStringValue(), item.GetStringValue(), std::to_string(value.GetIntValue()));
 	else if (type == 1) // double
-		currentData->SetValue(group, item, std::to_string(static_cast<double>(value)));
+		currentData->SetValue(group.GetStringValue(), item.GetStringValue(), std::to_string(value.GetDoubleValue()));
 }
 
-void IniPlusPlusExtension::SetItemString(const std::string &group, const std::string &item, const std::string &value)
+void IniPlusPlusExtension::SetItemString(CValue group, CValue item, CValue value)
 {
 	if (!currentData) return;
 	
-	currentData->SetValue(group, item, value);
+	currentData->SetValue(group.GetStringValue(), item.GetStringValue(), value.GetStringValue());
 }
 
 void IniPlusPlusExtension::DeleteCurrentGroup()
@@ -101,21 +101,21 @@ void IniPlusPlusExtension::DeleteCurrentGroup()
 	DeleteGroup(CurrentGroup);
 }
 
-void IniPlusPlusExtension::DeleteGroup(const std::string &group)
+void IniPlusPlusExtension::DeleteGroup(CValue group)
 {
 	if (!currentData) return;
-	currentData->DeleteGroup(group);
+	currentData->DeleteGroup(group.GetStringValue());
 }
 
-void IniPlusPlusExtension::DeleteCurrentGroupItem(const std::string &item)
+void IniPlusPlusExtension::DeleteCurrentGroupItem(CValue item)
 {
 	DeleteGroupItem(CurrentGroup, item);
 }
 
-void IniPlusPlusExtension::DeleteGroupItem(const std::string &group, const std::string &item)
+void IniPlusPlusExtension::DeleteGroupItem(CValue group, CValue item)
 {
 	if (!currentData) return;
-	currentData->DeleteGroupItem(group, item);
+	currentData->DeleteGroupItem(group.GetStringValue(), item.GetStringValue());
 }
 
 void IniPlusPlusExtension::ClearINI()
@@ -134,46 +134,46 @@ bool IniPlusPlusExtension::CurrentGroupExists() const
 	return GroupExists(CurrentGroup);
 }
 
-bool IniPlusPlusExtension::GroupExists(const std::string &group) const
+bool IniPlusPlusExtension::GroupExists(CValue group) const
 {
 	if (!currentData) return false;
-	return currentData->GroupExists(group);
+	return currentData->GroupExists(group.GetStringValue());
 }
 
-bool IniPlusPlusExtension::CurrentGroupItemExists(const std::string &item) const
+bool IniPlusPlusExtension::CurrentGroupItemExists(CValue item) const
 {
 	return GroupItemExists(CurrentGroup, item);
 }
 
-bool IniPlusPlusExtension::GroupItemExists(const std::string &group, const std::string &item) const
+bool IniPlusPlusExtension::GroupItemExists(CValue group, CValue item) const
 {
 	if (!currentData) return false;
-	return currentData->GroupItemExists(group, item);
+	return currentData->GroupItemExists(group.GetStringValue(), item.GetStringValue());
 }
 
-int IniPlusPlusExtension::GetCurrentGroupItemValue(const std::string &item, int defaultValue)
+CValue IniPlusPlusExtension::GetCurrentGroupItemValue(CValue item, CValue defaultValue)
 {
-	return GetItemValue(CurrentGroup, item, defaultValue);
+	return GetItemValue(CurrentGroup, item, CValue(defaultValue.GetIntValue()));
 }
 
-std::string IniPlusPlusExtension::GetCurrentGroupItemString(const std::string &item, const std::string &defaultValue)
+CValue IniPlusPlusExtension::GetCurrentGroupItemString(CValue item, CValue defaultValue)
 {
-	return GetItemString(CurrentGroup, item, defaultValue);
+	return GetItemString(CurrentGroup, item, CValue(defaultValue.GetStringValue()));
 }
 
-int IniPlusPlusExtension::GetItemValue(const std::string &group, const std::string &item, int defaultValue)
-{
-	if (!currentData) return defaultValue;
-
-	std::string valueStr = currentData->GetValue(group, item, std::to_string(defaultValue));
-	return std::stoi(valueStr);
-}
-
-std::string IniPlusPlusExtension::GetItemString(const std::string &group, const std::string &item, const std::string &defaultValue)
+CValue IniPlusPlusExtension::GetItemValue(CValue group, CValue item, CValue defaultValue)
 {
 	if (!currentData) return defaultValue;
 
-	return currentData->GetValue(group, item, defaultValue);
+	std::string valueStr = currentData->GetValue(group.GetStringValue(), item.GetStringValue(), std::to_string(defaultValue.GetIntValue()));
+	return CValue(std::stoi(valueStr));
+}
+
+CValue IniPlusPlusExtension::GetItemString(CValue group, CValue item, CValue defaultValue)
+{
+	if (!currentData) return defaultValue;
+
+	return CValue(currentData->GetValue(group.GetStringValue(), item.GetStringValue(), defaultValue.GetStringValue()));
 }
 
 

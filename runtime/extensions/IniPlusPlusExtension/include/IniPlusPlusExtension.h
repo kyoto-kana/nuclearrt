@@ -180,35 +180,35 @@ public:
 	void Initialize() override;
 	void Update(float deltaTime) override;
 
-	void SetCurrentGroup(const std::string &group);
+	void SetCurrentGroup(CValue group);
 
-	void SetCurrentGroupItemValue(const std::string &item, int type, double value);
-	void SetCurrentGroupItemString(const std::string &item, const std::string &value);
+	void SetCurrentGroupItemValue(CValue item, CValue type, CValue value);
+	void SetCurrentGroupItemString(CValue item, CValue value);
 
-	void SetItemValue(const std::string &group, const std::string &item, int type, double value);
-	void SetItemString(const std::string &group, const std::string &item, const std::string &value);
+	void SetItemValue(CValue group, CValue item, CValue type, CValue value);
+	void SetItemString(CValue group, CValue item, CValue value);
 
 	void DeleteCurrentGroup();
-	void DeleteGroup(const std::string &group);
+	void DeleteGroup(CValue group);
 
-	void DeleteCurrentGroupItem(const std::string &item);
-	void DeleteGroupItem(const std::string &group, const std::string &item);
+	void DeleteCurrentGroupItem(CValue item);
+	void DeleteGroupItem(CValue group, CValue item);
 
 	void ClearINI();
 
 	void Save();
 
 	bool CurrentGroupExists() const;
-	bool GroupExists(const std::string &group) const;
+	bool GroupExists(CValue group) const;
 
-	bool CurrentGroupItemExists(const std::string &item) const;
-	bool GroupItemExists(const std::string &group, const std::string &item) const;
+	bool CurrentGroupItemExists(CValue item) const;
+	bool GroupItemExists(CValue group, CValue item) const;
 
-	int GetCurrentGroupItemValue(const std::string &item, int defaultValue);
-	std::string GetCurrentGroupItemString(const std::string &item, const std::string &defaultValue);
+	CValue GetCurrentGroupItemValue(CValue item, CValue defaultValue);
+	CValue GetCurrentGroupItemString(CValue item, CValue defaultValue);
 
-	int GetItemValue(const std::string &group, const std::string &item, int defaultValue = 0);
-	std::string GetItemString(const std::string &group, const std::string &item, const std::string &defaultValue);
+	CValue GetItemValue(CValue group, CValue item, CValue defaultValue = CValue(0));
+	CValue GetItemString(CValue group, CValue item, CValue defaultValue);
 private:
 	std::string CurrentGroup;
 

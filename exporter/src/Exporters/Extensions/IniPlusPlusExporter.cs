@@ -219,10 +219,10 @@ public class IniPlusPlusExporter : ExtensionExporter
 		switch (expression.Num)
 		{
 			case 0:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetCurrentGroupValue(";
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetCurrentGroupItemValue(";
 				break;
 			case 1:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetCurrentGroupString(";
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetCurrentGroupItemString(";
 				break;
 			// case 2:
 			// 	return Exp_GetCurrentGroupPositionX_Execute();

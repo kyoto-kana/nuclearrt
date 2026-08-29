@@ -16,7 +16,7 @@ public:
 
 	float realSpeed = 0;
 
-	int GetRealSpeed() override { return static_cast<int>(realSpeed); }
+	CValue GetRealSpeed() override { return CValue(realSpeed); }
 	int GetMinimumSpeed() override { return 0; }
 	int GetMaximumSpeed() override { return static_cast<int>(speed); }
 	int GetMovementDirection() override { return movementDirection; }

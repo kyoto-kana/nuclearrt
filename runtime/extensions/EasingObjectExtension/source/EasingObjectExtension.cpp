@@ -175,7 +175,7 @@ void EasingObjectExtension::Update(float deltaTime)
 	}
 }
 
-void EasingObjectExtension::MoveObject(ObjectInstance *instance, uint8_t easingMethod, uint8_t firstFunction, uint8_t secondFunction, int x, int y, uint8_t timeMode, int time)
+void EasingObjectExtension::MoveObject(ObjectInstance *instance, uint8_t easingMethod, uint8_t firstFunction, uint8_t secondFunction, CValue x, CValue y, uint8_t timeMode, CValue time)
 {
 	if (instance == nullptr)
 		return;
@@ -186,17 +186,17 @@ void EasingObjectExtension::MoveObject(ObjectInstance *instance, uint8_t easingM
 	}), controlled.end());
 
 	MoveStruct move;
-	move.startX = instance->GetX();
-	move.startY = instance->GetY();
+	move.startX = instance->GetX().GetIntValue();
+	move.startY = instance->GetY().GetIntValue();
 	move.fixedValue = instance->FixedValue;
-	move.destX = x;
-	move.destY = y;
+	move.destX = x.GetIntValue();
+	move.destY = y.GetIntValue();
 	move.starttime = 0;
 	move.easingMode = easingMethod;
 	move.functionA = firstFunction;
 	move.functionB = secondFunction;
 	move.timeMode = timeMode;
-	move.timespan = time;
+	move.timespan = time.GetIntValue();
 	move.eventloop_step = 0;
 	move.pausetime = 0;
 	move.pausecount = 0;
@@ -213,10 +213,10 @@ void EasingObjectExtension::MoveObject(ObjectInstance *instance, uint8_t easingM
 	controlled.push_back(move);
 }
 
-void EasingObjectExtension::MoveObjectExplicit(uint32_t fixedValue, uint8_t easingMethod, uint8_t firstFunction, uint8_t secondFunction, int x, int y, uint8_t timeMode, int time)
+void EasingObjectExtension::MoveObjectExplicit(CValue fixedValue, CValue easingMethod, CValue firstFunction, CValue secondFunction, CValue x, CValue y, CValue timeMode, CValue time)
 {
-	ObjectInstance* instance = Application::Instance().GetCurrentFrame().get()->GetInstanceByFixedValue(fixedValue);
-	MoveObject(instance, easingMethod, firstFunction, secondFunction, x, y, timeMode, time);
+	ObjectInstance* instance = Application::Instance().GetCurrentFrame().get()->GetInstanceByFixedValue(fixedValue.GetIntValue());
+	MoveObject(instance, easingMethod.GetIntValue(), firstFunction.GetIntValue(), secondFunction.GetIntValue(), x.GetIntValue(), y.GetIntValue(), timeMode.GetIntValue(), time.GetIntValue());
 }
 
 double EasingObjectExtension::CalculateEasingValue(int mode, int functionA, int functionB, double step, EaseVars vars)

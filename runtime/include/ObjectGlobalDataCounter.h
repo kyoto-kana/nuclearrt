@@ -6,7 +6,7 @@ class ObjectGlobalDataCounter : public ObjectGlobalData {
 public:
     ObjectGlobalDataCounter(unsigned int objectInfoHandle) : ObjectGlobalData(objectInfoHandle) {}
 
-    int value = 0;
-    int minValue = 0;
-    int maxValue = 0;
+    CValue value = 0;
+    CValue minValue = 0;
+    CValue maxValue = 0;
 };

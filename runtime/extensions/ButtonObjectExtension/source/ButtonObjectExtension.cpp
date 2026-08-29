@@ -1,5 +1,6 @@
 #include "ButtonObjectExtension.h"
 #include "Application.h"
+#include "Frame.h"
 #include "GraphicsBackend.h"
 
 void ButtonObjectExtension::Initialize() {
@@ -18,8 +19,8 @@ void ButtonObjectExtension::Update(float deltaTime) {
 	auto input = Application::Instance().GetInput();
 	int mouseX = input->GetMouseX();
 	int mouseY = input->GetMouseY();
-	Hovered = (mouseX >= GetX() && mouseX < GetX() + Width &&
-				mouseY >= GetY() && mouseY < GetY() + Height) && Shown;
+	Hovered = (mouseX >= GetX().GetIntValue() && mouseX < GetX().GetIntValue() + Width &&
+				mouseY >= GetY().GetIntValue() && mouseY < GetY().GetIntValue() + Height) && Shown;
 	Clicked = Hovered && input->IsMouseButtonPressed(1, false) && Enabled;
 	HeldDown = Hovered && input->IsMouseButtonDown(1) && Enabled;
 
@@ -33,9 +34,11 @@ void ButtonObjectExtension::Update(float deltaTime) {
 	else if (ButtonType == 2) { // radio button
 		Checked = true;
 	}
+
+	GenerateEvent(2);
 }
 
-void ButtonObjectExtension::Draw() {
+void ButtonObjectExtension::Draw(int scrollX, int scrollY) {
 	if (!Shown) return;
 
 	bitmap.Clear(0xFFFFFFFF);
@@ -54,7 +57,7 @@ void ButtonObjectExtension::Draw() {
 			break;
 	}
 
-	Application::Instance().GetBackend()->graphics->DrawBitmap(bitmap, GetX(), GetY());
+	Application::Instance().GetBackend()->graphics->DrawBitmap(bitmap, GetX().GetIntValue(), GetY().GetIntValue());
 }
 
 void ButtonObjectExtension::ButtonDraw() {

@@ -15,7 +15,7 @@ public class SpecificSampleNotPlaying : ConditionBase
 	public override int Num { get; set; } = -1;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
-		return $"{ifStatement} (Application::Instance().GetBackend()->audio->SampleState({((Sample)eventBase.Items[0].Loader).Handle}, false, false))) goto {nextLabel};";
+		return $"{parameters["negatedIfStatement"]} (Application::Instance().GetBackend()->audio->SampleState({((Sample)eventBase.Items[0].Loader).Handle}, false, false))) goto {nextLabel};";
 	}
 }
 public class SpecificSamplePaused : ConditionBase
@@ -33,7 +33,7 @@ public class ChannelNotPlaying : ConditionBase
 	public override int Num { get; set; } = -8;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
-		return $"{ifStatement} (Application::Instance().GetBackend()->audio->SampleState({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, true, false))) goto {nextLabel};";
+		return $"{parameters["negatedIfStatement"]} (Application::Instance().GetBackend()->audio->SampleState({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}.GetIntValue(), true, false))) goto {nextLabel};";
 	}
 }
 public class ChannelPaused : ConditionBase

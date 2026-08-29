@@ -19,10 +19,10 @@ public class ShootAction : ActionBase
 		if (followLauncherDirection)
 			direction = $"(1 << ((Active*)instance)->movements.GetCurrentMovement()->GetMovementDirection())";
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    ObjectInstance* newCreatedInstance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), ((Active*)instance)->GetXActionPoint(), ((Active*)instance)->GetYActionPoint(), instance->Layer, 0, {objectInfo.Item1}, 0, true, nullptr);");
-		result.AppendLine($"    {GetSelector(shoot.ObjectInfo, shoot.ShootPos.TypeParent)}->AddInstance(newCreatedInstance);");
+		result.AppendLine($"    ObjectInstance* newCreatedInstance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), ((Active*)instance)->GetXActionPoint().GetIntValue(), ((Active*)instance)->GetYActionPoint().GetIntValue(), instance->Layer, 0, {objectInfo.Item1}, 0, true, nullptr);");
+		result.AppendLine($"    {GetSelector(shoot.ObjectInfo, shoot.ShootPos.TypeParent)}.AddInstance(newCreatedInstance);");
 		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.items.clear();");
 		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.items.insert(std::pair<int, Movement*>(0, new BulletMovement(0, true, {direction}, {shoot.ShootSpeed})));");
 		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.GetCurrentMovement()->Instance = newCreatedInstance;");

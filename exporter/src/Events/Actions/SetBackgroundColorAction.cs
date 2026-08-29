@@ -14,7 +14,7 @@ public class SetBackgroundColorAction : ActionBase
 		}
 		else if (eventBase.Items[0].Loader is ExpressionParameter expressionParameter)
 		{
-			return $"BackgroundColor = {ExpressionConverter.ConvertExpression(expressionParameter, eventBase)};";
+			return $"BackgroundColor = ({ExpressionConverter.ConvertExpression(expressionParameter, eventBase)}).GetIntValue();";
 		}
 
 		return "";

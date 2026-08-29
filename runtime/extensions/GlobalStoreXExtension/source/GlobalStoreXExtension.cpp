@@ -22,143 +22,160 @@ void GlobalStoreXExtension::Initialize()
     initialized = true;
 }
 
-void GlobalStoreXExtension::SetInteger(int index, int value)
+void GlobalStoreXExtension::SetInteger(CValue index, CValue value)
 {
-    index -= data.integerBase;
-    if (index < 0 || index >= data.integers.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.integerBase;
+    if (indexValue < 0 || indexValue >= data.integers.size()) return;
 
-    data.integers[index] = value;
+    data.integers[indexValue] = value.GetIntValue();
 }
 
-void GlobalStoreXExtension::SetString(int index, const std::string& value)
+void GlobalStoreXExtension::SetString(CValue index, CValue value)
 {
-    index -= data.stringBase;
-    if (index < 0 || index >= data.strings.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.stringBase;
+    if (indexValue < 0 || indexValue >= data.strings.size()) return;
 
-    data.strings[index] = value;
+    data.strings[indexValue] = value.GetStringValue();
 }
 
-void GlobalStoreXExtension::SetBool(int index, int value)
+void GlobalStoreXExtension::SetBool(CValue index, CValue value)
 {
-    index -= data.boolBase;
-    if (index < 0 || index >= data.bools.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.boolBase;
+    if (indexValue < 0 || indexValue >= data.bools.size()) return;
 
-    data.bools[index] = value != 0;
+    data.bools[indexValue] = value.GetIntValue() != 0;
 }
 
-void GlobalStoreXExtension::SetShort(int index, short value)
+void GlobalStoreXExtension::SetShort(CValue index, CValue value)
 {
-    index -= data.shortBase;
-    if (index < 0 || index >= data.shorts.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.shortBase;
+    if (indexValue < 0 || indexValue >= data.shorts.size()) return;
 
-    data.shorts[index] = value;
+    data.shorts[indexValue] = value.GetIntValue();
 }
 
-void GlobalStoreXExtension::AddInteger(int index, int value)
+void GlobalStoreXExtension::AddInteger(CValue index, CValue value)
 {
-    index -= data.integerBase;
-    if (index < 0 || index >= data.integers.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.integerBase;
+    if (indexValue < 0 || indexValue >= data.integers.size()) return;
 
-    data.integers[index] += value;
+    data.integers[indexValue] += value.GetIntValue();
 }
 
-void GlobalStoreXExtension::AddShort(int index, short value)
+void GlobalStoreXExtension::AddShort(CValue index, CValue value)
 {
-    index -= data.shortBase;
-    if (index < 0 || index >= data.shorts.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.shortBase;
+    if (indexValue < 0 || indexValue >= data.shorts.size()) return;
 
-    data.shorts[index] += value;
+    data.shorts[indexValue] += value.GetIntValue();
 }
 
-void GlobalStoreXExtension::AddString(int index, const std::string& value)
+void GlobalStoreXExtension::AddString(CValue index, CValue value)
 {
-    index -= data.stringBase;
-    if (index < 0 || index >= data.strings.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.stringBase;
+    if (indexValue < 0 || indexValue >= data.strings.size()) return;
 
-    data.strings[index] += value;
+    data.strings[indexValue] += value.GetStringValue();
 }
 
-void GlobalStoreXExtension::SubtractInteger(int index, int value)
+void GlobalStoreXExtension::SubtractInteger(CValue index, CValue value)
 {
-    index -= data.integerBase;
-    if (index < 0 || index >= data.integers.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.integerBase;
+    if (indexValue < 0 || indexValue >= data.integers.size()) return;
 
-    data.integers[index] -= value;
+    data.integers[indexValue] -= value.GetIntValue();
 }
 
-void GlobalStoreXExtension::SubtractShort(int index, short value)
+void GlobalStoreXExtension::SubtractShort(CValue index, CValue value)
 {
-    index -= data.shortBase;
-    if (index < 0 || index >= data.shorts.size()) return;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.shortBase;
+    if (indexValue < 0 || indexValue >= data.shorts.size()) return;
 
-    data.shorts[index] -= value;
+    data.shorts[indexValue] -= value.GetIntValue();
 }
 
-void GlobalStoreXExtension::SetRangeInteger(int startIndex, int endIndex, int value)
+void GlobalStoreXExtension::SetRangeInteger(CValue startIndex, CValue endIndex, CValue value)
 {
     if (data.integerCount == 0) return;
 
-    startIndex -= data.integerBase;
-    endIndex -= data.integerBase;
+    int startIndexValue = startIndex.GetIntValue();
+    int endIndexValue = endIndex.GetIntValue();
+    startIndexValue -= data.integerBase;
+    endIndexValue -= data.integerBase;
 
-    if (startIndex < 0) startIndex = 0;
-    if (endIndex >= (int)data.integerCount) endIndex = (int)data.integerCount - 1;
-    if (startIndex >= (int)data.integerCount || endIndex < startIndex) return;
+    if (startIndexValue < 0) startIndexValue = 0;
+    if (endIndexValue >= (int)data.integerCount) endIndexValue = (int)data.integerCount - 1;
+    if (startIndexValue >= (int)data.integerCount || endIndexValue < startIndexValue) return;
 
-    for (int i = startIndex; i <= endIndex; i++)
+    for (int i = startIndexValue; i <= endIndexValue; i++)
     {
-        data.integers[i] = value;
+        data.integers[i] = value.GetIntValue();
     }
 }
 
-void GlobalStoreXExtension::SetRangeString(int startIndex, int endIndex, const std::string& value)
+void GlobalStoreXExtension::SetRangeString(CValue startIndex, CValue endIndex, CValue value)
 {
     if (data.stringCount == 0) return;
 
-    startIndex -= data.stringBase;
-    endIndex -= data.stringBase;
+    int startIndexValue = startIndex.GetIntValue();
+    int endIndexValue = endIndex.GetIntValue();
+    startIndexValue -= data.stringBase;
+    endIndexValue -= data.stringBase;
 
-    if (startIndex < 0) startIndex = 0;
-    if (endIndex >= (int)data.stringCount) endIndex = (int)data.stringCount - 1;
-    if (startIndex >= (int)data.stringCount || endIndex < startIndex) return;
+    if (startIndexValue < 0) startIndexValue = 0;
+    if (endIndexValue >= (int)data.stringCount) endIndexValue = (int)data.stringCount - 1;
+    if (startIndexValue >= (int)data.stringCount || endIndexValue < startIndexValue) return;
 
-    for (int i = startIndex; i <= endIndex; i++)
+    for (int i = startIndexValue; i <= endIndexValue; i++)
     {
-        data.strings[i] = value;
+        data.strings[i] = value.GetStringValue();
     }
 }
 
-void GlobalStoreXExtension::SetRangeBool(int startIndex, int endIndex, int value)
+void GlobalStoreXExtension::SetRangeBool(CValue startIndex, CValue endIndex, CValue value)
 {
     if (data.boolCount == 0) return;
 
-    startIndex -= data.boolBase;
-    endIndex -= data.boolBase;
+    int startIndexValue = startIndex.GetIntValue();
+    int endIndexValue = endIndex.GetIntValue();
+    startIndexValue -= data.boolBase;
+    endIndexValue -= data.boolBase;
 
-    if (startIndex < 0) startIndex = 0;
-    if (endIndex >= (int)data.boolCount) endIndex = (int)data.boolCount - 1;
-    if (startIndex >= (int)data.boolCount || endIndex < startIndex) return;
+    if (startIndexValue < 0) startIndexValue = 0;
+    if (endIndexValue >= (int)data.boolCount) endIndexValue = (int)data.boolCount - 1;
+    if (startIndexValue >= (int)data.boolCount || endIndexValue < startIndexValue) return;
 
-    for (int i = startIndex; i <= endIndex; i++)
+    for (int i = startIndexValue; i <= endIndexValue; i++)
     {
-        data.bools[i] = value != 0;
+        data.bools[i] = value.GetIntValue() != 0;
     }
 }
 
-void GlobalStoreXExtension::SetRangeShort(int startIndex, int endIndex, short value)
+void GlobalStoreXExtension::SetRangeShort(CValue startIndex, CValue endIndex, CValue value)
 {
     if (data.shortCount == 0) return;
 
-    startIndex -= data.shortBase;
-    endIndex -= data.shortBase;
+    int startIndexValue = startIndex.GetIntValue();
+    int endIndexValue = endIndex.GetIntValue();
+    startIndexValue -= data.shortBase;
+    endIndexValue -= data.shortBase;
 
-    if (startIndex < 0) startIndex = 0;
-    if (endIndex >= (int)data.shortCount) endIndex = (int)data.shortCount - 1;
-    if (startIndex >= (int)data.shortCount || endIndex < startIndex) return;
+    if (startIndexValue < 0) startIndexValue = 0;
+    if (endIndexValue >= (int)data.shortCount) endIndexValue = (int)data.shortCount - 1;
+    if (startIndexValue >= (int)data.shortCount || endIndexValue < startIndexValue) return;
 
-    for (int i = startIndex; i <= endIndex; i++)
+    for (int i = startIndexValue; i <= endIndexValue; i++)
     {
-        data.shorts[i] = value;
+        data.shorts[i] = value.GetIntValue();
     }
 }
 
@@ -186,289 +203,309 @@ void GlobalStoreXExtension::ClearShorts()
     data.shorts.resize(data.shortCount);
 }
 
-void GlobalStoreXExtension::ResizeIntegers(int size)
+void GlobalStoreXExtension::ResizeIntegers(CValue size)
 {
     data.integers.clear();
-    data.integers.resize(size);
-    data.integerCount = size;
+    data.integers.resize(size.GetIntValue());
+    data.integerCount = size.GetIntValue();
 }
 
-void GlobalStoreXExtension::ResizeStrings(int size)
+void GlobalStoreXExtension::ResizeStrings(CValue size)
 {
     data.strings.clear();
-    data.strings.resize(size);
-    data.stringCount = size;
+    data.strings.resize(size.GetIntValue());
+    data.stringCount = size.GetIntValue();
 }
 
-void GlobalStoreXExtension::ResizeBools(int size)
+void GlobalStoreXExtension::ResizeBools(CValue size)
 {
     data.bools.clear();
-    data.bools.resize(size);
-    data.boolCount = size;
+    data.bools.resize(size.GetIntValue());
+    data.boolCount = size.GetIntValue();
 }
 
-void GlobalStoreXExtension::ResizeShorts(int size)
+void GlobalStoreXExtension::ResizeShorts(CValue size)
 {
     data.shorts.clear();
-    data.shorts.resize(size);
-    data.shortCount = size;
+    data.shorts.resize(size.GetIntValue());
+    data.shortCount = size.GetIntValue();
 }
 
-void GlobalStoreXExtension::ExpandIntegers(int size)
+void GlobalStoreXExtension::ExpandIntegers(CValue size)
 {
-    data.integers.resize(size);
-    data.integerCount = size;
+    data.integers.resize(size.GetIntValue());
+    data.integerCount = size.GetIntValue();
 }
 
-void GlobalStoreXExtension::ExpandStrings(int size)
+void GlobalStoreXExtension::ExpandStrings(CValue size)
 {
-    data.strings.resize(size);
-    data.stringCount = size;
+    data.strings.resize(size.GetIntValue());
+    data.stringCount = size.GetIntValue();
 }
 
-void GlobalStoreXExtension::ExpandBools(int size)
+void GlobalStoreXExtension::ExpandBools(CValue size)
 {
-    data.bools.resize(size);
-    data.boolCount = size;
+    data.bools.resize(size.GetIntValue());
+    data.boolCount = size.GetIntValue();
 }
 
-void GlobalStoreXExtension::ExpandShorts(int size)
+void GlobalStoreXExtension::ExpandShorts(CValue size)
 {
-    data.shorts.resize(size);
-    data.shortCount = size;
+    data.shorts.resize(size.GetIntValue());
+    data.shortCount = size.GetIntValue();
 }
 
-int GlobalStoreXExtension::GetInteger(int index)
+CValue GlobalStoreXExtension::GetInteger(CValue index)
 {
-    index -= data.integerBase;
-    if (index < 0 || index >= data.integers.size()) return 0;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.integerBase;
+    if (indexValue < 0 || indexValue >= data.integers.size()) return CValue(0);
 
-    return data.integers[index];
+    return CValue(data.integers[indexValue]);
 }
 
-std::string GlobalStoreXExtension::GetString(int index)
+CValue GlobalStoreXExtension::GetString(CValue index)
 {
-    index -= data.stringBase;
-    if (index < 0 || index >= data.strings.size()) return "";
+    int indexValue = index.GetIntValue();
+    indexValue -= data.stringBase;
+    if (indexValue < 0 || indexValue >= data.strings.size()) return CValue("");
 
-    return data.strings[index];
+    return CValue(data.strings[indexValue]);
 }
 
-bool GlobalStoreXExtension::GetBool(int index)
+CValue GlobalStoreXExtension::GetBool(CValue index)
 {
-    index -= data.boolBase;
-    if (index < 0 || index >= data.bools.size()) return false;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.boolBase;
+    if (indexValue < 0 || indexValue >= data.bools.size()) return CValue(false);
 
-    return data.bools[index];
+    return CValue(data.bools[indexValue]);
 }
 
-short GlobalStoreXExtension::GetShort(int index)
+CValue GlobalStoreXExtension::GetShort(CValue index)
 {
-    index -= data.shortBase;
-    if (index < 0 || index >= data.shorts.size()) return 0;
+    int indexValue = index.GetIntValue();
+    indexValue -= data.shortBase;
+    if (indexValue < 0 || indexValue >= data.shorts.size()) return CValue(0);
 
-    return data.shorts[index];
+    return CValue(data.shorts[indexValue]);
 }
 
-void GlobalStoreXExtension::SaveAllINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::SaveAllINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     file.read(ini);
 
-    ini[group + "Ints"].clear();
-    ini[group + "Ints"]["NoOfValues"] = std::to_string(data.integerCount);
-    ini[group + "Ints"]["Base"] = std::to_string(data.integerBase);
+    std::string groupValue = group.GetStringValue();
+
+    ini[groupValue + "Ints"].clear();
+    ini[groupValue + "Ints"]["NoOfValues"] = std::to_string(data.integerCount);
+    ini[groupValue + "Ints"]["Base"] = std::to_string(data.integerBase);
     for (int i = 0; i < data.integerCount; i++)
     {
-        ini[group + "Ints"][std::to_string(i)] = std::to_string(data.integers[i]);
+        ini[groupValue + "Ints"][std::to_string(i)] = std::to_string(data.integers[i]);
     }
 
-    ini[group + "Strings"].clear();
-    ini[group + "Strings"]["NoOfStrings"] = std::to_string(data.stringCount);
-    ini[group + "Strings"]["Base"] = std::to_string(data.stringBase);
+    ini[groupValue + "Strings"].clear();
+    ini[groupValue + "Strings"]["NoOfStrings"] = std::to_string(data.stringCount);
+    ini[groupValue + "Strings"]["Base"] = std::to_string(data.stringBase);
     for (int i = 0; i < data.stringCount; i++)
     {
-        ini[group + "Strings"][std::to_string(i)] = data.strings[i];
+        ini[groupValue + "Strings"][std::to_string(i)] = data.strings[i];
     }
 
-    ini[group + "Bools"].clear();
-    ini[group + "Bools"]["NoOfBools"] = std::to_string(data.boolCount);
-    ini[group + "Bools"]["Base"] = std::to_string(data.boolBase);
+    ini[groupValue + "Bools"].clear();
+    ini[groupValue + "Bools"]["NoOfBools"] = std::to_string(data.boolCount);
+    ini[groupValue + "Bools"]["Base"] = std::to_string(data.boolBase);
     for (int i = 0; i < data.boolCount; i++)
     {
-        ini[group + "Bools"][std::to_string(i)] = std::to_string(data.bools[i]);
+        ini[groupValue + "Bools"][std::to_string(i)] = std::to_string(data.bools[i]);
     }
     
-    ini[group + "Shorts"].clear();
-    ini[group + "Shorts"]["NoOfShorts"] = std::to_string(data.shortCount);
-    ini[group + "Shorts"]["Base"] = std::to_string(data.shortBase);
+    ini[groupValue + "Shorts"].clear();
+    ini[groupValue + "Shorts"]["NoOfShorts"] = std::to_string(data.shortCount);
+    ini[groupValue + "Shorts"]["Base"] = std::to_string(data.shortBase);
     for (int i = 0; i < data.shortCount; i++)
     {
-        ini[group + "Shorts"][std::to_string(i)] = std::to_string(data.shorts[i]);
+        ini[groupValue + "Shorts"][std::to_string(i)] = std::to_string(data.shorts[i]);
     }
 
     file.write(ini);
 }
 
-void GlobalStoreXExtension::LoadAllINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::LoadAllINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
 
-    data.integerBase = ini[group + "Ints"]["Base"] == "0" ? 0 : 1;
-    data.stringBase = ini[group + "Strings"]["Base"] == "0" ? 0 : 1;
-    data.boolBase = ini[group + "Bools"]["Base"] == "0" ? 0 : 1;
-    data.shortBase = ini[group + "Shorts"]["Base"] == "0" ? 0 : 1;
+    std::string groupValue = group.GetStringValue();
 
-    data.integerCount = std::stoi(ini[group + "Ints"]["NoOfValues"]);
+    data.integerBase = ini[groupValue + "Ints"]["Base"] == "0" ? 0 : 1;
+    data.stringBase = ini[groupValue + "Strings"]["Base"] == "0" ? 0 : 1;
+    data.boolBase = ini[groupValue + "Bools"]["Base"] == "0" ? 0 : 1;
+    data.shortBase = ini[groupValue + "Shorts"]["Base"] == "0" ? 0 : 1;
+
+    data.integerCount = std::stoi(ini[groupValue + "Ints"]["NoOfValues"]);
     data.integers.clear();
     data.integers.resize(data.integerCount);
     for (int i = 0; i < data.integerCount; i++)
     {
-        data.integers[i] = std::stoi(ini[group + "Ints"][std::to_string(i)]);
+        data.integers[i] = std::stoi(ini[groupValue + "Ints"][std::to_string(i)]);
     }
 
-    data.stringCount = std::stoi(ini[group + "Strings"]["NoOfStrings"]);
+    data.stringCount = std::stoi(ini[groupValue + "Strings"]["NoOfStrings"]);
     data.strings.clear();
     data.strings.resize(data.stringCount);
     for (int i = 0; i < data.stringCount; i++)
     {
-        data.strings[i] = ini[group + "Strings"][std::to_string(i)];
+        data.strings[i] = ini[groupValue + "Strings"][std::to_string(i)];
     }
 
-    data.boolCount = std::stoi(ini[group + "Bools"]["NoOfBools"]);
+    data.boolCount = std::stoi(ini[groupValue + "Bools"]["NoOfBools"]);
     data.bools.clear();
     data.bools.resize(data.boolCount);
     for (int i = 0; i < data.boolCount; i++)
     {
-        data.bools[i] = std::stoi(ini[group + "Bools"][std::to_string(i)]) != 0;
+        data.bools[i] = std::stoi(ini[groupValue + "Bools"][std::to_string(i)]) != 0;
     }
 
-    data.shortCount = std::stoi(ini[group + "Shorts"]["NoOfShorts"]);
+    data.shortCount = std::stoi(ini[groupValue + "Shorts"]["NoOfShorts"]);
     data.shorts.clear();
     data.shorts.resize(data.shortCount);
     for (int i = 0; i < data.shortCount; i++)
     {
-        data.shorts[i] = std::stoi(ini[group + "Shorts"][std::to_string(i)]);
+        data.shorts[i] = std::stoi(ini[groupValue + "Shorts"][std::to_string(i)]);
     }
 }
 
-void GlobalStoreXExtension::SaveIntegerINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::SaveIntegerINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     file.read(ini);
 
-    ini[group + "Ints"].clear();
-    ini[group + "Ints"]["NoOfValues"] = std::to_string(data.integerCount);
-    ini[group + "Ints"]["Base"] = std::to_string(data.integerBase);
+    std::string groupValue = group.GetStringValue();
+
+    ini[groupValue + "Ints"].clear();
+    ini[groupValue + "Ints"]["NoOfValues"] = std::to_string(data.integerCount);
+    ini[groupValue + "Ints"]["Base"] = std::to_string(data.integerBase);
     for (int i = 0; i < data.integerCount; i++)
     {
-        ini[group + "Ints"][std::to_string(i)] = std::to_string(data.integers[i]);
+        ini[groupValue + "Ints"][std::to_string(i)] = std::to_string(data.integers[i]);
     }
 
     file.write(ini);
 }
 
-void GlobalStoreXExtension::LoadIntegerINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::LoadIntegerINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
     
-    data.integerBase = ini[group + "Ints"]["Base"] == "0" ? 0 : 1;
+    std::string groupValue = group.GetStringValue();
 
-    data.integerCount = std::stoi(ini[group + "Ints"]["NoOfValues"]);
+    data.integerBase = ini[groupValue + "Ints"]["Base"] == "0" ? 0 : 1;
+
+    data.integerCount = std::stoi(ini[groupValue + "Ints"]["NoOfValues"]);
     data.integers.clear();
     data.integers.resize(data.integerCount);
     for (int i = 0; i < data.integerCount; i++)
     {
-        data.integers[i] = std::stoi(ini[group + "Ints"][std::to_string(i)]);
+        data.integers[i] = std::stoi(ini[groupValue + "Ints"][std::to_string(i)]);
     }
 }
 
-void GlobalStoreXExtension::SaveStringINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::SaveStringINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     file.read(ini);
 
-    ini[group + "Strings"].clear();
-    ini[group + "Strings"]["NoOfStrings"] = std::to_string(data.stringCount);
-    ini[group + "Strings"]["Base"] = std::to_string(data.stringBase);
+    std::string groupValue = group.GetStringValue();
+
+    ini[groupValue + "Strings"].clear();
+    ini[groupValue + "Strings"]["NoOfStrings"] = std::to_string(data.stringCount);
+    ini[groupValue + "Strings"]["Base"] = std::to_string(data.stringBase);
     for (int i = 0; i < data.stringCount; i++)
     {
-        ini[group + "Strings"][std::to_string(i)] = data.strings[i];
+        ini[groupValue + "Strings"][std::to_string(i)] = data.strings[i];
     }
 
     file.write(ini);
 }
 
-void GlobalStoreXExtension::LoadStringINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::LoadStringINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
 
-    data.stringBase = ini[group + "Strings"]["Base"] == "0" ? 0 : 1;
+    std::string groupValue = group.GetStringValue();
 
-    data.stringCount = std::stoi(ini[group + "Strings"]["NoOfStrings"]);
+    data.stringBase = ini[groupValue + "Strings"]["Base"] == "0" ? 0 : 1;
+
+    data.stringCount = std::stoi(ini[groupValue + "Strings"]["NoOfStrings"]);
     data.strings.clear();
     data.strings.resize(data.stringCount);
 
     for (int i = 0; i < data.stringCount; i++)
     {
-        data.strings[i] = ini[group + "Strings"][std::to_string(i)];
+        data.strings[i] = ini[groupValue + "Strings"][std::to_string(i)];
     }
 }
 
-void GlobalStoreXExtension::SaveBoolINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::SaveBoolINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     file.read(ini);
 
-    ini[group + "Bools"].clear();
-    ini[group + "Bools"]["NoOfBools"] = std::to_string(data.boolCount);
-    ini[group + "Bools"]["Base"] = std::to_string(data.boolBase);
+    std::string groupValue = group.GetStringValue();
+
+    ini[groupValue + "Bools"].clear();
+    ini[groupValue + "Bools"]["NoOfBools"] = std::to_string(data.boolCount);
+    ini[groupValue + "Bools"]["Base"] = std::to_string(data.boolBase);
     for (int i = 0; i < data.boolCount; i++)
     {
-        ini[group + "Bools"][std::to_string(i)] = std::to_string(data.bools[i]);
+        ini[groupValue + "Bools"][std::to_string(i)] = std::to_string(data.bools[i]);
     }
 
     file.write(ini);
 }
 
-void GlobalStoreXExtension::LoadBoolINI(const std::string& fileName, const std::string& group)
+void GlobalStoreXExtension::LoadBoolINI(CValue fileName, CValue group)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
+    
+    std::string groupValue = group.GetStringValue();
 
-    data.boolBase = ini[group + "Bools"]["Base"] == "0" ? 0 : 1;
+    data.boolBase = ini[groupValue + "Bools"]["Base"] == "0" ? 0 : 1;
 
-    data.boolCount = std::stoi(ini[group + "Bools"]["NoOfBools"]);
+    data.boolCount = std::stoi(ini[groupValue + "Bools"]["NoOfBools"]);
     data.bools.clear();
     data.bools.resize(data.boolCount);
     for (int i = 0; i < data.boolCount; i++)
     {
-        data.bools[i] = std::stoi(ini[group + "Bools"][std::to_string(i)]) != 0;
+        data.bools[i] = std::stoi(ini[groupValue + "Bools"][std::to_string(i)]) != 0;
     }
 }
 
-void GlobalStoreXExtension::SaveShortINI(const std::string& fileName)
+void GlobalStoreXExtension::SaveShortINI(CValue fileName)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
 
     file.read(ini);
@@ -484,9 +521,9 @@ void GlobalStoreXExtension::SaveShortINI(const std::string& fileName)
     file.write(ini);
 }
 
-void GlobalStoreXExtension::LoadShortINI(const std::string& fileName)
+void GlobalStoreXExtension::LoadShortINI(CValue fileName)
 {
-    mINI::INIFile file(GetNormalizedPath(fileName));
+    mINI::INIFile file(GetNormalizedPath(fileName.GetStringValue()));
     mINI::INIStructure ini;
     
     if (!file.read(ini)) return;
@@ -502,9 +539,9 @@ void GlobalStoreXExtension::LoadShortINI(const std::string& fileName)
     }
 }
 
-void GlobalStoreXExtension::SaveAllBinary(const std::string& fileName)
+void GlobalStoreXExtension::SaveAllBinary(CValue fileName)
 {
-    BinaryWriter writer(GetNormalizedPath(fileName));
+    BinaryWriter writer(GetNormalizedPath(fileName.GetStringValue()));
 
     writer.WriteUint16(3); // type of file type. 0 - ints; 1 - strings; 2 - bools; 3 - all data; shorts - 4
 
@@ -539,11 +576,11 @@ void GlobalStoreXExtension::SaveAllBinary(const std::string& fileName)
     writer.Flush();
 }
 
-void GlobalStoreXExtension::LoadAllBinary(const std::string& fileName)
+void GlobalStoreXExtension::LoadAllBinary(CValue fileName)
 {
-    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName.GetStringValue()))) return;
 
-    BinaryReader reader(GetNormalizedPath(fileName));
+    BinaryReader reader(GetNormalizedPath(fileName.GetStringValue()));
 
     if (reader.ReadUint16() != 3) return;
 
@@ -580,9 +617,9 @@ void GlobalStoreXExtension::LoadAllBinary(const std::string& fileName)
     }
 }
 
-void GlobalStoreXExtension::SaveIntegerBinary(const std::string& fileName)
+void GlobalStoreXExtension::SaveIntegerBinary(CValue fileName)
 {
-    BinaryWriter writer(GetNormalizedPath(fileName));
+    BinaryWriter writer(GetNormalizedPath(fileName.GetStringValue()));
 
     writer.WriteUint16(0);
     writer.WriteUint32(data.integerCount);
@@ -595,11 +632,11 @@ void GlobalStoreXExtension::SaveIntegerBinary(const std::string& fileName)
     writer.Flush();
 }
 
-void GlobalStoreXExtension::LoadIntegerBinary(const std::string& fileName)
+void GlobalStoreXExtension::LoadIntegerBinary(CValue fileName)
 {
-    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName.GetStringValue()))) return;
 
-    BinaryReader reader(GetNormalizedPath(fileName));
+    BinaryReader reader(GetNormalizedPath(fileName.GetStringValue()));
 
     if (reader.ReadUint16() != 0) return;
 
@@ -612,9 +649,9 @@ void GlobalStoreXExtension::LoadIntegerBinary(const std::string& fileName)
     }
 }
 
-void GlobalStoreXExtension::SaveStringBinary(const std::string& fileName)
+void GlobalStoreXExtension::SaveStringBinary(CValue fileName)
 {
-    BinaryWriter writer(GetNormalizedPath(fileName));
+    BinaryWriter writer(GetNormalizedPath(fileName.GetStringValue()));
 
     writer.WriteUint16(1);
     writer.WriteUint32(data.stringCount);
@@ -627,11 +664,11 @@ void GlobalStoreXExtension::SaveStringBinary(const std::string& fileName)
     writer.Flush();
 }
 
-void GlobalStoreXExtension::LoadStringBinary(const std::string& fileName)
+void GlobalStoreXExtension::LoadStringBinary(CValue fileName)
 {
-    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName.GetStringValue()))) return;
 
-    BinaryReader reader(GetNormalizedPath(fileName));
+    BinaryReader reader(GetNormalizedPath(fileName.GetStringValue()));
 
     if (reader.ReadUint16() != 1) return;
 
@@ -644,9 +681,9 @@ void GlobalStoreXExtension::LoadStringBinary(const std::string& fileName)
     }
 }
 
-void GlobalStoreXExtension::SaveBoolBinary(const std::string& fileName)
+void GlobalStoreXExtension::SaveBoolBinary(CValue fileName)
 {
-    BinaryWriter writer(GetNormalizedPath(fileName));
+    BinaryWriter writer(GetNormalizedPath(fileName.GetStringValue()));
 
     writer.WriteUint16(2);
     writer.WriteUint32(data.boolCount);
@@ -659,11 +696,11 @@ void GlobalStoreXExtension::SaveBoolBinary(const std::string& fileName)
     writer.Flush();
 }
 
-void GlobalStoreXExtension::LoadBoolBinary(const std::string& fileName)
+void GlobalStoreXExtension::LoadBoolBinary(CValue fileName)
 {
-    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName.GetStringValue()))) return;
 
-    BinaryReader reader(GetNormalizedPath(fileName));
+    BinaryReader reader(GetNormalizedPath(fileName.GetStringValue()));
 
     if (reader.ReadUint16() != 2) return;
 
@@ -676,9 +713,9 @@ void GlobalStoreXExtension::LoadBoolBinary(const std::string& fileName)
     }
 }
 
-void GlobalStoreXExtension::SaveShortBinary(const std::string& fileName)
+void GlobalStoreXExtension::SaveShortBinary(CValue fileName)
 {
-    BinaryWriter writer(GetNormalizedPath(fileName));
+    BinaryWriter writer(GetNormalizedPath(fileName.GetStringValue()));
 
     writer.WriteUint16(4);
     writer.WriteUint32(data.shortCount);
@@ -691,11 +728,11 @@ void GlobalStoreXExtension::SaveShortBinary(const std::string& fileName)
     writer.Flush();
 }
 
-void GlobalStoreXExtension::LoadShortBinary(const std::string& fileName)
+void GlobalStoreXExtension::LoadShortBinary(CValue fileName)
 {
-    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName.GetStringValue()))) return;
 
-    BinaryReader reader(GetNormalizedPath(fileName));
+    BinaryReader reader(GetNormalizedPath(fileName.GetStringValue()));
 
     if (reader.ReadUint16() != 4) return;
 

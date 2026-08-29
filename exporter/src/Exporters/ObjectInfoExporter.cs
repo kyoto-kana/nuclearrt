@@ -133,9 +133,9 @@ public class ObjectInfoExporter : BaseExporter
 		else
 		{
 			if (objectInfo.InkEffect == 0 || objectInfo.InkEffect == 10)
-				result.AppendLine($"instance->SetEffectParameter({Math.Clamp(objectInfo.blend, (byte)0, (byte)255)});");
+				result.AppendLine($"instance->SetBlendCoefficient({Math.Clamp(objectInfo.blend, (byte)0, (byte)255)});");
 			else
-				result.AppendLine($"instance->SetEffectParameter({Math.Clamp(objectInfo.InkEffectValue * 2, 0, 255)});");
+				result.AppendLine($"instance->SetBlendCoefficient({Math.Clamp(objectInfo.InkEffectValue * 2, 0, 255)});");
 
 		}
 
@@ -188,6 +188,7 @@ public class ObjectInfoExporter : BaseExporter
 			result.AppendLine($"((Active*)instance)->AutomaticRotation = {common.NewFlags.GetFlag("AutomaticRotation").ToString().ToLower()};");
 			result.AppendLine($"((Active*)instance)->FineDetection = {(!common.NewFlags.GetFlag("CollisionBox")).ToString().ToLower()};");
 			result.AppendLine($"((Active*)instance)->animations = {BuildAnimations(common)};");
+			result.AppendLine($"((Active*)instance)->animations.SetOwner(instance);");
 			result.AppendLine($"((Active*)instance)->Values = {BuildAlterableValues(common)};");
 			result.AppendLine($"((Active*)instance)->Strings = {BuildAlterableStrings(common)};");
 			result.AppendLine($"((Active*)instance)->Flags = {BuildAlterableFlags(common)};");
@@ -198,6 +199,10 @@ public class ObjectInfoExporter : BaseExporter
 			var common = (ObjectCommon)objectInfo.properties;
 			result.AppendLine($"((StringObject*)instance)->FollowFrame = {(!common.Flags.GetFlag("ScrollingIndependant")).ToString().ToLower()};");
 			result.AppendLine(BuildParagraphs((ObjectCommon)objectInfo.properties));
+
+			result.AppendLine($"((StringObject*)instance)->Values = {BuildAlterableValues(common)};");
+			result.AppendLine($"((StringObject*)instance)->Strings = {BuildAlterableStrings(common)};");
+			result.AppendLine($"((StringObject*)instance)->Flags = {BuildAlterableFlags(common)};");
 		}
 		else if (objectInfo.ObjectType == 5 || objectInfo.ObjectType == 6 || objectInfo.ObjectType == 7)
 		{
@@ -259,7 +264,16 @@ public class ObjectInfoExporter : BaseExporter
 
 	private string BuildAlterableValues(ObjectCommon common)
 	{
-		return "AlterableValues(std::vector<int>{ " + (common.Values == null ? string.Empty : string.Join(",", common.Values.Items)) + " })";
+		StringBuilder result = new("AlterableValues(std::vector<CValue>{");
+		if (common.Values != null)
+		{
+			foreach (var value in common.Values.Items)
+			{
+				result.Append($"CValue({value}), ");
+			}
+		}
+		result.Append("})");
+		return result.ToString();
 	}
 
 	private string BuildAlterableStrings(ObjectCommon common)
@@ -345,8 +359,8 @@ public class ObjectInfoExporter : BaseExporter
 		if (common.Counter != null)
 		{
 			result.AppendLine($"((Counter*)instance)->DefaultValue = {common.Counter.Initial};");
-			result.AppendLine($"((Counter*)instance)->MinValue = {common.Counter.Minimum};");
-			result.AppendLine($"((Counter*)instance)->MaxValue = {common.Counter.Maximum};");
+			result.AppendLine($"((Counter*)instance)->MinValue = CValue({common.Counter.Minimum});");
+			result.AppendLine($"((Counter*)instance)->MaxValue = CValue({common.Counter.Maximum});");
 			result.AppendLine($"((Counter*)instance)->SetValue({common.Counter.Initial});");
 		}
 

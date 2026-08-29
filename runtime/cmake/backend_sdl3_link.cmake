@@ -35,3 +35,5 @@ elseif(PLATFORM_MACOS)
 elseif (PLATFORM_IOS)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGLES_FRAMEWORK})
 endif()
+
+include(cmake/lz4.cmake)

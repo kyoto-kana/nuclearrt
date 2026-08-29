@@ -12,15 +12,15 @@ public class CreateObjectAtAction : ActionBase
 		StringBuilder result = new();
 
 		ParamObject obj = (ParamObject)eventBase.Items[0].Loader;
-		string X = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase);
-		string Y = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase);
-		string layer = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[3].Loader, eventBase);
+		string X = "(" + ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase) + ").GetIntValue()";
+		string Y = "(" + ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase) + ").GetIntValue()";
+		string layer = "(" + ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[3].Loader, eventBase) + ").GetIntValue() - 1";
 		var objectInfo = ExpressionConverter.GetObject(obj.ObjectInfo, obj.ObjectType);
 		result.AppendLine("{");
-		result.AppendLine($"ObjectInstance* instance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), {X}, {Y}, ({layer}) - 1, 0, {objectInfo.Item1}, 0, true);");
+		result.AppendLine($"ObjectInstance* instance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), {X}, {Y}, {layer}, 0, {objectInfo.Item1}, 0, true);");
 		//add to selector
-		result.AppendLine($"{GetSelector(obj.ObjectInfo, obj.ObjectType)}->AddInstance(instance);");
-		result.AppendLine($"{GetSelector(obj.ObjectInfo, obj.ObjectType)}->SelectOnly(instance);");
+		result.AppendLine($"{GetSelector(obj.ObjectInfo, obj.ObjectType)}.AddInstance(instance);");
+		result.AppendLine($"{GetSelector(obj.ObjectInfo, obj.ObjectType)}.SelectOnly(instance);");
 		result.AppendLine("}");
 
 		return result.ToString();

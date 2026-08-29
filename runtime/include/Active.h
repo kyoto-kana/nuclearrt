@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CValue.h"
 #include "ObjectInstance.h"
 #include <vector>
 #include <memory>
@@ -45,38 +46,38 @@ public:
 		Strings = globalData->strings;
 	}
 
-	int GetXActionPoint() const {
+	CValue GetXActionPoint() const {
 		return GetX() + animations.GetXActionPoint() - animations.GetXHotspot();
 	}
 
-	int GetYActionPoint() const {
+	CValue GetYActionPoint() const {
 		return GetY() + animations.GetYActionPoint() - animations.GetYHotspot();
 	}
 
-	int GetWidth() const {
-		return animations.GetWidth();
+	CValue GetWidth() const {
+		return CValue(animations.GetWidth());
 	}
 
-	int GetHeight() const {
-		return animations.GetHeight();
+	CValue GetHeight() const {
+		return CValue(animations.GetHeight());
 	}
 
-	float GetXScale() const {
+	CValue GetXScale() const {
 		return xScale;
 	}
 
-	float GetYScale() const {
+	CValue GetYScale() const {
 		return yScale;
 	}
 
-	void SetXScale(float xScale) {
-		if (xScale == this->xScale) return;
-		this->xScale = xScale;
+	void SetXScale(const CValue& xScale) {
+		if (xScale.GetDoubleValue() == this->xScale) return;
+		this->xScale = (float)xScale.GetDoubleValue();
 		collisionBoundsDirty = true;
 	}
-	void SetYScale(float yScale) {
-		if (yScale == this->yScale) return;
-		this->yScale = yScale;
+	void SetYScale(const CValue& yScale) {
+		if (yScale.GetDoubleValue() == this->yScale) return;
+		this->yScale = (float)yScale.GetDoubleValue();
 		collisionBoundsDirty = true;
 	}
 

@@ -13,7 +13,7 @@ public class SetEffectAction : ActionBase
 
 		string effectName = ((StringParam)eventBase.Items[0].Loader).Value;
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"	auto instance = *it;");
 		result.AppendLine($"	instance->effectInstance = nullptr;");
 

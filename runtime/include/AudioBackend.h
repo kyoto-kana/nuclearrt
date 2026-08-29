@@ -5,6 +5,7 @@
 #include "Application.h"
 #include "PlatformBackend.h"
 #include "AppData.h"
+#include "CValue.h"
 
 class AudioBackend {
 public:
@@ -20,17 +21,17 @@ public:
 	virtual void StopSample(int id, bool channel) {}
 	virtual void PauseSample(int id, bool channel, bool pause) {}
 	virtual void SetSampleVolume(float volume, int id, bool channel) {}
-	virtual int GetSampleVolume(int id) {return 0;}
-	virtual int GetSampleVolume(std::string name) {return 0;}
-	virtual int GetChannelVolume(int id) {return 0;}
-	virtual std::string GetChannelName(int channel) {return "";}
+	virtual CValue GetSampleVolume(CValue id) {return CValue(0);}
+	virtual CValue GetSampleVolume(std::string name) {return 0;}
+	virtual CValue GetChannelVolume(CValue id) {return CValue(0);}
+	virtual CValue GetChannelName(CValue channel) {return CValue("");}
 	virtual void LockChannel(int channel, bool unlock) {}
 	virtual void SetSamplePan(float pan, int id, bool channel) {}
-	virtual int GetSamplePan(int id, bool channel) {return 0;}
-	virtual int GetSampleFreq(int id, bool channel) {return 0;}
+	virtual CValue GetSamplePan(int id, bool channel) {return 0;}
+	virtual CValue GetSampleFreq(int id, bool channel) {return 0;}
 	virtual void SetSampleFreq(int freq, int id, bool channel) {}
-	virtual int GetSampleDuration(int id, bool channel) {return 0;}
-	virtual int GetSamplePos(int id, bool channel) {return 0;}
+	virtual CValue GetSampleDuration(int id, bool channel) {return 0;}
+	virtual CValue GetSamplePos(int id, bool channel) {return 0;}
 	virtual void SetSamplePos(int pos, int id, bool channel) {}
 	virtual void UpdateSample() {}
 	virtual bool SampleState(int id, bool channel, bool pauseOrStop) {return false;}

@@ -1,6 +1,7 @@
 using System.Text;
 using CTFAK.CCN.Chunks.Frame;
 using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
+using CTFAK.Utils;
 
 public class JumpFrameAction : ActionBase
 {
@@ -11,9 +12,22 @@ public class JumpFrameAction : ActionBase
 	{
 		string frame;
 		if (eventBase.Items[0].Loader is ExpressionParameter)
-			frame = $"(({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}) - 1)";
+		{
+			frame = $"({ConvertExpression(eventBase, 0)}).GetIntValue() - 1";
+		}
 		else
-			frame = Exporter.Instance.GameData.frameHandles.Items[((Short)eventBase.Items[0].Loader).Value].ToString();
+		{
+			short index = ((Short)eventBase.Items[0].Loader).Value;
+			if (index < 0 || index >= Exporter.Instance.GameData.frameHandles.Items.Count)
+			{
+				Logger.Log($"JumpFrameAction: Invalid frame index: {index}");
+				frame = "0";
+			}
+			else
+			{
+				frame = Exporter.Instance.GameData.frameHandles.Items[index].ToString();
+			}
+		}
 
 		return $"Application::Instance().QueueStateChange(GameState::JumpToFrame, {frame});";
 	}

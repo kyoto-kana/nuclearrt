@@ -17,19 +17,19 @@ public class CreateObjectAction : ActionBase
 		result.AppendLine("{");
 		if (create.Position.ObjectInfoParent != ushort.MaxValue) // has parent
 		{
-			result.AppendLine($"for (ObjectIterator it(*{GetSelector((int)create.Position.ObjectInfoParent, create.Position.TypeParent)}); !it.end(); ++it) {{");
+			result.AppendLine($"for (ObjectIterator it({GetSelector((int)create.Position.ObjectInfoParent, create.Position.TypeParent)}); !it.end(); ++it) {{");
 			result.AppendLine($"    auto parent = *it;");
 			result.AppendLine($"    ObjectInstance* newCreatedInstance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), {create.Position.X}, {create.Position.Y}, {create.Position.Layer}, 0, {objectInfo.Item1}, {create.Position.Angle}, true, parent);");
-			result.AppendLine($"    {GetSelector(create.ObjectInfo, create.Position.TypeParent)}->AddInstance(newCreatedInstance);");
-			result.AppendLine($"    {GetSelector(create.ObjectInfo, create.Position.TypeParent)}->SelectOnly(newCreatedInstance);");
+			result.AppendLine($"    {GetSelector(create.ObjectInfo, create.Position.TypeParent)}.AddInstance(newCreatedInstance);");
+			result.AppendLine($"    {GetSelector(create.ObjectInfo, create.Position.TypeParent)}.SelectOnly(newCreatedInstance);");
 			result.AppendLine($"}}");
 		}
 		else
 		{
 			result.AppendLine($"ObjectInstance* instance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), {create.Position.X}, {create.Position.Y}, {create.Position.Layer}, 0, {objectInfo.Item1}, {create.Position.Angle}, true);");
 			//add to selector
-			result.AppendLine($"{GetSelector(create.ObjectInfo, create.Position.TypeParent)}->AddInstance(instance);");
-			result.AppendLine($"{GetSelector(create.ObjectInfo, create.Position.TypeParent)}->SelectOnly(instance);");
+			result.AppendLine($"{GetSelector(create.ObjectInfo, create.Position.TypeParent)}.AddInstance(instance);");
+			result.AppendLine($"{GetSelector(create.ObjectInfo, create.Position.TypeParent)}.SelectOnly(instance);");
 		}
 
 		result.AppendLine("}");

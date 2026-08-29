@@ -14,7 +14,7 @@ public class TimerSetAction : ActionBase
 		}
 		else if (eventBase.Items[0].Loader is ExpressionParameter expressionParameter)
 		{
-			return $"GameTimer.SetTime({ExpressionConverter.ConvertExpression(expressionParameter, eventBase)});";
+			return $"GameTimer.SetTime(({ExpressionConverter.ConvertExpression(expressionParameter, eventBase)}).GetIntValue());";
 		}
 
 		return $"//Unsupported timer type: {eventBase.Items[0].Loader.GetType()}";

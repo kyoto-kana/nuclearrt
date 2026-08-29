@@ -1,14 +1,10 @@
 #pragma once
 
 #include <unordered_map>
-#include <string>
-#include <memory>
 
 struct ImageInfo {
-    unsigned int Handle;
-
-    int Width;
-    int Height;
+    unsigned short Width;
+    unsigned short Height;
     short HotspotX;
     short HotspotY;
     short ActionPointX;
@@ -40,4 +36,4 @@ private:
     ImageBank();
     
     std::unordered_map<unsigned int, ImageInfo> Images;
-}; 
+};

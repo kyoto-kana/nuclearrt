@@ -22,31 +22,35 @@ public:
 
 	int CurrentParagraph = 0;
 	std::string AlterableText;
+
+	AlterableValues Values;
+	AlterableStrings Strings;
+	AlterableFlags Flags;
 	
-	std::string GetText()
+	CValue GetText()
 	{
-		return GetTextOfParagraph(CurrentParagraph);
+		return GetTextOfParagraph(CValue(CurrentParagraph));
 	}
 
-	std::string GetTextOfParagraph(int paragraph)
+	CValue GetTextOfParagraph(const CValue& paragraph)
 	{
-		if (paragraph == -1)
+		if (paragraph.GetIntValue() == -1)
 		{
-			return AlterableText;
+			return CValue(AlterableText);
 		}
 		else
 		{
-			return Paragraphs[paragraph].Text;
+			return CValue(Paragraphs[paragraph.GetIntValue()].Text);
 		}
 	}
 
-	static std::string GetTextOfParagraph(ObjectSelector* selector, int paragraph)
+	static CValue GetTextOfParagraph(ObjectSelector& selector, const CValue& paragraph)
 	{
-		if (selector && selector->Count() > 0)
+		if (selector.Count() > 0)
 		{
-			return ((StringObject*)*selector->begin())->GetTextOfParagraph(paragraph);
+			return ((StringObject*)*selector.begin())->GetTextOfParagraph(paragraph);
 		}
-		return ""; // default value
+		return CValue(""); // default value
 	}
 
 	unsigned short GetFont()
@@ -73,9 +77,9 @@ public:
 		}
 	}
 
-	void SetCurrentParagraph(int currentParagraph)
+	void SetCurrentParagraph(const CValue& currentParagraph)
 	{
-		CurrentParagraph = currentParagraph;
+		CurrentParagraph = currentParagraph.GetIntValue();
 		if (CurrentParagraph >= Paragraphs.size())
 		{
 			CurrentParagraph = static_cast<int>(Paragraphs.size() - 1);
@@ -119,9 +123,9 @@ public:
 		}
 	}
 
-	void SetAlterableText(std::string alterableText)
+	void SetAlterableText(const CValue& alterableText)
 	{
-		AlterableText = alterableText;
+		AlterableText = alterableText.GetStringValue();
 		CurrentParagraph = -1;
 	}
 

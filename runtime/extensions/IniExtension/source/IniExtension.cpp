@@ -20,9 +20,9 @@ void IniExtension::Initialize()
 	SetFileName(Name);
 }	
 
-void IniExtension::SetFileName(const std::string& name)
+void IniExtension::SetFileName(CValue name)
 {
-	Name = name;
+	Name = name.GetStringValue();
 	
 	std::filesystem::path path = GetPlatformSaveDirectory();
 	if (!std::filesystem::exists(path))
@@ -36,56 +36,83 @@ void IniExtension::SetFileName(const std::string& name)
 	iniFile->read(ini);
 }
 
-void IniExtension::SetCurrentGroup(const std::string& group)
+void IniExtension::SetCurrentGroup(CValue group)
 {
-	CurrentGroup = group;
+	CurrentGroup = group.GetStringValue();
 }
 
-void IniExtension::SetCurrentItem(const std::string& item)
+void IniExtension::SetCurrentItem(CValue item)
 {
-	CurrentItem = item;
+	CurrentItem = item.GetStringValue();
 }
 
-void IniExtension::SetValue(int value)
+void IniExtension::SetValue(CValue value)
 {
-	ini[CurrentGroup][CurrentItem] = std::to_string(value);
+	switch (value.GetType())
+	{
+		case 0:
+			ini[CurrentGroup][CurrentItem] = std::to_string(value.GetIntValue());
+			break;
+		case 1:
+			ini[CurrentGroup][CurrentItem] = std::to_string(value.GetDoubleValue());
+			break;
+	}
 	iniFile->write(ini);
 }
 
-void IniExtension::SetValue(const std::string& item, int value)
+void IniExtension::SetValue(CValue item, CValue value)
 {
-	ini[CurrentGroup][item] = std::to_string(value);
+	switch (value.GetType())
+	{
+		case 0:
+			ini[CurrentGroup][item.GetStringValue()] = std::to_string(value.GetIntValue());
+			break;
+		case 1:
+			ini[CurrentGroup][item.GetStringValue()] = std::to_string(value.GetDoubleValue());
+			break;
+	}
 	iniFile->write(ini);
 }
 
-void IniExtension::SetValue(const std::string& group, const std::string& item, int value)
+void IniExtension::SetValue(CValue group, CValue item, CValue value)
 {
-	ini[group][item] = std::to_string(value);
+	switch (value.GetType())
+	{
+		case 0:
+			ini[group.GetStringValue()][item.GetStringValue()] = std::to_string(value.GetIntValue());
+			break;
+		case 1:
+			ini[group.GetStringValue()][item.GetStringValue()] = std::to_string(value.GetDoubleValue());
+			break;
+	}
 	iniFile->write(ini);
 }
 
-void IniExtension::SetString(const std::string& value)
+void IniExtension::SetString(CValue value)
 {
-	ini[CurrentGroup][CurrentItem] = value;
+	if (value.GetType() == 2) 
+		ini[CurrentGroup][CurrentItem] = value.GetStringValue();
 	iniFile->write(ini);
 }
 
-void IniExtension::SetString(const std::string& item, const std::string& value)
+void IniExtension::SetString(CValue item, CValue value)
 {
-	ini[CurrentGroup][item] = value;
+	if (value.GetType() == 2) 
+		ini[CurrentGroup][item.GetStringValue()] = value.GetStringValue();
 	iniFile->write(ini);
 }
 
-void IniExtension::SetString(const std::string& group, const std::string& item, const std::string& value)
+void IniExtension::SetString(CValue group, CValue item, CValue value)
 {
-	ini[group][item] = value;
+	if (value.GetType() == 2) 
+		ini[group.GetStringValue()][item.GetStringValue()] = value.GetStringValue();
 	iniFile->write(ini);
 }
 
 void IniExtension::SavePosition(ObjectInstance* object)
 {
 	std::string item = "pos." + object->Name;
-	ini[CurrentGroup].set(item, std::to_string(object->GetX()) + "," + std::to_string(object->GetY()));
+	ini[CurrentGroup].set(item, std::to_string(object->GetX().GetIntValue()) + "," + std::to_string(object->GetY().GetIntValue()));
 	iniFile->write(ini);
 }
 
@@ -101,58 +128,58 @@ void IniExtension::LoadPosition(ObjectInstance* object)
 	std::string xValue = value.substr(0, value.find(','));
 	std::string yValue = value.substr(value.find(',') + 1);
 
-	object->SetX(std::stoi(xValue));
-	object->SetY(std::stoi(yValue));
+	object->SetX(CValue(std::stoi(xValue)));
+	object->SetY(CValue(std::stoi(yValue)));
 }
 
-int IniExtension::GetValue()
+CValue IniExtension::GetValue()
 {
 	std::string value = ini[CurrentGroup][CurrentItem];
-	return value.empty() ? 0 : std::stoi(value);
+	return value.empty() ? CValue(0) : CValue(std::stoi(value));
 }
 
-int IniExtension::GetValue(const std::string& item)
+CValue IniExtension::GetValue(CValue item)
 {
-	std::string value = ini[CurrentGroup][item];
-	return value.empty() ? 0 : std::stoi(value);
+	std::string value = ini[CurrentGroup][item.GetStringValue()];
+	return value.empty() ? CValue(0) : CValue(std::stoi(value));
 }
 
-int IniExtension::GetValue(const std::string& group, const std::string& item)
+CValue IniExtension::GetValue(CValue group, CValue item)
 {
-	std::string value = ini[group][item];
-	return value.empty() ? 0 : std::stoi(value);
+	std::string value = ini[group.GetStringValue()][item.GetStringValue()];
+	return value.empty() ? CValue(0) : CValue(std::stoi(value));
 }
 
-std::string IniExtension::GetString()
+CValue IniExtension::GetString()
 {
-	return ini[CurrentGroup][CurrentItem];
+	return CValue(ini[CurrentGroup][CurrentItem]);
 }
 
-std::string IniExtension::GetString(const std::string& item)
+CValue IniExtension::GetString(CValue item)
 {
-	return ini[CurrentGroup][item];
+	return CValue(ini[CurrentGroup][item.GetStringValue()]);
 }
 
-std::string IniExtension::GetString(const std::string& group, const std::string& item)
+CValue IniExtension::GetString(CValue group, CValue item)
 {
-	return ini[group][item];
+	return CValue(ini[group.GetStringValue()][item.GetStringValue()]);
 }
 
-void IniExtension::DeleteGroup(const std::string& group)
+void IniExtension::DeleteGroup(CValue group)
 {
-	ini.remove(group);
+	ini.remove(group.GetStringValue());
 	iniFile->write(ini);
 }
 
-void IniExtension::DeleteItem(const std::string& item)
+void IniExtension::DeleteItem(CValue item)
 {
-	ini[CurrentGroup].remove(item);
+	ini[CurrentGroup].remove(item.GetStringValue());
 	iniFile->write(ini);
 }
 
-void IniExtension::DeleteItem(const std::string& group, const std::string& item)
+void IniExtension::DeleteItem(CValue group, CValue item)
 {
-	ini[group].remove(item);
+	ini[group.GetStringValue()].remove(item.GetStringValue());
 	iniFile->write(ini);
 }
 

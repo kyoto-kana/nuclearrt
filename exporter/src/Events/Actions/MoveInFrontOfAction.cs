@@ -13,7 +13,7 @@ public class MoveInFrontOfAction : ActionBase
 
 		ParamObject paramObject = (ParamObject)eventBase.Items[0].Loader;
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		result.AppendLine($"    MoveObjectInFrontOf(instance, ({ExpressionConverter.GetObject(paramObject.ObjectInfo, paramObject.ObjectType).Item1}));");
 		result.AppendLine("}");

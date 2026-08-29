@@ -30,6 +30,7 @@ struct EffectShader {
 	GLint mvpLoc = -1;
 	GLint texLoc = -1;
 	GLint colorLoc = -1;
+	GLint bgLoc = -1;
 };
 
 class SDL3Backend;
@@ -92,9 +93,10 @@ private:
 #endif
 
 	static const int STANDARD_EFFECT_COUNT = 13;
-	EffectShader effectShaders[STANDARD_EFFECT_COUNT];
-	int currentEffect = -1;
-	
+	EffectShader defaultShader;
+	GLint defaultShaderInkEffectLoc = -1;
+	int currentInkEffect = -1;
+
 	GLuint colorShaderProgram = 0;
 	GLint colorShaderMVPLoc = -1;
 	GLint colorShaderColorLoc = -1;
@@ -115,18 +117,36 @@ private:
 	GLint gradientShaderCircleClipLoc = -1;
 
 	std::unordered_map<std::string, EffectShader> thirdPartyShaders;
+
+	GLuint sceneBackgroundTexture = 0;
+	GLuint sceneBackgroundFBO = 0;
+	int sceneBackgroundWidth = 0;
+	int sceneBackgroundHeight = 0;
+	
+	GLuint effectBackgroundTexture = 0;
+	GLuint effectBackgroundFBO = 0;
+	int effectBackgroundWidth = 0;
+	int effectBackgroundHeight = 0;
 	
 	void CreateStandardShaders();
 	void UseEffectShader(int effect);
-	void ApplyEffectParameters(EffectInstance* effectInstance, int textureWidth, int textureHeight, int rgbCoefficient, int effect, unsigned char effectParameter, GLuint textureId);
+	void ApplyEffectParameters(EffectInstance* effectInstance, int textureWidth, int textureHeight, int rgbCoefficient, int effect, unsigned char effectParameter, GLuint textureId, GLuint backgroundTextureId = 0);
 	std::string LoadShaderSource(const std::string& filename);
 	GLuint CompileShader(GLenum type, const char* source);
 	GLuint CreateShaderProgram(const char* vertexSrc, const char* fragmentSrc);
+
 	void CreateRenderTarget(int width, int height);
 	void CreateLayerRenderTarget(int width, int height);
 	void BindDefaultFramebuffer();
+	void RestoreDrawFramebuffer();
+	void EnsureSceneBackgroundCapture(int width, int height);
+	void EnsureEffectBackgroundCapture(int width, int height);
+	GLuint CaptureSceneBackground();
+	GLuint CaptureObjectBackground(int x, int y, int width, int height);
+	
 	float GetPixelScale() const;
 	void GetNativeRenderTargetSize(int &width, int &height);
+	
 	void RenderQuad(float x, float y, float w, float h, float angle = 0.0f, float pivotX = 0.0f, float pivotY = 0.0f, float u0 = 0.0f, float v0 = 0.0f, float u1 = 1.0f, float v1 = 1.0f);
 	void SetOrthoProjection(GLuint program, GLint mvpLoc, float width, float height);
 

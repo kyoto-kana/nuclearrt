@@ -133,20 +133,35 @@ void Application::QueueStateChange(GameState newState, int frameIndex)
 	newFrameIndex = frameIndex;
 }
 
-short Application::Random(short max)
+CValue Application::Random(short max)
 {
-	return rand() % (max + 1);
+	return CValue(rand() % (max + 1));
 }
 
-short Application::RandomRange(short min, short max)
+CValue Application::Random(CValue max)
 {
-	return rand() % (max - min + 1) + min;
+	return CValue(Random(max.GetIntValue()));
+}
+
+CValue Application::RandomRange(short min, short max)
+{
+	return CValue(rand() % (max - min + 1) + min);
+}
+
+CValue Application::RandomRange(CValue min, CValue max)
+{
+	return CValue(RandomRange(min.GetIntValue(), max.GetIntValue()));
 }
 
 bool Application::RandomChance(short chance, short max)
 {
 	if (chance >= max) return true;
 	return Random(max) < chance;
+}
+
+bool Application::RandomChance(CValue chance, CValue max)
+{
+	return RandomChance(chance.GetIntValue(), max.GetIntValue());
 }
 
 void Application::LoadFrame(int frameIndex)

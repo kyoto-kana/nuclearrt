@@ -15,18 +15,18 @@ public class CloseToWindowBorderCondition : ConditionBase
 
 		bool negated = ifStatement == "if (!";
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		result.AppendLine($"    CollisionInstanceBounds bounds = GetInstanceBounds(instance);");
-		result.AppendLine($"    if (bounds.minX {(negated ? ">" : "<=")} GetXLeftEdge() + {border} &&");
-		result.AppendLine($"        bounds.maxX {(negated ? "<" : ">=")} GetXRightEdge() - {border} &&");
-		result.AppendLine($"        bounds.minY {(negated ? ">" : "<=")} GetYTopEdge() + {border} &&");
-		result.AppendLine($"        bounds.maxY {(negated ? "<" : ">=")} GetYBottomEdge() - {border})");
+		result.AppendLine($"    if (bounds.minX {(negated ? ">" : "<=")} (GetXLeftEdge() + {border}).GetIntValue() &&");
+		result.AppendLine($"        bounds.maxX {(negated ? "<" : ">=")} (GetXRightEdge() - {border}).GetIntValue() &&");
+		result.AppendLine($"        bounds.minY {(negated ? ">" : "<=")} (GetYTopEdge() + {border}).GetIntValue() &&");
+		result.AppendLine($"        bounds.maxY {(negated ? "<" : ">=")} (GetYBottomEdge() - {border}).GetIntValue())");
 		result.AppendLine($"        it.deselect();");
 		result.AppendLine("}");
 
 		//If no instances are selected, we go to the end label
-		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}->Count() == 0) goto {nextLabel};");
+		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}.Count() == 0) goto {nextLabel};");
 
 		return result.ToString();
 	}

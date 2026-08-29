@@ -42,42 +42,42 @@ public:
 
 	void Initialize() override;
 
-	void SetInteger(int index, int value);
-	void SetString(int index, const std::string& value);
-	void SetBool(int index, int value);
-	void SetShort(int index, short value);
+	void SetInteger(CValue index, CValue value);
+	void SetString(CValue index, CValue value);
+	void SetBool(CValue index, CValue value);
+	void SetShort(CValue index, CValue value);
 
-	void AddInteger(int index, int value);
-	void AddShort(int index, short value);
-	void AddString(int index, const std::string& value);
+	void AddInteger(CValue index, CValue value);
+	void AddShort(CValue index, CValue value);
+	void AddString(CValue index, CValue value);
 
-	void SubtractInteger(int index, int value);
-	void SubtractShort(int index, short value);
+	void SubtractInteger(CValue index, CValue value);
+	void SubtractShort(CValue index, CValue value);
 
-	void SetRangeInteger(int startIndex, int endIndex, int value);
-	void SetRangeString(int startIndex, int endIndex, const std::string& value);
-	void SetRangeBool(int startIndex, int endIndex, int value);
-	void SetRangeShort(int startIndex, int endIndex, short value);
+	void SetRangeInteger(CValue startIndex, CValue endIndex, CValue value);
+	void SetRangeString(CValue startIndex, CValue endIndex, CValue value);
+	void SetRangeBool(CValue startIndex, CValue endIndex, CValue value);
+	void SetRangeShort(CValue startIndex, CValue endIndex, CValue value);
 
 	void ClearIntegers();
 	void ClearStrings();
 	void ClearBools();
 	void ClearShorts();
 
-	void ResizeIntegers(int size);
-	void ResizeStrings(int size);
-	void ResizeBools(int size);
-	void ResizeShorts(int size);
+	void ResizeIntegers(CValue size);
+	void ResizeStrings(CValue size);
+	void ResizeBools(CValue size);
+	void ResizeShorts(CValue size);
 
-	void ExpandIntegers(int size);
-	void ExpandStrings(int size);
-	void ExpandBools(int size);
-	void ExpandShorts(int size);
+	void ExpandIntegers(CValue size);
+	void ExpandStrings(CValue size);
+	void ExpandBools(CValue size);
+	void ExpandShorts(CValue size);
 
-	int GetInteger(int index);
-	std::string GetString(int index);
-	bool GetBool(int index);
-	short GetShort(int index);
+	CValue GetInteger(CValue index);
+	CValue GetString(CValue index);
+	CValue GetBool(CValue index);
+	CValue GetShort(CValue index);
 
 	unsigned char GetIntegerBase() const { return GlobalStoreXExtension::data.integerBase; }
 	unsigned char GetStringBase() const { return GlobalStoreXExtension::data.stringBase; }
@@ -89,29 +89,29 @@ public:
 	int GetBoolArraySize() const { return GlobalStoreXExtension::data.boolCount; }
 	int GetShortArraySize() const { return GlobalStoreXExtension::data.shortCount; }
 
-	void SaveAllINI(const std::string& fileName, const std::string& group);
-	void LoadAllINI(const std::string& fileName, const std::string& group);
+	void SaveAllINI(CValue fileName, CValue group);
+	void LoadAllINI(CValue fileName, CValue group);
 
-	void SaveIntegerINI(const std::string& fileName, const std::string& group);
-	void LoadIntegerINI(const std::string& fileName, const std::string& group);
-	void SaveStringINI(const std::string& fileName, const std::string& group);
-	void LoadStringINI(const std::string& fileName, const std::string& group);
-	void SaveBoolINI(const std::string& fileName, const std::string& group);
-	void LoadBoolINI(const std::string& fileName, const std::string& group);
-	void SaveShortINI(const std::string& fileName); // for some reason shorts can't be saved to a specific group with ini - shishkabob
-	void LoadShortINI(const std::string& fileName);
+	void SaveIntegerINI(CValue fileName, CValue group);
+	void LoadIntegerINI(CValue fileName, CValue group);
+	void SaveStringINI(CValue fileName, CValue group);
+	void LoadStringINI(CValue fileName, CValue group);
+	void SaveBoolINI(CValue fileName, CValue group);
+	void LoadBoolINI(CValue fileName, CValue group);
+	void SaveShortINI(CValue fileName); // for some reason shorts can't be saved to a specific group with ini - shishkabob
+	void LoadShortINI(CValue fileName);
 
-	void SaveAllBinary(const std::string& fileName);
-	void LoadAllBinary(const std::string& fileName);
+	void SaveAllBinary(CValue fileName);
+	void LoadAllBinary(CValue fileName);
 
-	void SaveIntegerBinary(const std::string& fileName);
-	void LoadIntegerBinary(const std::string& fileName);
-	void SaveStringBinary(const std::string& fileName);
-	void LoadStringBinary(const std::string& fileName);
-	void SaveBoolBinary(const std::string& fileName);
-	void LoadBoolBinary(const std::string& fileName);
-	void SaveShortBinary(const std::string& fileName);
-	void LoadShortBinary(const std::string& fileName);
+	void SaveIntegerBinary(CValue fileName);
+	void LoadIntegerBinary(CValue fileName);
+	void SaveStringBinary(CValue fileName);
+	void LoadStringBinary(CValue fileName);
+	void SaveBoolBinary(CValue fileName);
+	void LoadBoolBinary(CValue fileName);
+	void SaveShortBinary(CValue fileName);
+	void LoadShortBinary(CValue fileName);
 
 private:
 	static std::string GetNormalizedPath(const std::string& path);

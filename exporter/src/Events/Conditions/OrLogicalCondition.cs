@@ -19,10 +19,14 @@ public class OrLogicalCondition : ConditionBase
 		nextLabel = EventProcessor.GenerateEventNextLabel(parameters["eventGroup"] as EventGroup, orIndex, (int)parameters["numOfOrs"]);
 
 		//Reset instances
-		//TODO: check if were are only resetting actually relevant instances
+		var inheritedSelectors = (List<Tuple<int, int, string>>)parameters["inheritedSelectors"];
+
 		foreach (var relevantObjectInfo in EventProcessor.GetRelevantObjectInfos(parameters["eventGroup"] as EventGroup))
 		{
-			result.AppendLine($"{StringUtils.SanitizeObjectName(relevantObjectInfo.Item3)}_{relevantObjectInfo.Item1}_selector->Reset();");
+			if (inheritedSelectors.Any(x => x.Item1 == relevantObjectInfo.Item1 && x.Item2 == relevantObjectInfo.Item2))
+				result.AppendLine($"{StringUtils.SanitizeObjectName(relevantObjectInfo.Item3)}_{relevantObjectInfo.Item1}_selector.RestoreSelection(__entry_{StringUtils.SanitizeObjectName(relevantObjectInfo.Item3)}_{relevantObjectInfo.Item1});");
+			else
+				result.AppendLine($"{StringUtils.SanitizeObjectName(relevantObjectInfo.Item3)}_{relevantObjectInfo.Item1}_selector.Reset(trueEventSource);");
 		}
 
 		return result.ToString();

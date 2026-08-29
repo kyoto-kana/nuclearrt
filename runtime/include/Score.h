@@ -10,5 +10,5 @@ public:
 	Score(unsigned int objectInfoHandle, int type, std::string name)
 		: CounterBase(objectInfoHandle, type, name) {}
 
-	int GetValue() const override { return Application::Instance().GetAppData()->GetPlayerScores()[Player]; }
+	CValue GetValue() const override { return CValue(Application::Instance().GetAppData()->GetPlayerScores()[Player]); }
 };

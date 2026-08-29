@@ -9,6 +9,7 @@
 #include "AlterableStrings.h"
 #include "AlterableFlags.h"
 #include "ImageBank.h"
+#include "MathHelper.h"
 #include "Movements.h"
 #include "Shape.h"
 
@@ -56,12 +57,12 @@ public:
 		return { Font };
 	}
 
-	virtual int GetValue() const { return 0; }
+	virtual CValue GetValue() const { return CValue(0); }
 
 	int GetWidth() {
 		if (DisplayType == 1) // Numbers
 		{
-			std::string valueString = std::to_string(GetValue());
+			std::string valueString = std::to_string(GetValue().GetDoubleValue());
 			int numDigits = static_cast<int>(valueString.size());
 
 			if (IntDigitCount > 0)
@@ -120,7 +121,7 @@ public:
 	int GetHeight(){
 		if (DisplayType == 1) // Numbers
 		{
-			std::string valueString = std::to_string(GetValue());
+			std::string valueString = std::to_string(GetValue().GetDoubleValue());
 			int numDigits = static_cast<int>(valueString.size());
 
 			if (IntDigitCount > 0)

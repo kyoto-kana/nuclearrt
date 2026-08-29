@@ -1,6 +1,6 @@
 /*
    LZ4 - Fast LZ compression algorithm
-   Copyright (c) Yann Collet. All rights reserved.
+   Copyright (C) 2011-2023, Yann Collet.
 
    BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
 
@@ -77,8 +77,7 @@
 #ifndef LZ4_FORCE_MEMORY_ACCESS   /* can be defined externally */
 #  if defined(__GNUC__) && \
   ( defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) \
-  || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_6T2__) \
-  || (defined(__riscv) && defined(__riscv_zicclsm)) )
+  || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_6T2__) )
 #    define LZ4_FORCE_MEMORY_ACCESS 2
 #  elif (defined(__INTEL_COMPILER) && !defined(_WIN32)) || defined(__GNUC__) || defined(_MSC_VER)
 #    define LZ4_FORCE_MEMORY_ACCESS 1
@@ -302,12 +301,12 @@ static int LZ4_isAligned(const void* ptr, size_t alignment)
 #include <limits.h>
 #if defined(__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 # include <stdint.h>
-  typedef unsigned char BYTE; /*uint8_t not necessarily blessed to alias arbitrary type*/
-  typedef uint16_t      U16;
-  typedef uint32_t      U32;
-  typedef  int32_t      S32;
-  typedef uint64_t      U64;
-  typedef uintptr_t     uptrval;
+  typedef  uint8_t BYTE;
+  typedef uint16_t U16;
+  typedef uint32_t U32;
+  typedef  int32_t S32;
+  typedef uint64_t U64;
+  typedef uintptr_t uptrval;
 #else
 # if UINT_MAX != 4294967295UL
 #   error "LZ4 code (when not C++ or C99) assumes that sizeof(int) == 4"
@@ -479,7 +478,12 @@ static const int      dec64table[8] = {0, 0, 0, -1, -4,  1, 2, 3};
 #ifndef LZ4_FAST_DEC_LOOP
 #  if defined __i386__ || defined _M_IX86 || defined __x86_64__ || defined _M_X64
 #    define LZ4_FAST_DEC_LOOP 1
-#  elif defined(__aarch64__)
+#  elif defined(__aarch64__) && defined(__APPLE__)
+#    define LZ4_FAST_DEC_LOOP 1
+#  elif defined(__aarch64__) && !defined(__clang__)
+     /* On non-Apple aarch64, we disable this optimization for clang because
+      * on certain mobile chipsets, performance is reduced with clang. For
+      * more information refer to https://github.com/lz4/lz4/pull/707 */
 #    define LZ4_FAST_DEC_LOOP 1
 #  else
 #    define LZ4_FAST_DEC_LOOP 0
@@ -494,9 +498,10 @@ LZ4_memcpy_using_offset_base(BYTE* dstPtr, const BYTE* srcPtr, BYTE* dstEnd, con
     assert(srcPtr + offset == dstPtr);
     if (offset < 8) {
         LZ4_write32(dstPtr, 0);   /* silence an msan warning when offset==0 */
-        assert(offset != 1);   /* offset==0 happens on testing */
-        LZ4_memcpy(dstPtr, srcPtr, 2);
-        LZ4_memcpy(dstPtr + 2, srcPtr + 2, 2);
+        dstPtr[0] = srcPtr[0];
+        dstPtr[1] = srcPtr[1];
+        dstPtr[2] = srcPtr[2];
+        dstPtr[3] = srcPtr[3];
         srcPtr += inc32table[offset];
         LZ4_memcpy(dstPtr+4, srcPtr, 4);
         srcPtr -= dec64table[offset];
@@ -509,20 +514,6 @@ LZ4_memcpy_using_offset_base(BYTE* dstPtr, const BYTE* srcPtr, BYTE* dstEnd, con
 
     LZ4_wildCopy8(dstPtr, srcPtr, dstEnd);
 }
-
-
-#ifdef __aarch64__
-/* customized variant of memcpy, which can overwrite up to 64 bytes beyond dstEnd */
-LZ4_FORCE_INLINE void
-LZ4_wildCopy64(void* dstPtr, const void* srcPtr, void* dstEnd)
-{
-    BYTE* d = (BYTE*)dstPtr;
-    const BYTE* s = (const BYTE*)srcPtr;
-    BYTE* const e = (BYTE*)dstEnd;
-
-    do { LZ4_memcpy(d,s,64); d+=64; s+=64; } while (d<e);
-}
-#endif
 
 /* customized variant of memcpy, which can overwrite up to 32 bytes beyond dstEnd
  * this version copies two times 16 bytes (instead of one time 32 bytes)
@@ -905,7 +896,7 @@ LZ4_prepareTable(LZ4_stream_t_internal* const cctx,
           || tableType == byPtr
           || inputSize >= 4 KB)
         {
-            DEBUGLOG(4, "LZ4_prepareTable: Resetting table in %p", (void*)cctx);
+            DEBUGLOG(4, "LZ4_prepareTable: Resetting table in %p", cctx);
             MEM_INIT(cctx->hashTable, 0, LZ4_HASHTABLESIZE);
             cctx->currentOffset = 0;
             cctx->tableType = (U32)clearedTable;
@@ -1541,7 +1532,7 @@ LZ4_stream_t* LZ4_createStream(void)
 {
     LZ4_stream_t* const lz4s = (LZ4_stream_t*)ALLOC(sizeof(LZ4_stream_t));
     LZ4_STATIC_ASSERT(sizeof(LZ4_stream_t) >= sizeof(LZ4_stream_t_internal));
-    DEBUGLOG(4, "LZ4_createStream %p", (void*)lz4s);
+    DEBUGLOG(4, "LZ4_createStream %p", lz4s);
     if (lz4s == NULL) return NULL;
     LZ4_initStream(lz4s, sizeof(*lz4s));
     return lz4s;
@@ -1572,7 +1563,7 @@ LZ4_stream_t* LZ4_initStream (void* buffer, size_t size)
  * prefer initStream() which is more general */
 void LZ4_resetStream (LZ4_stream_t* LZ4_stream)
 {
-    DEBUGLOG(5, "LZ4_resetStream (ctx:%p)", (void*)LZ4_stream);
+    DEBUGLOG(5, "LZ4_resetStream (ctx:%p)", LZ4_stream);
     MEM_INIT(LZ4_stream, 0, sizeof(LZ4_stream_t_internal));
 }
 
@@ -1584,7 +1575,7 @@ void LZ4_resetStream_fast(LZ4_stream_t* ctx) {
 int LZ4_freeStream (LZ4_stream_t* LZ4_stream)
 {
     if (!LZ4_stream) return 0;   /* support free on NULL */
-    DEBUGLOG(5, "LZ4_freeStream %p", (void*)LZ4_stream);
+    DEBUGLOG(5, "LZ4_freeStream %p", LZ4_stream);
     FREEMEM(LZ4_stream);
     return (0);
 }
@@ -1593,7 +1584,7 @@ int LZ4_freeStream (LZ4_stream_t* LZ4_stream)
 
 typedef enum { _ld_fast, _ld_slow } LoadDict_mode_e;
 #define HASH_UNIT sizeof(reg_t)
-static int LZ4_loadDict_internal(LZ4_stream_t* LZ4_dict,
+int LZ4_loadDict_internal(LZ4_stream_t* LZ4_dict,
                     const char* dictionary, int dictSize,
                     LoadDict_mode_e _ld)
 {
@@ -1603,7 +1594,7 @@ static int LZ4_loadDict_internal(LZ4_stream_t* LZ4_dict,
     const BYTE* const dictEnd = p + dictSize;
     U32 idx32;
 
-    DEBUGLOG(4, "LZ4_loadDict (%i bytes from %p into %p)", dictSize, (void*)dictionary, (void*)LZ4_dict);
+    DEBUGLOG(4, "LZ4_loadDict (%i bytes from %p into %p)", dictSize, dictionary, LZ4_dict);
 
     /* It's necessary to reset the context,
      * and not just continue it with prepareTable()
@@ -1670,7 +1661,7 @@ void LZ4_attach_dictionary(LZ4_stream_t* workingStream, const LZ4_stream_t* dict
         &(dictionaryStream->internal_donotuse);
 
     DEBUGLOG(4, "LZ4_attach_dictionary (%p, %p, size %u)",
-             (void*)workingStream, (void*)dictionaryStream,
+             workingStream, dictionaryStream,
              dictCtx != NULL ? dictCtx->dictSize : 0);
 
     if (dictCtx != NULL) {
@@ -1734,7 +1725,7 @@ int LZ4_compress_fast_continue (LZ4_stream_t* LZ4_stream,
       && (inputSize > 0)               /* tolerance : don't lose history, in case next invocation would use prefix mode */
       && (streamPtr->dictCtx == NULL)  /* usingDictCtx */
       ) {
-        DEBUGLOG(5, "LZ4_compress_fast_continue: dictSize(%u) at addr:%p is too small", streamPtr->dictSize, (void*)streamPtr->dictionary);
+        DEBUGLOG(5, "LZ4_compress_fast_continue: dictSize(%u) at addr:%p is too small", streamPtr->dictSize, streamPtr->dictionary);
         /* remove dictionary existence from history, to employ faster prefix mode */
         streamPtr->dictSize = 0;
         streamPtr->dictionary = (const BYTE*)source;
@@ -1824,7 +1815,7 @@ int LZ4_saveDict (LZ4_stream_t* LZ4_dict, char* safeBuffer, int dictSize)
 {
     LZ4_stream_t_internal* const dict = &LZ4_dict->internal_donotuse;
 
-    DEBUGLOG(5, "LZ4_saveDict : dictSize=%i, safeBuffer=%p", dictSize, (void*)safeBuffer);
+    DEBUGLOG(5, "LZ4_saveDict : dictSize=%i, safeBuffer=%p", dictSize, safeBuffer);
 
     if ((U32)dictSize > 64 KB) { dictSize = 64 KB; } /* useless to define a dictionary > 64 KB */
     if ((U32)dictSize > dict->dictSize) { dictSize = (int)dict->dictSize; }
@@ -2097,35 +2088,30 @@ LZ4_decompress_generic(
             length = token >> ML_BITS;  /* literal length */
             DEBUGLOG(7, "blockPos%6u: litLength token = %u", (unsigned)(op-(BYTE*)dst), (unsigned)length);
 
-            if (ip > iend-(16 + 1/*max lit + offset + nextToken*/)) { goto safe_literal_copy_early; }
-
             /* decode literal length */
             if (length == RUN_MASK) {
-                size_t const addl = read_variable_length(&ip, iend, 0);
+                size_t const addl = read_variable_length(&ip, iend-RUN_MASK, 1);
                 if (addl == rvl_error) {
                     DEBUGLOG(6, "error reading long literal length");
                     goto _output_error;
                 }
                 length += addl;
-                cpy = op+length;
-                if (unlikely((uptrval)(cpy)<(uptrval)(op))) { goto _output_error; } /* overflow detection */
+                if (unlikely((uptrval)(op)+length<(uptrval)(op))) { goto _output_error; } /* overflow detection */
                 if (unlikely((uptrval)(ip)+length<(uptrval)(ip))) { goto _output_error; } /* overflow detection */
 
                 /* copy literals */
                 LZ4_STATIC_ASSERT(MFLIMIT >= WILDCOPYLENGTH);
-              #ifdef __aarch64__
-                if ((cpy>oend-64) || (ip+length>iend-64)) { goto safe_literal_copy; }
-                LZ4_wildCopy64(op, ip, cpy);
-              #else
-                if ((cpy>oend-32) || (ip+length>iend-32)) { goto safe_literal_copy; }
-                LZ4_wildCopy32(op, ip, cpy);
-              #endif
-                ip += length; op = cpy;
-            } else {
+                if ((op+length>oend-32) || (ip+length>iend-32)) { goto safe_literal_copy; }
+                LZ4_wildCopy32(op, ip, op+length);
+                ip += length; op += length;
+            } else if (ip <= iend-(16 + 1/*max lit + offset + nextToken*/)) {
+                /* We don't need to check oend, since we check it once for each loop below */
                 DEBUGLOG(7, "copy %u bytes in a 16-bytes stripe", (unsigned)length);
                 /* Literals can only be <= 14, but hope compilers optimize better when copy by a register size */
                 LZ4_memcpy(op, ip, 16);
                 ip += length; op += length;
+            } else {
+                goto safe_literal_copy;
             }
 
             /* get offset */
@@ -2212,13 +2198,9 @@ LZ4_decompress_generic(
             /* copy match within block */
             cpy = op + length;
 
-            assert((op <= oend) && (oend-op >= 64));
+            assert((op <= oend) && (oend-op >= 32));
             if (unlikely(offset<16)) {
                 LZ4_memcpy_using_offset(op, match, cpy, offset);
-    #ifdef __aarch64__
-            } else if (offset >= 64) {
-                LZ4_wildCopy64(op, match, cpy);
-    #endif
             } else {
                 LZ4_wildCopy32(op, match, cpy);
             }
@@ -2278,10 +2260,6 @@ LZ4_decompress_generic(
                 goto _copy_match;
             }
 
-#if LZ4_FAST_DEC_LOOP
-        safe_literal_copy_early:
-#endif
-
             /* decode literal length */
             if (length == RUN_MASK) {
                 size_t const addl = read_variable_length(&ip, iend-RUN_MASK, 1);
@@ -2291,12 +2269,11 @@ LZ4_decompress_generic(
                 if (unlikely((uptrval)(ip)+length<(uptrval)(ip))) { goto _output_error; } /* overflow detection */
             }
 
-            /* copy literals */
-            cpy = op+length;
-
 #if LZ4_FAST_DEC_LOOP
         safe_literal_copy:
 #endif
+            /* copy literals */
+            cpy = op+length;
 
             LZ4_STATIC_ASSERT(MFLIMIT >= WILDCOPYLENGTH);
             if ((cpy>oend-MFLIMIT) || (ip+length>iend-(2+1+LASTLITERALS))) {
@@ -2334,8 +2311,8 @@ LZ4_decompress_generic(
                       */
                     if ((ip+length != iend) || (cpy > oend)) {
                         DEBUGLOG(5, "should have been last run of literals")
-                        DEBUGLOG(5, "ip(%p) + length(%i) = %p != iend (%p)", (void*)ip, (int)length, (void*)(ip+length), (void*)iend);
-                        DEBUGLOG(5, "or cpy(%p) > (oend-MFLIMIT)(%p)", (void*)cpy, (void*)(oend-MFLIMIT));
+                        DEBUGLOG(5, "ip(%p) + length(%i) = %p != iend (%p)", ip, (int)length, ip+length, iend);
+                        DEBUGLOG(5, "or cpy(%p) > (oend-MFLIMIT)(%p)", cpy, oend-MFLIMIT);
                         DEBUGLOG(5, "after writing %u bytes / %i bytes available", (unsigned)(op-(BYTE*)dst), outputSize);
                         goto _output_error;
                     }

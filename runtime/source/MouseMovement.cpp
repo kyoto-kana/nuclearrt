@@ -6,8 +6,8 @@
 #include "InputBackend.h"
 
 void MouseMovement::Initialize() {
-	initialX = Instance->GetX();
-	initialY = Instance->GetY();
+	initialX = Instance->GetX().GetIntValue();
+	initialY = Instance->GetY().GetIntValue();
 }
 
 void MouseMovement::OnEnabled() {
@@ -31,9 +31,9 @@ void MouseMovement::Update(float deltaTime) {
 	Application::Instance().GetBackend()->input->SetMouseX(disabledCursorX);
 	Application::Instance().GetBackend()->input->SetMouseY(disabledCursorY);
 
-	Instance->SetX(Instance->GetX() + xDifference);
-	Instance->SetY(Instance->GetY() + yDifference);
+	Instance->SetX(CValue(Instance->GetX().GetIntValue() + xDifference));
+	Instance->SetY(CValue(Instance->GetY().GetIntValue() + yDifference));
 
-	Instance->SetX(std::clamp(Instance->GetX() - initialX, MinX, MaxX) + initialX);
-	Instance->SetY(std::clamp(Instance->GetY() - initialY, MinY, MaxY) + initialY);
+	Instance->SetX(CValue(std::clamp(Instance->GetX().GetIntValue() - initialX, MinX, MaxX) + initialX));
+	Instance->SetY(CValue(std::clamp(Instance->GetY().GetIntValue() - initialY, MinY, MaxY) + initialY));
 }

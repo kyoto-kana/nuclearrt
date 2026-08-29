@@ -12,6 +12,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include "lz4.h"
 #ifdef _DEBUG
 #include "DebugUI.h"
 #include "imgui.h"
@@ -89,6 +90,9 @@ void SDL3GraphicsBackend::Initialize() {
 	SDL_ShowWindow(window);
 #endif
 
+	if (Application::Instance().GetAppData()->GetFullscreenOnStart())
+		backend->GetPlatform()->SetFullscreen(true);
+
 #if !defined(PLATFORM_MACOS) && !defined(PLATFORM_WEB) && !defined(PLATFORM_IOS)
 	GLenum glewErr = glewInit();
 	if (glewErr != GLEW_OK)
@@ -148,9 +152,14 @@ void SDL3GraphicsBackend::Initialize() {
 		
 		if(ImGui::CollapsingHeader("Global Variables")) {
 			if (ImGui::CollapsingHeader("Values")) {
-				std::vector<int>& altValues = Application::Instance().GetAppData()->GetGlobalValues();
+				std::vector<CValue>& altValues = Application::Instance().GetAppData()->GetGlobalValues();
 				for (int i = 0; i < altValues.size(); i++) {
-					ImGui::InputInt(("Value " + std::to_string(i)).c_str(), &altValues[i]);
+					if (altValues[i].GetType() == 0) {
+						ImGui::InputInt(("Value " + std::to_string(i)).c_str(), altValues[i].GetIntValuePtr());
+					}
+					else if (altValues[i].GetType() == 1) {
+						ImGui::InputDouble(("Value " + std::to_string(i)).c_str(), altValues[i].GetDoubleValuePtr());
+					}
 				}
 			}
 			if (ImGui::CollapsingHeader("Strings")) {
@@ -183,7 +192,7 @@ void SDL3GraphicsBackend::Initialize() {
 				for (auto& [handle, instance] : currentFrame->ObjectInstances) {					
 					if (ImGui::TreeNode(std::string(instance->Name + "##" + std::to_string(handle)).c_str())) {
 						ImGui::Text("Handle: %d", handle);
-						ImGui::Text("Position: %d, %d", instance->GetX(), instance->GetY());
+						ImGui::Text("Position: %d, %d", instance->GetX().GetIntValue(), instance->GetY().GetIntValue());
 						ImGui::Text("Type: %d", instance->Type);
 
 						if (instance->Type == 2)
@@ -195,7 +204,7 @@ void SDL3GraphicsBackend::Initialize() {
 							ImGui::Checkbox("Visible", &((StringObject*)instance)->Visible);
 							
 							if (ImGui::TreeNode("Paragraphs")) {
-								ImGui::Text("Displayed Text: %s", ((StringObject*)instance)->GetText().c_str());
+								ImGui::Text("Displayed Text: %s", ((StringObject*)instance)->GetText().GetStringValue().c_str());
 								ImGui::Text("Alterable Text: %s", ((StringObject*)instance)->AlterableText.c_str());
 
 								if (ImGui::TreeNode("Paragraphs")) {
@@ -210,12 +219,12 @@ void SDL3GraphicsBackend::Initialize() {
 						}
 						else if (instance->Type == 7)
 						{
-							ImGui::Text("Value: %d", ((Counter*)instance)->GetValue());
+							ImGui::Text("Value: %d", ((Counter*)instance)->GetValue().GetIntValue());
 						}
 
 						if (ImGui::TreeNode("Effect")) {
 							ImGui::Text("Effect: %d", instance->Effect);
-							ImGui::Text("Effect Parameter: %d", instance->GetEffectParameter());
+							ImGui::Text("Effect Parameter: %d", instance->GetBlendCoefficient().GetIntValue());
 							ImGui::TreePop();
 						}
 
@@ -291,11 +300,9 @@ void SDL3GraphicsBackend::Deinitialize()
 		quadVBO = 0;
 	}
 
-	for (int i = 0; i < STANDARD_EFFECT_COUNT; i++) {
-		if (effectShaders[i].program != 0) {
-			glDeleteProgram(effectShaders[i].program);
-			effectShaders[i].program = 0;
-		}
+	if (defaultShader.program != 0) {
+		glDeleteProgram(defaultShader.program);
+		defaultShader.program = 0;
 	}
 
 	if (colorShaderProgram != 0)
@@ -325,6 +332,32 @@ void SDL3GraphicsBackend::Deinitialize()
 	}
 	thirdPartyShaders.clear();
 
+	if (sceneBackgroundFBO != 0)
+	{
+		glDeleteFramebuffers(1, &sceneBackgroundFBO);
+		sceneBackgroundFBO = 0;
+	}
+	if (sceneBackgroundTexture != 0)
+	{
+		glDeleteTextures(1, &sceneBackgroundTexture);
+		sceneBackgroundTexture = 0;
+	}
+	sceneBackgroundWidth = 0;
+	sceneBackgroundHeight = 0;
+
+	if (effectBackgroundFBO != 0)
+	{
+		glDeleteFramebuffers(1, &effectBackgroundFBO);
+		effectBackgroundFBO = 0;
+	}
+	if (effectBackgroundTexture != 0)
+	{
+		glDeleteTextures(1, &effectBackgroundTexture);
+		effectBackgroundTexture = 0;
+	}
+	effectBackgroundWidth = 0;
+	effectBackgroundHeight = 0;
+
 	if (glContext != nullptr)
 	{
 		SDL_GL_DestroyContext(glContext);
@@ -339,6 +372,195 @@ void SDL3GraphicsBackend::BindDefaultFramebuffer()
 #else
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #endif
+}
+
+void SDL3GraphicsBackend::RestoreDrawFramebuffer()
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, drawingLayer ? layerRenderTarget : renderTarget);
+	glViewport(0, 0, renderTargetWidth, renderTargetHeight);
+}
+
+void SDL3GraphicsBackend::EnsureSceneBackgroundCapture(int width, int height)
+{
+	if (sceneBackgroundTexture != 0 && sceneBackgroundWidth == width && sceneBackgroundHeight == height)
+	{
+		return;
+	}
+
+	if (sceneBackgroundFBO != 0)
+	{
+		glDeleteFramebuffers(1, &sceneBackgroundFBO);
+		sceneBackgroundFBO = 0;
+	}
+	if (sceneBackgroundTexture != 0)
+	{
+		glDeleteTextures(1, &sceneBackgroundTexture);
+		sceneBackgroundTexture = 0;
+	}
+
+	glGenTextures(1, &sceneBackgroundTexture);
+	glBindTexture(GL_TEXTURE_2D, sceneBackgroundTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+	glGenFramebuffers(1, &sceneBackgroundFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, sceneBackgroundFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneBackgroundTexture, 0);
+
+	sceneBackgroundWidth = width;
+	sceneBackgroundHeight = height;
+}
+
+GLuint SDL3GraphicsBackend::CaptureSceneBackground()
+{
+	if (renderTargetWidth <= 0 || renderTargetHeight <= 0)
+	{
+		return 0;
+	}
+
+	EnsureSceneBackgroundCapture(renderTargetWidth, renderTargetHeight);
+
+	if (!drawingLayer)
+	{
+		glBindTexture(GL_TEXTURE_2D, sceneBackgroundTexture);
+		glBindFramebuffer(GL_FRAMEBUFFER, renderTarget);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, renderTargetWidth, renderTargetHeight);
+		glViewport(0, 0, renderTargetWidth, renderTargetHeight);
+		return sceneBackgroundTexture;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, sceneBackgroundFBO);
+	glViewport(0, 0, renderTargetWidth, renderTargetHeight);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	UseEffectShader(0);
+	glActiveTexture(GL_TEXTURE0);
+	glUniform1i(defaultShader.texLoc, 0);
+	glUniform4f(defaultShader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+
+	glBindTexture(GL_TEXTURE_2D, renderTargetTexture);
+	RenderQuad(0.0f, 0.0f, static_cast<float>(logicalRenderWidth), static_cast<float>(logicalRenderHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+
+	glBindTexture(GL_TEXTURE_2D, layerRenderTargetTexture);
+	RenderQuad(0.0f, 0.0f, static_cast<float>(logicalRenderWidth), static_cast<float>(logicalRenderHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+
+	RestoreDrawFramebuffer();
+	return sceneBackgroundTexture;
+}
+
+void SDL3GraphicsBackend::EnsureEffectBackgroundCapture(int width, int height)
+{
+	if (effectBackgroundTexture != 0 && effectBackgroundWidth == width && effectBackgroundHeight == height)
+	{
+		return;
+	}
+
+	if (effectBackgroundFBO != 0)
+	{
+		glDeleteFramebuffers(1, &effectBackgroundFBO);
+		effectBackgroundFBO = 0;
+	}
+	if (effectBackgroundTexture != 0)
+	{
+		glDeleteTextures(1, &effectBackgroundTexture);
+		effectBackgroundTexture = 0;
+	}
+
+	glGenTextures(1, &effectBackgroundTexture);
+	glBindTexture(GL_TEXTURE_2D, effectBackgroundTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+	glGenFramebuffers(1, &effectBackgroundFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, effectBackgroundFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, effectBackgroundTexture, 0);
+
+	effectBackgroundWidth = width;
+	effectBackgroundHeight = height;
+}
+
+GLuint SDL3GraphicsBackend::CaptureObjectBackground(int x, int y, int width, int height)
+{
+	if (width <= 0 || height <= 0 || logicalRenderWidth <= 0 || logicalRenderHeight <= 0)
+		return 0;
+
+	float coordScaleX = static_cast<float>(renderTargetWidth) / static_cast<float>(logicalRenderWidth);
+	float coordScaleY = static_cast<float>(renderTargetHeight) / static_cast<float>(logicalRenderHeight);
+	int pixelW = std::max(1, static_cast<int>(std::lround(static_cast<float>(width) * coordScaleX)));
+	int pixelH = std::max(1, static_cast<int>(std::lround(static_cast<float>(height) * coordScaleY)));
+
+	EnsureEffectBackgroundCapture(pixelW, pixelH);
+
+	GLuint copyFramebuffer = renderTarget;
+	if (drawingLayer)
+	{
+		EnsureSceneBackgroundCapture(renderTargetWidth, renderTargetHeight);
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, renderTarget);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, sceneBackgroundFBO);
+		glBlitFramebuffer(
+			0, 0, renderTargetWidth, renderTargetHeight,
+			0, 0, renderTargetWidth, renderTargetHeight,
+			GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, sceneBackgroundFBO);
+		glViewport(0, 0, renderTargetWidth, renderTargetHeight);
+
+		UseEffectShader(0);
+		glActiveTexture(GL_TEXTURE0);
+		glUniform1i(defaultShader.texLoc, 0);
+		glUniform4f(defaultShader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+		glBindTexture(GL_TEXTURE_2D, layerRenderTargetTexture);
+		RenderQuad(0.0f, 0.0f, static_cast<float>(logicalRenderWidth), static_cast<float>(logicalRenderHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+
+		copyFramebuffer = sceneBackgroundFBO;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, effectBackgroundFBO);
+	glViewport(0, 0, pixelW, pixelH);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	int srcX = std::max(0, x);
+	int srcY = std::max(0, y);
+	int srcW = std::min(width, logicalRenderWidth - srcX);
+	int srcH = std::min(height, logicalRenderHeight - srcY);
+	if (srcW > 0 && srcH > 0)
+	{
+		int pixelSrcX = static_cast<int>(std::lround(srcX * coordScaleX));
+		int pixelSrcY = static_cast<int>(std::lround(srcY * coordScaleY));
+		int pixelSrcW = static_cast<int>(std::lround(srcW * coordScaleX));
+		int pixelSrcH = static_cast<int>(std::lround(srcH * coordScaleY));
+		pixelSrcW = std::min(pixelSrcW, renderTargetWidth - pixelSrcX);
+		pixelSrcH = std::min(pixelSrcH, renderTargetHeight - pixelSrcY);
+
+		int dstX = static_cast<int>(std::lround(static_cast<float>(srcX - x) * coordScaleX));
+		int dstYFromTop = static_cast<int>(std::lround(static_cast<float>(srcY - y) * coordScaleY));
+
+		if (pixelSrcW > 0 && pixelSrcH > 0 && dstX >= 0 && dstYFromTop >= 0 && dstX + pixelSrcW <= pixelW && dstYFromTop + pixelSrcH <= pixelH)
+		{
+			// flip y
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, copyFramebuffer);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, effectBackgroundFBO);
+			glBlitFramebuffer(
+				pixelSrcX, renderTargetHeight - pixelSrcY,
+				pixelSrcX + pixelSrcW, renderTargetHeight - (pixelSrcY + pixelSrcH),
+				dstX, dstYFromTop,
+				dstX + pixelSrcW, dstYFromTop + pixelSrcH,
+				GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		}
+	}
+
+	RestoreDrawFramebuffer();
+
+	return effectBackgroundTexture;
 }
 
 float SDL3GraphicsBackend::GetPixelScale() const
@@ -387,7 +609,7 @@ void SDL3GraphicsBackend::BeginDrawing()
 		return;
 	}
 
-	currentEffect = -1;
+	currentInkEffect = -1;
 
 	// resize render target if needed
 	logicalRenderWidth = std::min(Application::Instance().GetAppData()->GetWindowWidth(), Application::Instance().GetCurrentFrame()->Width);
@@ -444,18 +666,17 @@ void SDL3GraphicsBackend::EndDrawing()
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	UseEffectShader(0);
-	EffectShader &shader = effectShaders[0];
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, renderTargetTexture);
-	glUniform1i(shader.texLoc, 0);
-	glUniform4f(shader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+	glUniform1i(defaultShader.texLoc, 0);
+	glUniform4f(defaultShader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 
 	float mvp[16] = {
 		2.0f * rect.w / windowWidth, 0.0f, 0.0f, 0.0f,
 		0.0f, 2.0f * rect.h / windowHeight, 0.0f, 0.0f,
 		0.0f, 0.0f, -1.0f, 0.0f,
 		2.0f * rect.x / windowWidth - 1.0f, -(2.0f * rect.y / windowHeight - 1.0f) - 2.0f * rect.h / windowHeight, 0.0f, 1.0f};
-	glUniformMatrix4fv(shader.mvpLoc, 1, GL_FALSE, mvp);
+	glUniformMatrix4fv(defaultShader.mvpLoc, 1, GL_FALSE, mvp);
 
 	float presentVerts[] = {
 		0.0f, 0.0f, 0.0f, 0.0f,
@@ -519,6 +740,7 @@ void SDL3GraphicsBackend::EndLayerDrawing(int rgbCoefficient, int effect, unsign
 
 	glBindFramebuffer(GL_FRAMEBUFFER, renderTarget);
 	glViewport(0, 0, renderTargetWidth, renderTargetHeight);
+	drawingLayer = false;
 
 	bool needsBlendRestore = false;
 	if (effect == 9) // Add
@@ -532,15 +754,17 @@ void SDL3GraphicsBackend::EndLayerDrawing(int rgbCoefficient, int effect, unsign
 		needsBlendRestore = true;
 	}
 
-	ApplyEffectParameters(effectInstance, renderTargetWidth, renderTargetHeight, rgbCoefficient, effect, effectParameter, layerRenderTargetTexture);
+	GLuint backgroundTextureId = 0;
+	if (effectInstance != nullptr && effectInstance->UsesBackground)
+		backgroundTextureId = CaptureSceneBackground();
+
+	ApplyEffectParameters(effectInstance, renderTargetWidth, renderTargetHeight, rgbCoefficient, effect, effectParameter, layerRenderTargetTexture, backgroundTextureId);
 	RenderQuad(0.0f, 0.0f, static_cast<float>(logicalRenderWidth), static_cast<float>(logicalRenderHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 
 	if (needsBlendRestore)
 	{
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	}
-
-	drawingLayer = false;
 }
 
 GLuint SDL3GraphicsBackend::CompileShader(GLenum type, const char *source)
@@ -614,44 +838,25 @@ void SDL3GraphicsBackend::CreateStandardShaders()
 		return;
 	}
 
-	// guh
-	const char *effectFiles[STANDARD_EFFECT_COUNT] = {
-		"shaders/standard/normal.frag",
-		nullptr,
-		"shaders/standard/inverted.frag",
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr, // "shaders/standard/add.frag" is supposed to be in the pak file, but it's not so it's very funny. -indeednotfunny
-		"shaders/standard/monochrome.frag",
-		nullptr, // same here with subtract.frag -- "shaders/standard/subtract.frag" -indeednotfunny
-		nullptr};
-
-	for (int i = 0; i < STANDARD_EFFECT_COUNT; i++)
+	// load default shader
+	std::string fragSrc = LoadShaderSource("shaders/standard/normal.frag");
+	if (fragSrc.empty())
 	{
-		// fallback the normal shader
-		const char *fragFile = effectFiles[i] ? effectFiles[i] : effectFiles[0];
-		std::string fragSrc = LoadShaderSource(fragFile);
-		if (fragSrc.empty())
-		{
-			backend->GetPlatform()->Log("Failed to load fragment shader: " + std::string(fragFile));
-			continue;
-		}
-
-		effectShaders[i].program = CreateShaderProgram(vertexSrc.c_str(), fragSrc.c_str());
-		if (effectShaders[i].program == 0)
-		{
-			backend->GetPlatform()->Log("Failed to create effect shader " + std::to_string(i));
-			continue;
-		}
-
-		effectShaders[i].mvpLoc = glGetUniformLocation(effectShaders[i].program, "uMVP");
-		effectShaders[i].texLoc = glGetUniformLocation(effectShaders[i].program, "uTexture");
-		effectShaders[i].colorLoc = glGetUniformLocation(effectShaders[i].program, "uColor");
+		backend->GetPlatform()->Log("Failed to load normal shader");
+		return;
 	}
+
+	defaultShader.program = CreateShaderProgram(vertexSrc.c_str(), fragSrc.c_str());
+	if (defaultShader.program == 0)
+	{
+		backend->GetPlatform()->Log("Failed to create default shader");
+		return;
+	}
+
+	defaultShader.mvpLoc = glGetUniformLocation(defaultShader.program, "uMVP");
+	defaultShader.texLoc = glGetUniformLocation(defaultShader.program, "uTexture");
+	defaultShader.colorLoc = glGetUniformLocation(defaultShader.program, "uColor");
+	defaultShaderInkEffectLoc = glGetUniformLocation(defaultShader.program, "uInkEffect");
 
 	// load color shaders for shapes and shit
 	std::string colorFragSrc = LoadShaderSource("shaders/standard/color.frag");
@@ -719,13 +924,17 @@ void SDL3GraphicsBackend::UseEffectShader(int effect)
 		effect = 0;
 	}
 
-	if (currentEffect == effect && currentEffect >= 0)
-	{
-		return;
-	}
+	if (currentInkEffect < 0) // third party shader
+		glUseProgram(defaultShader.program);
 
-	currentEffect = effect;
-	glUseProgram(effectShaders[effect].program);
+	if (currentInkEffect != effect)
+	{
+		if (defaultShaderInkEffectLoc >= 0)
+		{
+			glUniform1i(defaultShaderInkEffectLoc, effect);
+		}
+		currentInkEffect = effect;
+	}
 }
 
 void SDL3GraphicsBackend::CreateRenderTarget(int width, int height)
@@ -827,7 +1036,7 @@ void SDL3GraphicsBackend::SetOrthoProjection(GLuint program, GLint mvpLoc, float
 	glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, mvp);
 }
 
-void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance *effectInstance, int textureWidth, int textureHeight, int rgbCoefficient, int effect, unsigned char effectParameter, GLuint textureId)
+void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance *effectInstance, int textureWidth, int textureHeight, int rgbCoefficient, int effect, unsigned char effectParameter, GLuint textureId, GLuint backgroundTextureId)
 {
 	float r = ((rgbCoefficient >> 16) & 0xFF) / 255.0f;
 	float g = ((rgbCoefficient >> 8) & 0xFF) / 255.0f;
@@ -836,6 +1045,7 @@ void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance *effectInstance, 
 
 	GLint texLoc = -1;
 	GLint colorLoc = -1;
+	GLint bgLoc = -1;
 	GLuint program = 0;
 
 	if (effectInstance != nullptr)
@@ -844,10 +1054,11 @@ void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance *effectInstance, 
 		if (shader != nullptr)
 		{
 			glUseProgram(shader->program);
-			currentEffect = -1;
+			currentInkEffect = -1;
 			program = shader->program;
 			texLoc = shader->texLoc;
 			colorLoc = shader->colorLoc;
+			bgLoc = shader->bgLoc;
 
 			GLint pixelWidthLoc = glGetUniformLocation(shader->program, "fPixelWidth");
 			GLint pixelHeightLoc = glGetUniformLocation(shader->program, "fPixelHeight");
@@ -884,10 +1095,9 @@ void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance *effectInstance, 
 	if (program == 0)
 	{
 		UseEffectShader(effect);
-		EffectShader &shader = effectShaders[effect];
-		program = shader.program;
-		texLoc = shader.texLoc;
-		colorLoc = shader.colorLoc;
+		program = defaultShader.program;
+		texLoc = defaultShader.texLoc;
+		colorLoc = defaultShader.colorLoc;
 	}
 
 	if (textureId != 0)
@@ -898,6 +1108,15 @@ void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance *effectInstance, 
 			glUniform1i(texLoc, 0);
 		if (colorLoc >= 0)
 			glUniform4f(colorLoc, r, g, b, a);
+	}
+
+	if (backgroundTextureId != 0)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, backgroundTextureId);
+		if (bgLoc >= 0)
+			glUniform1i(bgLoc, 1);
+		glActiveTexture(GL_TEXTURE0);
 	}
 }
 
@@ -930,10 +1149,9 @@ void SDL3GraphicsBackend::RenderQuad(float x, float y, float w, float h, float a
 
 	GLint mvpLoc = -1;
 	// check effect shaders
-	if (currentEffect >= 0 && currentEffect < STANDARD_EFFECT_COUNT &&
-		static_cast<GLuint>(currentProgram) == effectShaders[currentEffect].program)
+	if (currentInkEffect >= 0 && static_cast<GLuint>(currentProgram) == defaultShader.program)
 	{
-		mvpLoc = effectShaders[currentEffect].mvpLoc;
+		mvpLoc = defaultShader.mvpLoc;
 	}
 	else if (static_cast<GLuint>(currentProgram) == colorShaderProgram)
 	{
@@ -997,7 +1215,7 @@ void SDL3GraphicsBackend::LoadTexture(int id)
 	}
 
 	char imageFileName[32];
-	std::snprintf(imageFileName, sizeof(imageFileName), "images/%d.png", id);
+	std::snprintf(imageFileName, sizeof(imageFileName), "images/%d.rgba", id);
 
 	if (!backend->platform)
 		return;
@@ -1008,19 +1226,15 @@ void SDL3GraphicsBackend::LoadTexture(int id)
 		return;
 	}
 
-	SDL_IOStream *stream = SDL_IOFromMem(data.data(), data.size());
-	SDL_Surface *surface = IMG_Load_IO(stream, true);
-	if (surface == nullptr)
-	{
-		backend->GetPlatform()->Log("IMG_Load_IO Error: " + std::string(SDL_GetError()));
-		return;
-	}
+	const int width = imageInfo->Width;
+	const int height = imageInfo->Height;
+	const int decompressedSize = width * height * 4;
+	std::vector<uint8_t> pixels(static_cast<size_t>(decompressedSize));
 
-	SDL_Surface *rgbaSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
-	SDL_DestroySurface(surface);
-	if (rgbaSurface == nullptr)
+	const int decoded = LZ4_decompress_safe(reinterpret_cast<const char*>(data.data()),reinterpret_cast<char*>(pixels.data()), static_cast<int>(data.size()), decompressedSize);
+	if (decoded != decompressedSize)
 	{
-		backend->GetPlatform()->Log("SDL_ConvertSurface Error: " + std::string(SDL_GetError()));
+		backend->GetPlatform()->Log("LZ4_decompress_safe Error: Failed to decompress image " + std::to_string(id));
 		return;
 	}
 
@@ -1033,12 +1247,10 @@ void SDL3GraphicsBackend::LoadTexture(int id)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rgbaSurface->w, rgbaSurface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgbaSurface->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 
-	texture.width = rgbaSurface->w;
-	texture.height = rgbaSurface->h;
-
-	SDL_DestroySurface(rgbaSurface);
+	texture.width = width;
+	texture.height = height;
 
 	textures[id] = texture;
 }
@@ -1092,13 +1304,23 @@ void SDL3GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 		needsBlendRestore = true;
 	}
 
-	ApplyEffectParameters(effectInstance, texture.width, texture.height, color, effect, effectParameter, texture.textureId);
-
 	float drawX = static_cast<float>(x) - (static_cast<float>(offsetX) * scaleX);
 	float drawY = static_cast<float>(y) - (static_cast<float>(offsetY) * scaleY);
 	float width = static_cast<float>(imageInfo->Width) * scaleX;
 	float height = static_cast<float>(imageInfo->Height) * scaleY;
 	float drawAngle = static_cast<float>(360 - angle);
+
+	GLuint backgroundTextureId = 0;
+	if (effectInstance != nullptr && effectInstance->UsesBackground)
+	{
+		backgroundTextureId = CaptureObjectBackground(
+			static_cast<int>(std::lround(drawX)),
+			static_cast<int>(std::lround(drawY)),
+			std::max(1, static_cast<int>(std::lround(width))),
+			std::max(1, static_cast<int>(std::lround(height))));
+	}
+
+	ApplyEffectParameters(effectInstance, texture.width, texture.height, color, effect, effectParameter, texture.textureId, backgroundTextureId);
 
 	RenderQuad(drawX, drawY, width, height, drawAngle, static_cast<float>(offsetX) * scaleX, static_cast<float>(offsetY) * scaleY);
 
@@ -1151,6 +1373,7 @@ EffectShader *SDL3GraphicsBackend::LoadShader(const std::string &name, const std
 	shader.mvpLoc = glGetUniformLocation(program, "uMVP");
 	shader.texLoc = glGetUniformLocation(program, "uTexture");
 	shader.colorLoc = glGetUniformLocation(program, "uColor");
+	shader.bgLoc = glGetUniformLocation(program, "bkd");
 
 	auto inserted = thirdPartyShaders.emplace(name, shader);
 	return &inserted.first->second;
@@ -1175,7 +1398,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 		if (shape->FillType == 1)
 		{ // Solid Color
 			glUseProgram(colorShaderProgram);
-			currentEffect = -1;
+			currentInkEffect = -1;
 			glUniform4f(colorShaderColorLoc, ((shape->Color1 >> 16) & 0xFF) / 255.0f, ((shape->Color1 >> 8) & 0xFF) / 255.0f, (shape->Color1 & 0xFF) / 255.0f, 1.0f);
 			glUniform1i(colorShaderCircleClipLoc, shape->ShapeType == 3);
 			RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
@@ -1191,7 +1414,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 			float b2 = (shape->Color2 & 0xFF) / 255.0f;
 
 			glUseProgram(gradientShaderProgram);
-			currentEffect = -1;
+			currentInkEffect = -1;
 			glUniform4f(gradientShaderColor1Loc, r1, g1, b1, 1.0f);
 			glUniform4f(gradientShaderColor2Loc, r2, g2, b2, 1.0f);
 			glUniform1i(gradientShaderVerticalLoc, shape->VerticalGradient ? 1 : 0);
@@ -1209,7 +1432,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 			GLTexture &texture = texIt->second;
 
 			glUseProgram(textureQuickbackdropShaderProgram);
-			currentEffect = -1;
+			currentInkEffect = -1;
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, texture.textureId);
 			glUniform1i(textureQuickbackdropShaderTextureLoc, 0);
@@ -1257,7 +1480,7 @@ void SDL3GraphicsBackend::DrawCounterBar(int x, int y, Counter *counter)
 
 	bool isVertical = counter->DisplayType == 2;
 
-	float fillPercent = counter->MaxValue > 0 ? static_cast<float>(counter->GetValue()) / static_cast<float>(counter->MaxValue) : 0.0f;
+	float fillPercent = counter->MaxValue > 0 ? static_cast<float>(counter->GetValue().GetDoubleValue()) / static_cast<float>(counter->MaxValue.GetDoubleValue()) : 0.0f;
 
 	int fillWidth = counter->Width;
 	int fillHeight = counter->Height;
@@ -1330,7 +1553,7 @@ void SDL3GraphicsBackend::DrawCounterBar(int x, int y, Counter *counter)
 	}
 
 	glUseProgram(gradientShaderProgram);
-	currentEffect = -1;
+	currentInkEffect = -1;
 	glUniform4f(gradientShaderColor1Loc, r1, g1, b1, 1.0f);
 	glUniform4f(gradientShaderColor2Loc, r2, g2, b2, 1.0f);
 	glUniform1i(gradientShaderCircleClipLoc, 0);
@@ -1356,11 +1579,10 @@ void SDL3GraphicsBackend::DrawBitmap(Bitmap &bitmap, int x, int y)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bitmap.GetWidth(), bitmap.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap.GetData());
 
 	UseEffectShader(0);
-	EffectShader &shader = effectShaders[0];
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tempTexture);
-	glUniform1i(shader.texLoc, 0);
-	glUniform4f(shader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+	glUniform1i(defaultShader.texLoc, 0);
+	glUniform4f(defaultShader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 
 	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(bitmap.GetWidth()), static_cast<float>(bitmap.GetHeight()), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 	glDeleteTextures(1, &tempTexture);
@@ -1421,17 +1643,16 @@ void SDL3GraphicsBackend::DrawEffectRect(int x, int y, int width, int height, in
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			UseEffectShader(0);
-			EffectShader &shader = effectShaders[0];
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, renderTargetTexture);
-			glUniform1i(shader.texLoc, 0);
-			glUniform4f(shader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+			glUniform1i(defaultShader.texLoc, 0);
+			glUniform4f(defaultShader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 			RenderQuad(0.0f, 0.0f, static_cast<float>(logicalRenderWidth), static_cast<float>(logicalRenderHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, layerRenderTargetTexture);
-			glUniform1i(shader.texLoc, 0);
-			glUniform4f(shader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+			glUniform1i(defaultShader.texLoc, 0);
+			glUniform4f(defaultShader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 			RenderQuad(0.0f, 0.0f, static_cast<float>(logicalRenderWidth), static_cast<float>(logicalRenderHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 
 			copyFramebuffer = composedFramebuffer;
@@ -1452,9 +1673,26 @@ void SDL3GraphicsBackend::DrawEffectRect(int x, int y, int width, int height, in
 	glBindFramebuffer(GL_FRAMEBUFFER, drawingLayer ? layerRenderTarget : renderTarget);
 	glViewport(0, 0, renderTargetWidth, renderTargetHeight);
 
+	bool needsBlendRestore = false;
+	if (effect == 9) // Add
+	{
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE);
+		needsBlendRestore = true;
+	}
+	else if (effect == 11) // Subtract
+	{
+		glBlendFuncSeparate(GL_ZERO, GL_ONE_MINUS_SRC_COLOR, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		needsBlendRestore = true;
+	}
+
 	ApplyEffectParameters(effectInstance, pixelSrcW, pixelSrcH, rgbCoefficient, effect, effectParameter, tempTexture);
 
 	RenderQuad(static_cast<float>(srcX), static_cast<float>(srcY), static_cast<float>(srcW), static_cast<float>(srcH), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+
+	if (needsBlendRestore)
+	{
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	}
 
 	glDeleteTextures(1, &tempTexture);
 	if (composedFramebuffer != 0)
@@ -1498,7 +1736,7 @@ void SDL3GraphicsBackend::LoadFont(int id)
 		std::shared_ptr<std::vector<uint8_t>> buffer = std::make_shared<std::vector<uint8_t>>(backend->platform->GetPakFile().GetData("fonts/" + fontInfo->FontFileName));
 		if (buffer->empty())
 		{
-			backend->GetPlatform()->Log("PakFile::GetData Error: Font with file name " + fontInfo->FontFileName + " not found");
+			backend->GetPlatform()->Log("PakFile::GetData Error: Font " + fontInfo->FontName + " with file name \"" + fontInfo->FontFileName + "\" not found");
 			return;
 		}
 		stream = SDL_IOFromMem(buffer->data(), buffer->size());
@@ -1700,9 +1938,32 @@ void SDL3GraphicsBackend::DrawText(FontInfo *fontInfo, int x, int y, int width, 
 		y += height - textureHeight;
 	}
 
-	ApplyEffectParameters(effectInstance, textureWidth, textureHeight, rgbCoefficient, effect, effectParameter, texture.textureId);
+	bool needsBlendRestore = false;
+	if (effect == 9) // Add
+	{
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE);
+		needsBlendRestore = true;
+	}
+	else if (effect == 11) // Subtract
+	{
+		glBlendFuncSeparate(GL_ZERO, GL_ONE_MINUS_SRC_COLOR, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		needsBlendRestore = true;
+	}
+
+	GLuint backgroundTextureId = 0;
+	if (effectInstance != nullptr && effectInstance->UsesBackground)
+	{
+		backgroundTextureId = CaptureObjectBackground(x, y, textureWidth, textureHeight);
+	}
+
+	ApplyEffectParameters(effectInstance, textureWidth, textureHeight, rgbCoefficient, effect, effectParameter, texture.textureId, backgroundTextureId);
 
 	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(textureWidth), static_cast<float>(textureHeight));
+
+	if (needsBlendRestore)
+	{
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	}
 }
 
 void SDL3GraphicsBackend::RemoveOldTextCache()

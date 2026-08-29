@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 
+#include "CValue.h"
 #include "CounterBase.h"
 #include "ObjectGlobalDataCounter.h"
 
@@ -12,11 +13,11 @@ public:
 		: CounterBase(objectInfoHandle, type, name) {}
 	
 	int DefaultValue = 0;
-	int MinValue = 0;
-	int MaxValue = 0;
+	CValue MinValue = 0;
+	CValue MaxValue = 0;
 
-	int GetValue() const override { return currentValue; }
-	void SetValue(int value)
+	CValue GetValue() const override { return currentValue; }
+	void SetValue(const CValue& value)
 	{
 		if (value < MinValue)
 		{
@@ -32,12 +33,12 @@ public:
 		}
 	}
 
-	void AddValue(int value)
+	void AddValue(const CValue& value)
 	{
 		SetValue(currentValue + value);
 	}
 
-	void SubtractValue(int value)
+	void SubtractValue(const CValue& value)
 	{
 		SetValue(currentValue - value);
 	}
@@ -68,5 +69,5 @@ public:
 	}
 
 private:
-	int currentValue = 0;
+	CValue currentValue = 0;
 };

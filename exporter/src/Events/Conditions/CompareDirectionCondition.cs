@@ -11,7 +11,7 @@ public class CompareDirectionCondition: ConditionBase
 	{
 		StringBuilder result = new();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 		if (eventBase.Items[0].Loader is IntParam direction)
 		{
@@ -19,11 +19,11 @@ public class CompareDirectionCondition: ConditionBase
 		}
 		else
 		{
-			result.AppendLine($"    {ifStatement} ((({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->animations.IsFacingDirection({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}))) it.deselect();");
+			result.AppendLine($"    {ifStatement} ((({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->animations.IsFacingDirection(({ConvertExpression(eventBase, 0)}).GetIntValue()))) it.deselect();");
 		}
 		result.AppendLine("}");
 
-		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}->Count() == 0) goto {nextLabel};");
+		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}.Count() == 0) goto {nextLabel};");
 
 		return result.ToString();
 	}

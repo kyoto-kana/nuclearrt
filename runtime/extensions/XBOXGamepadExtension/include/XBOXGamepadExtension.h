@@ -15,37 +15,37 @@ public:
 
 	int ConvertToPlatformButton(int button);
 
-	bool ButtonPressed(int gamepadBitmask, int button);
-	int ButtonPressedExpression(int gamepadBitmask, int button);
-	int ButtonPressedSpecificExpression(int button, int gamepadBitmask);
+	bool ButtonPressed(CValue gamepadBitmask, CValue button);
+	CValue ButtonPressedExpression(CValue gamepadBitmask, CValue button);
+	CValue ButtonPressedSpecificExpression(CValue button, CValue gamepadBitmask);
 
-	int FindPressedButton(int gamepadBitmask);
+	CValue FindPressedButton(CValue gamepadBitmask);
 
-	int GamepadIsConnected(int gamepadIndex);
+	bool GamepadIsConnected(CValue gamepadIndex);
 
-	bool ButtonAPressed(int gamepadBitmask);
-	bool ButtonBPressed(int gamepadBitmask);
-	bool ButtonXPressed(int gamepadBitmask);
-	bool ButtonYPressed(int gamepadBitmask);
-	bool ButtonLeftShoulderPressed(int gamepadBitmask);
-	bool ButtonRightShoulderPressed(int gamepadBitmask);
-	bool ButtonBackPressed(int gamepadBitmask);
-	bool ButtonStartPressed(int gamepadBitmask);
-	bool ButtonLeftStickPressed(int gamepadBitmask);
-	bool ButtonRightStickPressed(int gamepadBitmask);
-	bool DPadUpPressed(int gamepadBitmask);
-	bool DPadDownPressed(int gamepadBitmask);
-	bool DPadLeftPressed(int gamepadBitmask);
-	bool DPadRightPressed(int gamepadBitmask);
+	bool ButtonAPressed(CValue gamepadBitmask);
+	bool ButtonBPressed(CValue gamepadBitmask);
+	bool ButtonXPressed(CValue gamepadBitmask);
+	bool ButtonYPressed(CValue gamepadBitmask);
+	bool ButtonLeftShoulderPressed(CValue gamepadBitmask);
+	bool ButtonRightShoulderPressed(CValue gamepadBitmask);
+	bool ButtonBackPressed(CValue gamepadBitmask);
+	bool ButtonStartPressed(CValue gamepadBitmask);
+	bool ButtonLeftStickPressed(CValue gamepadBitmask);
+	bool ButtonRightStickPressed(CValue gamepadBitmask);
+	bool DPadUpPressed(CValue gamepadBitmask);
+	bool DPadDownPressed(CValue gamepadBitmask);
+	bool DPadLeftPressed(CValue gamepadBitmask);
+	bool DPadRightPressed(CValue gamepadBitmask);
 
-	bool AnyButtonPressed(int gamepadBitmask);
+	bool AnyButtonPressed(CValue gamepadBitmask);
 
-	int StickLeftH(int gamepadIndex);
-	int StickLeftV(int gamepadIndex);
-	int StickRightH(int gamepadIndex);
-	int StickRightV(int gamepadIndex);
-	int TriggerLeft(int gamepadIndex);
-	int TriggerRight(int gamepadIndex);
+	CValue StickLeftH(CValue gamepadIndex);
+	CValue StickLeftV(CValue gamepadIndex);
+	CValue StickRightH(CValue gamepadIndex);
+	CValue StickRightV(CValue gamepadIndex);
+	CValue TriggerLeft(CValue gamepadIndex);
+	CValue TriggerRight(CValue gamepadIndex);
 
-	void Vibrate(int gamepadBitmask, int leftMotor, int rightMotor, unsigned int duration);
+	void Vibrate(CValue gamepadBitmask, CValue leftMotor, CValue rightMotor, CValue duration);
 };

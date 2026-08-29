@@ -81,7 +81,6 @@ public class FrameExporter : BaseExporter
 
 		_eventProcessor.PreProcessFrame(frameIndex);
 
-		frameCpp = frameCpp.Replace("{{ EVENT_ANIMATION_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, EventProcessor.EventLoopType.Animation));
 		frameCpp = frameCpp.Replace("{{ EVENT_TIMER_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, EventProcessor.EventLoopType.Timer));
 		frameCpp = frameCpp.Replace("{{ EVENT_NORMAL_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, EventProcessor.EventLoopType.Normal));
 		frameCpp = frameCpp.Replace("{{ EVENT_FUNCTIONS }}", _eventProcessor.BuildEventFunctions(frameIndex));
@@ -99,6 +98,8 @@ public class FrameExporter : BaseExporter
 		frameHeader = frameHeader.Replace("{{ OBJECT_SELECTORS }}", BuildObjectSelectors(frame));
 		frameHeader = frameHeader.Replace("{{ EVENT_INCLUDES }}", _eventProcessor.BuildEventIncludes(frameIndex));
 		frameHeader = frameHeader.Replace("{{ LOOP_INCLUDES }}", _eventProcessor.BuildLoopIncludes(frameIndex));
+		frameHeader = frameHeader.Replace("{{ TIMER_EVENT_INCLUDES }}", _eventProcessor.BuildTimerEventIncludes(frameIndex));
+		frameHeader = frameHeader.Replace("{{ TRUE_EVENT_INCLUDES }}", _eventProcessor.BuildTrueEventInclude(frameIndex));
 		frameHeader = frameHeader.Replace("{{ RUN_ONCE_CONDITION }}", _eventProcessor.BuildRunOnceCondition(frameIndex));
 		frameHeader = frameHeader.Replace("{{ ONLY_ONE_ACTION_WHEN_LOOP_CONDITION }}", _eventProcessor.BuildOneActionLoop(frameIndex));
 
@@ -109,10 +110,11 @@ public class FrameExporter : BaseExporter
 	{
 		var layers = new StringBuilder();
 		layers.AppendLine($"Layers.reserve({frame.layers.Items.Count});");
-		foreach (var layer in frame.layers.Items)
+		for (int i = 0; i < frame.layers.Items.Count; i++)
 		{
-			string layerName = SanitizeObjectName(layer.Name);
-			layers.AppendLine($"Layer {layerName} = Layer(\"{SanitizeString(layer.Name)}\", {layer.XCoeff.ToString(CultureInfo.InvariantCulture)}, {layer.YCoeff.ToString(CultureInfo.InvariantCulture)});");
+			var layer = frame.layers.Items[i];
+			string layerName = $"layer_{i}";
+			layers.AppendLine($"Layer {layerName} = Layer(\"{SanitizeString(layer.Name)}\", {layer.XCoeff.ToString(CultureInfo.InvariantCulture)}, {layer.YCoeff.ToString(CultureInfo.InvariantCulture)}, {(!layer.Flags.GetFlag("ToHide")).ToString().ToLower()});");
 
 			if (ColorUtils.ColorToRGB(layer.RGBCoeff) != "0xFFFFFFFF") layers.AppendLine($"{layerName}.RGBCoefficient = {ColorToRGB(layer.RGBCoeff)};");
 			if (layer.RGBCoeff.A != 255) layers.AppendLine($"{layerName}.SetEffectParameter({Math.Clamp(byte.MaxValue - layer.RGBCoeff.A, 0, 255)});");
@@ -124,26 +126,26 @@ public class FrameExporter : BaseExporter
 			{
 				Shader shader = GameData.shaders.ShaderList[layer.shaderData.ShaderHandle];
 				layers.AppendLine($"{layerName}.effectInstance = EffectBank::CreateEffect_{SanitizeObjectName(shader.Name)}_{layer.shaderData.ShaderHandle}();");
-				for (int i = 0; i < layer.shaderData.parameters.Count; i++)
+				for (int j = 0; j < layer.shaderData.parameters.Count; j++)
 				{
-					var parameter = shader.Parameters[i];
+					var parameter = shader.Parameters[j];
 					string value;
 					switch (parameter.Type)
 					{
 						case 0: //int, also used as bool
-							value = $"static_cast<int>({BitConverter.ToInt32(layer.shaderData.parameters[i].Value as byte[], 0)})";
+							value = $"static_cast<int>({BitConverter.ToInt32(layer.shaderData.parameters[j].Value as byte[], 0)})";
 							break;
 						case 1:
 							//read float from bytes
-							value = $"static_cast<float>({((float)BitConverter.ToSingle(layer.shaderData.parameters[i].Value as byte[], 0)).ToString(CultureInfo.InvariantCulture)}";
+							value = $"static_cast<float>({((float)BitConverter.ToSingle(layer.shaderData.parameters[j].Value as byte[], 0)).ToString(CultureInfo.InvariantCulture)}";
 							if (!value.Contains('.')) value += ".0";
 							value += "f)";
 							break;
 						case 2: //color
-							value = $"static_cast<int>(0x{BitConverter.ToInt32(layer.shaderData.parameters[i].Value as byte[], 0):X8})";
+							value = $"static_cast<int>(0x{BitConverter.ToInt32(layer.shaderData.parameters[j].Value as byte[], 0):X8})";
 							break;
 						default:
-							value = $"static_cast<int>({BitConverter.ToInt32(layer.shaderData.parameters[i].Value as byte[], 0)})";
+							value = $"static_cast<int>({BitConverter.ToInt32(layer.shaderData.parameters[j].Value as byte[], 0)})";
 							break;
 					}
 					layers.AppendLine($"{layerName}.effectInstance->SetParameter(\"{parameter.Name}\", {value});");
@@ -189,7 +191,9 @@ public class FrameExporter : BaseExporter
 			{
 				uniqueHandles.Add(obj.objectInfo);
 				string objectName = GameData.frameitems[(int)obj.objectInfo].name;
-				eventObjects.AppendLine($"std::shared_ptr<ObjectSelector> {SanitizeObjectName(objectName)}_{obj.objectInfo}_selector;");
+				int objectType = GameData.frameitems[(int)obj.objectInfo].ObjectType;
+				if (objectType == 0 || objectType == 1) continue;
+				eventObjects.AppendLine($"ObjectSelector {SanitizeObjectName(objectName)}_{obj.objectInfo}_selector;");
 			}
 		}
 
@@ -197,7 +201,7 @@ public class FrameExporter : BaseExporter
 		foreach (var qualifier in frame.events.QualifiersList)
 		{
 			string objectName = Utilities.GetQualifierName(qualifier.Qualifier, qualifier.Type);
-			eventObjects.AppendLine($"std::shared_ptr<ObjectSelector> {SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector;");
+			eventObjects.AppendLine($"ObjectSelector {SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector;");
 		}
 
 		return eventObjects.ToString();
@@ -214,7 +218,9 @@ public class FrameExporter : BaseExporter
 			{
 				uniqueHandles.Add(obj.objectInfo);
 				string objectName = GameData.frameitems[(int)obj.objectInfo].name;
-				objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{obj.objectInfo}_selector = std::make_shared<ObjectSelector>(ObjectInstances, {obj.objectInfo}, false);");
+				int objectType = GameData.frameitems[(int)obj.objectInfo].ObjectType;
+				if (objectType == 0 || objectType == 1) continue;
+				objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{obj.objectInfo}_selector.Initialize(ObjectInstances, {obj.objectInfo}, false);");
 			}
 		}
 
@@ -223,7 +229,7 @@ public class FrameExporter : BaseExporter
 		{
 			string objectName = Utilities.GetQualifierName(qualifier.ObjectInfo & 0x7FFF, qualifier.Type);
 			uint qualifierHandle = ((uint)qualifier.ObjectInfo & 0x7FFF) | ((uint)qualifier.Type << 16);
-			objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector = std::make_shared<ObjectSelector>(ObjectInstances, {qualifierHandle}, true);");
+			objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector.Initialize(ObjectInstances, {qualifierHandle}, true);");
 		}
 
 		return objectSelectorsInit.ToString();

@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "CValue.h"
 #include "CounterBase.h"
 #include "Layer.h"
 #include "ObjectFactory.h"
@@ -52,13 +53,13 @@ public:
 	virtual void Update();
 	virtual void Draw();
 
-	void SetScroll(int x, int y, int layer = -1);
-	void SetScrollX(int x);
-	void SetScrollY(int y);
-	int GetXLeftEdge();
-	int GetXRightEdge();
-	int GetYTopEdge();
-	int GetYBottomEdge();
+	void SetScroll(const CValue& x, const CValue& y, int layer = -1);
+	void SetScrollX(const CValue& x);
+	void SetScrollY(const CValue& y);
+	CValue GetXLeftEdge();
+	CValue GetXRightEdge();
+	CValue GetYTopEdge();
+	CValue GetYBottomEdge();
 
 	//mark an instance for deletion
 	void MarkForDeletion(ObjectInstance* instance) {
@@ -116,22 +117,34 @@ public:
 		return 0xFF000000 | (red << 16) | (green << 8) | blue;
 	}
 
-	inline int StringLength(std::string str) {
-		return (int)str.length();
+	inline CValue StringLength(const CValue& str) {
+		return CValue((int)str.GetStringValue().length());
 	}
 
-	inline std::string StringLeft(std::string str, int length) {
-		return str.substr(0, length);
+	inline CValue StringLeft(const CValue& str, const CValue& length) {
+		const std::string& s = str.GetStringValue();
+		int n = length.GetIntValue();
+		if (n <= 0)
+			return CValue("");
+		if (n >= (int)s.size())
+			return CValue(s);
+		return CValue(s.substr(0, n));
 	}
 
-	inline std::string StringRight(std::string str, int length) {
-		return str.substr(str.length() - length);
+	inline CValue StringRight(const CValue& str, const CValue& length) {
+		const std::string& s = str.GetStringValue();
+		int n = length.GetIntValue();
+		if (n <= 0)
+			return CValue("");
+		if (n >= (int)s.size())
+			return CValue(s);
+		return CValue(s.substr(s.size() - n));
 	}
 
-    inline std::string Hex(int v) {
+    inline CValue Hex(const CValue& v) {
         char buf[16];
-        snprintf(buf, sizeof(buf), "%X", v);
-        return std::string(buf);
+        snprintf(buf, sizeof(buf), "%X", v.GetIntValue());
+        return CValue(buf);
     }
 
     inline std::string Bin(int v) {
@@ -143,10 +156,18 @@ public:
         return r.empty() ? "0" : r;
     }
 
+    inline CValue Bin(const CValue& v) {
+        return CValue(Bin(v.GetIntValue()));
+    }
+
     inline std::string Mid(const std::string& str, int start, int length) {
         if (start < 0) start = 0;
         if (start >= (int)str.length()) return "";
         return str.substr(start, length);
+    }
+
+    inline CValue Mid(const CValue& str, const CValue& start, const CValue& length) {
+        return CValue(Mid(str.GetStringValue(), start.GetIntValue(), length.GetIntValue()));
     }
 
     inline std::string Lower(std::string str) {
@@ -154,9 +175,17 @@ public:
         return str;
     }
 
+    inline CValue Lower(const CValue& value) {
+        return CValue(Lower(value.GetStringValue()));
+    }
+
     inline std::string Upper(std::string str) {
         std::transform(str.begin(), str.end(), str.begin(), ::toupper);
         return str;
+    }
+
+    inline CValue Upper(const CValue& value) {
+        return CValue(Upper(value.GetStringValue()));
     }
 
     inline int Find(const std::string& str, const std::string& find, int start) {
@@ -165,9 +194,17 @@ public:
         return (pos == std::string::npos) ? -1 : (int)pos;
     }
 
+    inline CValue Find(const CValue& str, const CValue& find, const CValue& start) {
+        return CValue(Find(str.GetStringValue(), find.GetStringValue(), start.GetIntValue()));
+    }
+
     inline int ReverseFind(const std::string& str, const std::string& find, int start) {
         auto pos = str.rfind(find, (start < 0 || start >= str.length()) ? std::string::npos : start);
         return (pos == std::string::npos) ? -1 : (int)pos;
+    }
+
+    inline CValue ReverseFind(const CValue& str, const CValue& find, const CValue& start) {
+        return CValue(ReverseFind(str.GetStringValue(), find.GetStringValue(), start.GetIntValue()));
     }
 
     inline std::string ReplaceString(std::string str, const std::string& find, const std::string& replace) {
@@ -180,74 +217,79 @@ public:
         return str;
     }
 
-    inline std::string NewLine() { return "\n"; }
-	int OAngle(ObjectInstance* instance, int xTarget, int yTarget) {
-		int distanceX  = xTarget - instance->GetX();
-		int distanceY  = yTarget - instance->GetY();
+	CValue ReplaceString(const CValue& str, const CValue& find, const CValue& replace) {
+		return CValue(ReplaceString(str.GetStringValue(), find.GetStringValue(), replace.GetStringValue()));
+	}
+
+    inline CValue NewLine() { return CValue("\n"); }
+	CValue OAngle(ObjectInstance* instance, const CValue& xTarget, const CValue& yTarget) {
+		int distanceX  = xTarget.GetIntValue() - instance->GetX().GetIntValue();
+		int distanceY  = yTarget.GetIntValue() - instance->GetY().GetIntValue();
 		int angle = static_cast<int>(atan2(-distanceY, distanceX) * 180 / 3.14159265358979323846);
 		angle = (angle + 360) % 360;
-		return angle;
+		return CValue(angle);
 	}
 
-	int OAngle(std::shared_ptr<ObjectSelector> selector, int xTarget, int yTarget) {
-		if (!selector || selector->Count() == 0) {
-			return 0;
+	CValue OAngle(ObjectSelector& selector, const CValue& xTarget, const CValue& yTarget) {
+		if (selector.Count() == 0) {
+			return CValue(0);
 		}
-		return OAngle(*(selector->begin()), xTarget, yTarget);
+		return OAngle(*(selector.begin()), xTarget, yTarget);
 	}
 
-	int ODistance(ObjectInstance* instance, int xTarget, int yTarget) {
-		int distanceX = xTarget - instance->GetX();
-		int distanceY = yTarget - instance->GetY();
-		return static_cast<int>(sqrt(distanceX * distanceX + distanceY * distanceY));
+	CValue ODistance(ObjectInstance* instance, const CValue& xTarget, const CValue& yTarget) {
+		int distanceX = xTarget.GetIntValue() - instance->GetX().GetIntValue();
+		int distanceY = yTarget.GetIntValue() - instance->GetY().GetIntValue();
+		return CValue(static_cast<int>(sqrt(distanceX * distanceX + distanceY * distanceY)));
 	}
 
-	int ODistance(std::shared_ptr<ObjectSelector> selector, int xTarget, int yTarget) {
-		if (!selector || selector->Count() == 0) {
-			return 0;
+	CValue ODistance(ObjectSelector& selector, const CValue& xTarget, const CValue& yTarget) {
+		if (selector.Count() == 0) {
+			return CValue(0);
 		}
-		return ODistance(*(selector->begin()), xTarget, yTarget);
+		return ODistance(*(selector.begin()), xTarget, yTarget);
 	}
 
-	int GetAlterableValueByIndex(ObjectInstance* instance, int index) {
+	CValue GetAlterableValueByIndex(ObjectInstance* instance, int index) {
 		if (instance->Type == 2) {
 			return static_cast<Active*>(instance)->Values.GetValue(index);
 		}
 		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
-			return  static_cast<CounterBase*>(instance)->Values.GetValue(index);
+			return static_cast<CounterBase*>(instance)->Values.GetValue(index);
 		}
 
-		return 0;
+		return CValue(0);
 	}
 
-	int GetAlterableValueByIndex(std::shared_ptr<ObjectSelector> selector, int index) {
-		if (!selector || selector->Count() == 0) {
-			return 0;
+	CValue GetAlterableValueByIndex(ObjectSelector& selector, int index) {
+		if (selector.Count() == 0) {
+			return CValue(0);
 		}
-		return GetAlterableValueByIndex(*(selector->begin()), index);
+		return GetAlterableValueByIndex(*(selector.begin()), index);
 	}
 
 	int GetAlterableFlagValue(ObjectInstance* instance, int index) {
 		if (instance->Type == 2) {
-			return static_cast<Active*>(instance)->Flags.GetFlagValue(index);
+			return static_cast<Active*>(instance)->Flags.GetFlagValue(CValue(index)).GetIntValue();
 		}
 		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
-			return  static_cast<CounterBase*>(instance)->Flags.GetFlagValue(index);
+			return  static_cast<CounterBase*>(instance)->Flags.GetFlagValue(CValue(index)).GetIntValue();
 		}
 		return 0;
 	}
 
-	int GetAlterableFlagValue(std::shared_ptr<ObjectSelector> selector, int index) {
-		if (!selector || selector->Count() == 0) {
+	int GetAlterableFlagValue(ObjectSelector& selector, int index) {
+		if (selector.Count() == 0) {
 			return 0;
 		}
-		return GetAlterableFlagValue(*(selector->begin()), index);
+		return GetAlterableFlagValue(*(selector.begin()), index);
 	}
 
 	struct LoopState {
 		bool running = false;
 		int index = 0;
 	};
+	
 
 	static std::string ToLowerStr(const std::string& str) {
 		std::string result = str;
@@ -266,6 +308,10 @@ public:
 		return true;
 	}
 
+	static bool LoopNameEquals(const CValue& a, const CValue& b) {
+		return LoopNameEquals(a.GetStringValue(), b.GetStringValue());
+	}
+
 	void StartLoop(const std::string& name, int count) {
 		std::string key = ToLowerStr(name);
 		activeLoops[key] = {true, 0};
@@ -277,6 +323,10 @@ public:
 		activeLoops.erase(key);
 	}
 
+	void StartLoop(const CValue& name, const CValue& count) {
+		StartLoop(name.GetStringValue(), count.GetIntValue());
+	}
+
 	void StopLoop(const std::string& name) {
 		std::string key = ToLowerStr(name);
 		auto it = activeLoops.find(key);
@@ -285,16 +335,26 @@ public:
 		}
 	}
 
-	int Loopindex(const std::string& loopName) {
+	void StopLoop(const CValue& name) {
+		StopLoop(name.GetStringValue());
+	}
+
+	CValue Loopindex(const std::string& loopName) {
 		std::string key = ToLowerStr(loopName);
 		auto it = activeLoops.find(key);
 		if (it != activeLoops.end()) {
-			return it->second.index;
+			return CValue(it->second.index);
 		}
-		return 0;
+		return CValue(0);
+	}
+
+	CValue Loopindex(const CValue& name) {
+		return Loopindex(name.GetStringValue());
 	}
 
 	virtual void OnLoop(const std::string& loopName) {}
+	virtual void OnTimerEvent(const std::string& eventName) {}
+	virtual void GenerateEvent(int objectType, int conditionNum, ObjectInstance* source = nullptr) {}
 
 	//Collision detection
 	CollisionInstanceBounds GetInstanceBounds(ObjectInstance* instance);
@@ -304,7 +364,15 @@ public:
 	bool IsCollidingWithBackground(ObjectInstance* instance);
 	bool IsColliding(ObjectInstance* instance1, ObjectInstance* instance2);
 	bool IsColliding(ObjectInstance* instance, int x, int y);
+
+protected:
+	ObjectInstance* trueEventSource = nullptr;
+
+	unsigned int updateCount = 0;
 private:
+	void DispatchTrueEvents();
+	void UpdateScrolling(int newX, int newY);
+
 	std::vector<unsigned int> instancesMarkedForDeletion;
 	std::vector<bool> ActiveGroups;
 	std::unordered_map<std::string, LoopState> activeLoops;

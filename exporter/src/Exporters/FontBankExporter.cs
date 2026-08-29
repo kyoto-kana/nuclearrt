@@ -17,32 +17,38 @@ public class FontBankExporter : BaseExporter
 
 
 		//Get the font families and file names
-		Dictionary<string, List<string>> fontFamilies = new Dictionary<string, List<string>>(); // font family name, font file names
-		var fontsFolder = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Fonts));
-		FileInfo[] fontFiles = fontsFolder.GetFiles();
-		foreach (var fontFile in fontFiles)
+		Dictionary<string, List<string>> fontNames = new Dictionary<string, List<string>>(); // font family name, font file names
+		var fontsFolders = new DirectoryInfo[] {
+			new(Environment.GetFolderPath(Environment.SpecialFolder.Fonts)),
+			new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "Fonts"))
+		};
+		foreach (var fontsFolder in fontsFolders)
 		{
-			//go through each file and try to find one with the same name as a Application Font
-			List<string> appFontNames = [];
-			using (PrivateFontCollection fontCollection = new PrivateFontCollection())
+			FileInfo[] fontFiles = fontsFolder.GetFiles();
+			foreach (var fontFile in fontFiles)
 			{
-				fontCollection.AddFontFile(fontFile.FullName);
-				foreach (var font in fontCollection.Families)
+				//go through each file and try to find one with the same name as a Application Font
+				List<string> appFontNames = [];
+				using (PrivateFontCollection fontCollection = new PrivateFontCollection())
 				{
-					if (!fontFamilies.TryGetValue(font.Name, out List<string> fontFileNames))
+					fontCollection.AddFontFile(fontFile.FullName);
+					foreach (var font in fontCollection.Families)
 					{
-						fontFileNames = [];
-						fontFamilies.Add(font.Name, fontFileNames);
-					}
+						if (!fontNames.TryGetValue(font.Name, out List<string> fontFileNames))
+						{
+							fontFileNames = [];
+							fontNames.Add(font.Name, fontFileNames);
+						}
 
-					fontFileNames.Add(fontFile.Name);
+						fontFileNames.Add(fontFile.FullName);
+					}
 				}
 			}
 		}
 
 		foreach (var font in GameData.Fonts.Items)
 		{
-			fontBankData.Append($"Fonts[{font.Handle}] = new FontInfo({font.Handle}, \"{SanitizeString(font.Value.FaceName.Replace("\0", ""))}\", \"{GetFontFileName(font, fontFamilies)}\", {font.Value.Width}, {font.Value.Height}, {font.Value.Escapement}, {font.Value.Orientation}, {font.Value.Weight}, {(font.Value.Italic == 1 ? true : false).ToString().ToLower()}, {(font.Value.Underline == 1 ? true : false).ToString().ToLower()}, {(font.Value.StrikeOut == 1 ? true : false).ToString().ToLower()});\n");
+			fontBankData.Append($"Fonts[{font.Handle}] = new FontInfo({font.Handle}, \"{SanitizeString(font.Value.FaceName.Replace("\0", ""))}\", \"{GetFontFileName(font, fontNames)}\", {font.Value.Width}, {font.Value.Height}, {font.Value.Escapement}, {font.Value.Orientation}, {font.Value.Weight}, {(font.Value.Italic == 1 ? true : false).ToString().ToLower()}, {(font.Value.Underline == 1 ? true : false).ToString().ToLower()}, {(font.Value.StrikeOut == 1 ? true : false).ToString().ToLower()});\n");
 		}
 
 		fontBank = fontBank.Replace("{{ FONTS }}", fontBankData.ToString());
@@ -57,7 +63,7 @@ public class FontBankExporter : BaseExporter
 		{
 			if (fontFamily.Key.ToLower().Contains(font.Value.FaceName.Replace("\0", string.Empty).ToLower()))
 			{
-				return fontFamily.Value.FirstOrDefault();
+				return Path.GetFileName(fontFamily.Value.FirstOrDefault());
 			}
 		}
 		Logger.Log($"Font file name not found for font \"{font.Value.FaceName.Replace("\0", string.Empty)}\"");

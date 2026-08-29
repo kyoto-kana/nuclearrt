@@ -29,7 +29,7 @@ public:
 	void Start() override;
 	void Stop() override;
 	void Update(float deltaTime) override;
-	int GetRealSpeed() override;
+	CValue GetRealSpeed() override;
 	int GetMinimumSpeed() override { return static_cast<int>(MinimumSpeed); }
 	int GetMaximumSpeed() override { return static_cast<int>(MaximumSpeed); }
 	int GetMovementDirection() override;

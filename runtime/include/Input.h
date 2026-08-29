@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CValue.h"
+
 #include <cstdint>
 #include <vector>
 
@@ -16,11 +18,12 @@ public:
 	bool IsKeyPressed(short key);
 	bool IsKeyReleased(short key);
 	bool IsAnyKeyPressed();
+	bool IsAnyMouseButtonPressed();
 
 	int GetControlType(int player);
-	void SetControlType(int player, int type);
+	void SetControlType(int player, const CValue& type);
 
-	void SetControlKey(int player, short control, unsigned short key);
+	void SetControlKey(int player, const CValue& control, unsigned short key);
 
 	void RestoreControl(int player);
 	void IgnoreControl(int player);
@@ -40,6 +43,14 @@ private:
 
 	uint32_t currentMouseState;
 	uint32_t previousMouseState;
+
+	int lastClickMouseX = 0;
+	int lastClickMouseY = 0;
+	int lastClickButton = -1;
+	int doubleClickButton = -1;
+	unsigned int lastClickTicks = 0;
+
+	static constexpr unsigned int DOUBLE_CLICK_MS = 500;
 
 	uint8_t m_gamepadState[2][4];
 

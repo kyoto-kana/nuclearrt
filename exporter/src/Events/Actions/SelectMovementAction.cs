@@ -11,13 +11,13 @@ public class SelectMovementAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
+		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
 
 		string movementIndex = "0";
 		if (eventBase.Items[0].Loader is Short shortLoader)
 		{
-			movementIndex = shortLoader.Value.ToString();
+			movementIndex = $"CValue({shortLoader.Value})";
 		}
 		else
 		{

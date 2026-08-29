@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "CValue.h"
 #include "CollisionInstanceBounds.h"
 #include "ObjectGlobalData.h"
 #include "EffectInstance.h"
@@ -29,33 +30,33 @@ private:
     int y = 0;
 public:
 
-    int GetX() const {
-        return x;
+    CValue GetX() const {
+        return CValue(x);
     }
 
-    int GetY() const {
-        return y;
+    CValue GetY() const {
+        return CValue(y);
     }
 
-    void SetX(int x) {
-        if (x == this->x) return;
-        this->x = x;
+    void SetX(const CValue& x) {
+        if (x.GetIntValue() == this->x) return;
+        this->x = x.GetIntValue();
         collisionBoundsDirty = true;
     }
-    void SetY(int y) {
-        if (y == this->y) return;
-        this->y = y;
-        collisionBoundsDirty = true;
-    }
-
-    void SetPosition(int x, int y) {
-        if (x == this->x && y == this->y) return;
-        this->x = x;
-        this->y = y;
+    void SetY(const CValue& y) {
+        if (y.GetIntValue() == this->y) return;
+        this->y = y.GetIntValue();
         collisionBoundsDirty = true;
     }
 
-    int RGBCoefficient = 0xFFFFFF;
+    void SetPosition(const CValue& x, const CValue& y) {
+        if (x.GetIntValue() == this->x && y.GetIntValue() == this->y) return;
+        this->x = x.GetIntValue();
+        this->y = y.GetIntValue();
+        collisionBoundsDirty = true;
+    }
+
+    int RGBCoefficient = 0xFFFFFFFF;
     int Effect = 0;
     EffectInstance* effectInstance = nullptr;
 
@@ -67,28 +68,39 @@ public:
 
     bool collisionBoundsDirty = true;
     CollisionInstanceBounds collisionBounds = {0};
-private:
-    unsigned char EffectParameter = 0;
 public:
 
-
-    unsigned char GetEffectParameter() const {
-        return EffectParameter;
+    CValue GetEffectInstanceParameter(const CValue& name) const {
+        if (effectInstance == nullptr)
+            return CValue(0);
+        return effectInstance->GetParameter(name);
     }
-    
-    void SetEffectParameter(int effectParameter) {
-        EffectParameter = static_cast<unsigned char>(std::clamp(effectParameter, 0, 255));
+
+    void SetEffectInstanceParameter(const CValue& name, const CValue& value) {
+        if (effectInstance == nullptr)
+            return;
+        effectInstance->SetParameter(name.GetStringValue(), value);
+    }
+
+    CValue GetBlendCoefficient() const {
+        int effectParameter = (RGBCoefficient >> 24) & 0xFF;
+        return CValue(effectParameter);
+    }
+
+    void SetBlendCoefficient(const CValue& blendCoefficient) {
+        RGBCoefficient = (RGBCoefficient & 0x00FFFFFF) | (std::clamp(blendCoefficient.GetIntValue(), 0, 255) << 24);
     }
     
     unsigned int GetAngle() const {
         return Angle;
     }
 
-    void SetAngle(int angle) {
-        angle %= 360;
-        if (angle < 0) angle += 360;
-        if (angle == Angle) return;
-        Angle = static_cast<unsigned int>(angle);
+    void SetAngle(const CValue& angle) {
+        int angleValue = angle.GetIntValue();
+        angleValue %= 360;
+        if (angleValue < 0) angleValue += 360;
+        if (angleValue == Angle) return;
+        Angle = static_cast<unsigned int>(angleValue);
         collisionBoundsDirty = true;
     }
 
@@ -97,5 +109,13 @@ public:
 
     virtual std::vector<unsigned int> GetImagesUsed() { return std::vector<unsigned int>(); };
     virtual std::vector<unsigned int> GetFontsUsed() { return std::vector<unsigned int>(); };
+
+	bool HasQualifier(short qualifier) const {
+		short groupIndex = qualifier & 0x7FFF;
+		for (short stored : Qualifiers) {
+			if ((stored & 0x7FFF) == groupIndex) return true;
+		}
+		return false;
+	}
 
 };
