@@ -3,6 +3,8 @@
 #include <unordered_map>
 
 struct ImageInfo {
+    unsigned int Handle;
+
     unsigned short Width;
     unsigned short Height;
     short HotspotX;
@@ -16,7 +18,7 @@ struct ImageInfo {
 
     ImageInfo() : Handle(0), Width(0), Height(0), HotspotX(0), HotspotY(0), ActionPointX(0), ActionPointY(0), MosaicIndex(0), MosaicX(0), MosaicY(0), TransparentColor(0) {}
     
-    ImageInfo(unsigned int handle, int width, int height, short hotspotX, short hotspotY, short actionPointX, short actionPointY, short mosaicIndex, short mosaicX, short mosaicY, uint32_t transparentColor)
+    ImageInfo(unsigned int handle, unsigned short width, unsigned short height, short hotspotX, short hotspotY, short actionPointX, short actionPointY, short mosaicIndex, short mosaicX, short mosaicY, uint32_t transparentColor)
         : Handle(handle), Width(width), Height(height), HotspotX(hotspotX), HotspotY(hotspotY), ActionPointX(actionPointX), ActionPointY(actionPointY), MosaicIndex(mosaicIndex), MosaicX(mosaicX), MosaicY(mosaicY), TransparentColor(transparentColor) {}
 };
 

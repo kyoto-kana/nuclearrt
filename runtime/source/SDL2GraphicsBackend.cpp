@@ -511,7 +511,7 @@ void SDL2GraphicsBackend::DrawCounterBar(int x, int y, Counter* counter)
 	bool isVertical = counter->DisplayType == 2;
 
 	float fillPercent = counter->MaxValue > 0
-		? static_cast<float>(counter->GetValue()) / static_cast<float>(counter->MaxValue)
+		? static_cast<float>(counter->GetValue().GetDoubleValue()) / static_cast<float>(counter->MaxValue.GetDoubleValue())
 		: 0.0f;
 
 	fillPercent = SDL_clamp(fillPercent, 0.0f, 1.0f);

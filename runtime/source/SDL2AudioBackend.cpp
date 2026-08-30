@@ -955,20 +955,20 @@ void SDL2AudioBackend::SetSamplePan(float pan, int id, bool channel)
 	}
 }
 
-int SDL2AudioBackend::GetSamplePan(int id, bool channel)
+CValue SDL2AudioBackend::GetSamplePan(int id, bool channel)
 {
 	AudioDeviceLock lock(audio_device);
-	if (id == -1 && !channel) return static_cast<int>(mainPan * 100.0f);
+	if (id == -1 && !channel) return CValue(mainPan);
 	if (channel) {
-		if (id < 1 || id >= static_cast<int>(SDL_arraysize(channels))) return 0;
-		return static_cast<int>(channels[id].pan * 100.0f);
+		if (id < 1 || id >= static_cast<int>(SDL_arraysize(channels))) return CValue(0);
+		return CValue(channels[id].pan * 100);
 	}
 	if (!channel && id >= 0) {
 		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-			if (channels[i].curHandle == id) return static_cast<int>(channels[i].pan * 100.0f);
+			if (channels[i].curHandle == id) return CValue(channels[i].pan * 100.0f);
 		}
 	}
-	return 0;
+	return CValue(0);
 }
 
 void SDL2AudioBackend::SetSamplePos(int pos, int id, bool channel)
@@ -1029,50 +1029,50 @@ void SDL2AudioBackend::SetSampleFreq(int freq, int id, bool channel)
 	// SDL2 SDL_AudioStream has no SDL3-style frequency-ratio API.
 }
 
-int SDL2AudioBackend::GetSampleFreq(int id, bool channel)
+CValue SDL2AudioBackend::GetSampleFreq(int id, bool channel)
 {
 	AudioDeviceLock lock(audio_device);
 	if (channel) {
-		if (id < 1 || id >= static_cast<int>(SDL_arraysize(channels))) return 0;
-		return channels[id].spec.freq;
+		if (id < 1 || id >= static_cast<int>(SDL_arraysize(channels))) return CValue(0);
+		return CValue(channels[id].spec.freq);
 	}
 	if (id > -1 && !channel) {
 		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-			if (channels[i].curHandle == id) return channels[i].spec.freq;
+			if (channels[i].curHandle == id) return CValue(channels[i].spec.freq);
 		}
 	}
-	return 0;
+	return CValue(0);
 }
 
-int SDL2AudioBackend::GetSampleVolume(int id)
+CValue SDL2AudioBackend::GetSampleVolume(CValue id)
 {
 	AudioDeviceLock lock(audio_device);
-	if (id == -1) return static_cast<int>(mainVol);
-	if (id > -1) {
+	if (id.GetIntValue() == -1) return CValue(mainVol);
+	if (id.GetIntValue() > -1) {
 		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-			if (channels[i].curHandle == id && channels[i].stream) return static_cast<int>(channels[i].volume * 100.0f);
+			if (channels[i].curHandle == id.GetIntValue() && channels[i].stream) return CValue(channels[i].volume);
 		}
 	}
 	return 0;
 }
 
-int SDL2AudioBackend::GetSampleVolume(std::string name)
+CValue SDL2AudioBackend::GetSampleVolume(std::string name)
 {
 	return GetSampleVolume(FindSample(name));
 }
 
-int SDL2AudioBackend::GetChannelVolume(int id)
+CValue SDL2AudioBackend::GetChannelVolume(CValue id)
 {
 	AudioDeviceLock lock(audio_device);
-	if (id < 1 || id >= static_cast<int>(SDL_arraysize(channels))) return -1;
-	return static_cast<int>(channels[id].volume * 100.0f);
+	if (id.GetIntValue() < 1 || id.GetIntValue() >= static_cast<int>(SDL_arraysize(channels))) return -1;
+	return CValue(channels[id.GetIntValue()].volume);
 }
 
-std::string SDL2AudioBackend::GetChannelName(int channel)
+CValue SDL2AudioBackend::GetChannelName(CValue channel)
 {
 	AudioDeviceLock lock(audio_device);
-	if (channel < 0 || channel >= static_cast<int>(SDL_arraysize(channels))) return "";
-	return channels[channel].name;
+	if (channel.GetIntValue() < 0 || channel.GetIntValue() >= static_cast<int>(SDL_arraysize(channels))) return CValue("");
+	return CValue(channels[channel.GetIntValue()].name);
 }
 
 void SDL2AudioBackend::LockChannel(int channel, bool unlock)
@@ -1082,7 +1082,7 @@ void SDL2AudioBackend::LockChannel(int channel, bool unlock)
 	channels[channel].lock = !unlock;
 }
 
-int SDL2AudioBackend::GetSampleDuration(int id, bool channel)
+CValue SDL2AudioBackend::GetSampleDuration(int id, bool channel)
 {
 	AudioDeviceLock lock(audio_device);
 
@@ -1096,28 +1096,28 @@ int SDL2AudioBackend::GetSampleDuration(int id, bool channel)
 		return static_cast<int>((static_cast<double>(frames) / static_cast<double>(c.spec.freq)) * 1000.0);
 	};
 
-	if (channel) return durationForChannel(id);
+	if (channel) return CValue(durationForChannel(id));
 	if (!channel && id > -1) {
 		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-			if (channels[i].curHandle == id) return durationForChannel(i);
+			if (channels[i].curHandle == id) return CValue(durationForChannel(i));
 		}
 	}
-	return 0;
+	return CValue(0);
 }
 
-int SDL2AudioBackend::GetSamplePos(int id, bool channel)
+CValue SDL2AudioBackend::GetSamplePos(int id, bool channel)
 {
 	AudioDeviceLock lock(audio_device);
 	if (channel) {
-		if (id > 0 && id < static_cast<int>(SDL_arraysize(channels))) return channels[id].position;
-		return 0;
+		if (id > 0 && id < static_cast<int>(SDL_arraysize(channels))) return CValue(channels[id].position);
+		return CValue(0);
 	}
 	if (!channel && id > -1) {
 		for (int i = 1; i < static_cast<int>(SDL_arraysize(channels)); ++i) {
-			if (channels[i].curHandle == id) return channels[i].position;
+			if (channels[i].curHandle == id) return CValue(channels[i].position);
 		}
 	}
-	return 0;
+	return CValue(0);
 }
 
 void SDL2AudioBackend::StopSample(int id, bool channel)
