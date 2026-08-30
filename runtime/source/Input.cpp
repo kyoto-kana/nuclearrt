@@ -4,6 +4,8 @@
 #include "InputBackend.h"
 #include "PlatformBackend.h"
 
+#include <cstring>
+
 void Input::Update()
 {
 	Application::Instance().GetBackend()->input->Update();
