@@ -225,6 +225,13 @@ public class ExpressionConverter
 				}
 			case 15: // NObjects (number of this object)
 				return stringBuilder.Append($"CValue({objectSelector}.Size())");
+			case 17: // Get semi transparency ratio
+				{
+					if (UseInstance(expression, eventBase))
+						return stringBuilder.Append("instance->GetBlendCoefficient() / CValue(2)");
+					else
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->GetBlendCoefficient() / CValue(2) : 0)");
+				}
 			case 45: // NSelectedObjects (number of selected objects)
 				return stringBuilder.Append($"CValue({objectSelector}.Count())");
 			case 46: // InstanceValue
