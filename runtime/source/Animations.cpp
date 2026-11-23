@@ -290,8 +290,10 @@ void Animations::Update(float deltaTime) {
 	if (currentSequence->Directions.find(displayDirection) == currentSequence->Directions.end()) {
 		forcedDirection = -1;
 		displayDirection = GetNearestDirectionIndex(currentSequence, displayDirection);
+		if (CurrentDirection != displayDirection) {
 		CurrentDirection = displayDirection;
 		CurrentFrameTime = 0.0f;
+		}
 	}
 	else if (displayDirection != CurrentDirection) {
 		CurrentDirection = displayDirection;

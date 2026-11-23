@@ -296,175 +296,182 @@ void Frame::DrawLayer(Layer& layer)
 	const int viewWidth = Application::Instance().GetAppData()->GetWindowWidth();
 	const int viewHeight = Application::Instance().GetAppData()->GetWindowHeight();
 
-	for (auto& instance : layer.instances)
+	// draw backdrops before everything else
+	for(int renderPass = 0; renderPass < 2; renderPass++)
 	{
-		//cull objects outside of view
-		if (instance->Type <= 3)
+		for (auto& instance : layer.instances)
 		{
-			CollisionInstanceBounds bounds = GetInstanceBounds(instance);
-			int offsetX = scrollX;
-			int offsetY = scrollY;
-			if (instance->Type <= 1)
+			bool isBackdrop = instance->Type <= 1;
+			if (isBackdrop != (renderPass == 0)) continue;
+		
+			//cull objects outside of view
+			if (instance->Type <= 3)
 			{
-				offsetX = static_cast<int>(offsetX * layer.XCoefficient);
-				offsetY = static_cast<int>(offsetY * layer.YCoefficient);
-			}
+				CollisionInstanceBounds bounds = GetInstanceBounds(instance);
+				int offsetX = scrollX;
+				int offsetY = scrollY;
+				if (instance->Type <= 1)
+				{
+					offsetX = static_cast<int>(offsetX * layer.XCoefficient);
+					offsetY = static_cast<int>(offsetY * layer.YCoefficient);
+				}
 
-			if (instance->Type == 2 && ((Active*)instance)->AutomaticRotation)
-			{
-				int dx = std::max<int>(bounds.hotspotX, bounds.width - bounds.hotspotX);
-				int dy = std::max<int>(bounds.hotspotY, bounds.height - bounds.hotspotY);
-				int radius = (int)std::ceil(std::sqrt((double)dx * dx + (double)dy * dy));
-				int cx = bounds.centerX - offsetX;
-				int cy = bounds.centerY - offsetY;
+				if (instance->Type == 2 && ((Active*)instance)->AutomaticRotation)
+				{
+					int dx = std::max<int>(bounds.hotspotX, bounds.width - bounds.hotspotX);
+					int dy = std::max<int>(bounds.hotspotY, bounds.height - bounds.hotspotY);
+					int radius = (int)std::ceil(std::sqrt((double)dx * dx + (double)dy * dy));
+					int cx = bounds.centerX - offsetX;
+					int cy = bounds.centerY - offsetY;
 
-				if (cx + radius < 0 || cx - radius > viewWidth ||
-					cy + radius < 0 || cy - radius > viewHeight)
+					if (cx + radius < 0 || cx - radius > viewWidth ||
+						cy + radius < 0 || cy - radius > viewHeight)
+						continue;
+				}
+				else if (bounds.maxX - offsetX < 0 || bounds.minX - offsetX > viewWidth ||
+					bounds.maxY - offsetY < 0 || bounds.minY - offsetY > viewHeight)
 					continue;
 			}
-			else if (bounds.maxX - offsetX < 0 || bounds.minX - offsetX > viewWidth ||
-				bounds.maxY - offsetY < 0 || bounds.minY - offsetY > viewHeight)
-				continue;
-		}
 
-		if (instance->Type == 1)
-		{
-			auto& imageBank = ImageBank::Instance();
-			unsigned int imageId = ((Backdrop*)instance)->Image;
-
-			Application::Instance().GetBackend()->graphics->DrawTexture(
-				imageId, instance->GetX().GetIntValue() - (scrollX * layer.XCoefficient), instance->GetY().GetIntValue() - (scrollY * layer.YCoefficient),
-				0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
-		}
-		else if (instance->Type == 2)
-		{
-			if (!((Active*)instance)->Visible) continue;
-			if (((Active*)instance)->GetXScale() <= 0.0f || ((Active*)instance)->GetYScale() <= 0.0f) continue;
-
-			auto& imageBank = ImageBank::Instance();
-			auto& animations = ((Active*)instance)->animations;
-			unsigned int imageId = animations.GetCurrentImageHandle();
-
-			auto imageInfo = imageBank.GetImage(imageId);
-			if (imageInfo)
+			if (instance->Type == 1)
 			{
-				int angle = ((Active*)instance)->GetAngle();
-				if (((Active*)instance)->AutomaticRotation)
-				{
-					auto movement = ((Active*)instance)->movements.GetCurrentMovement();
-					if (movement != nullptr && !animations.IsDirectionForced())
-					{
-						angle += movement->GetMovementDirection() * 180 / 16;
-					}
-					else
-					{
-						angle += animations.GetAutomaticRotationDirection() * 180 / 16;
-					}
-				}
+				auto& imageBank = ImageBank::Instance();
+				unsigned int imageId = ((Backdrop*)instance)->Image;
 
 				Application::Instance().GetBackend()->graphics->DrawTexture(
-					imageId, instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY,
-					imageInfo->HotspotX, imageInfo->HotspotY, 
-					angle, ((Active*)instance)->GetXScale().GetDoubleValue(), ((Active*)instance)->GetYScale().GetDoubleValue(), instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
+					imageId, instance->GetX().GetIntValue() - (scrollX * layer.XCoefficient), instance->GetY().GetIntValue() - (scrollY * layer.YCoefficient),
+					0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
 			}
-		}
-		else if (instance->Type == 3) // Text
-		{
-			if (!((StringObject*)instance)->Visible) continue;
-
-			std::string text = ((StringObject*)instance)->GetText().GetStringValue();
-			Application::Instance().GetBackend()->graphics->DrawText(
-				FontBank::Instance().GetFont(((StringObject*)instance)->GetFont()),
-				instance->GetX().GetIntValue() - scrollX,
-				instance->GetY().GetIntValue() - scrollY,
-				((StringObject*)instance)->Width,
-				((StringObject*)instance)->Height,
-				((StringObject*)instance)->GetHorizontalAlignment(),
-				((StringObject*)instance)->GetVerticalAlignment(),
-				((StringObject*)instance)->GetColor(),
-				text,
-				instance->Handle,
-				instance->RGBCoefficient,
-				instance->Effect,
-				instance->GetBlendCoefficient().GetIntValue(),
-				instance->effectInstance
-			);
-		}
-		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) // Score, Lives, Counter
-		{
-			CounterBase* counter = (CounterBase*)instance;
-			if (!counter->Visible) continue;
-			
-
-			//TODO: Add support for other display types
-			if (counter->DisplayType == 1) // Numbers
-			{				
-				DrawCounterNumbers(counter, counter->GetValue().GetIntValue(), instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY);
-			}
-			else if (counter->DisplayType == 2 || counter->DisplayType == 3) // Bar
+			else if (instance->Type == 2)
 			{
-				Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY, (Counter*)counter);
-			}
-			else if (counter->DisplayType == 4) // Animation
-			{
-				if (instance->Type == 6) // Lives
-				{
-					int count = Application::Instance().GetAppData()->GetPlayerLives()[counter->Player];
-					int imageWidth = ImageBank::Instance().GetImage(counter->Frames[0])->Width;
-					int imageHeight = ImageBank::Instance().GetImage(counter->Frames[0])->Height;
-					int x = instance->GetX().GetIntValue() - scrollX;
-					int y = instance->GetY().GetIntValue() - scrollY;
-					for (int i = 0; i < count; i++)
-					{
-						if (counter->Width > 0 && (x - (instance->GetX().GetIntValue() - scrollX)) >= counter->Width)
-						{
-							x = instance->GetX().GetIntValue() - scrollX; 
-							y += imageHeight;
-						}
+				if (!((Active*)instance)->Visible) continue;
+				if (((Active*)instance)->GetXScale() <= 0.0f || ((Active*)instance)->GetYScale() <= 0.0f) continue;
 
-						Application::Instance().GetBackend()->graphics->DrawTexture(counter->Frames[0], x, y, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
-						x += imageWidth;
-					}
-				}
-				else
-				{
-					int imageID = 0;
-					int frameIndex = 0;
-					int imageCount = counter->Frames.size();
-					
-					if (imageCount > 1)
-					{
-						int value = ((Counter*)instance)->GetValue().GetIntValue();
-						int minValue = ((Counter*)instance)->MinValue.GetIntValue();
-						int maxValue = ((Counter*)instance)->MaxValue.GetIntValue();
+				auto& imageBank = ImageBank::Instance();
+				auto& animations = ((Active*)instance)->animations;
+				unsigned int imageId = animations.GetCurrentImageHandle();
 
-						if (value >= maxValue)
+				auto imageInfo = imageBank.GetImage(imageId);
+				if (imageInfo)
+				{
+					int angle = ((Active*)instance)->GetAngle();
+					if (((Active*)instance)->AutomaticRotation)
+					{
+						auto movement = ((Active*)instance)->movements.GetCurrentMovement();
+						if (movement != nullptr && !animations.IsDirectionForced())
 						{
-							frameIndex = imageCount - 1;
+							angle += movement->GetMovementDirection() * 180 / 16;
 						}
 						else
 						{
-							frameIndex = (value - minValue) * (imageCount - 1) / (maxValue - minValue);
-							frameIndex = std::clamp(frameIndex, 0, imageCount - 2);
+							angle += animations.GetAutomaticRotationDirection() * 180 / 16;
 						}
 					}
-					
-					imageID = counter->Frames[frameIndex];
 
-					Application::Instance().GetBackend()->graphics->DrawTexture(imageID, instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
+					Application::Instance().GetBackend()->graphics->DrawTexture(
+						imageId, instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY,
+						imageInfo->HotspotX, imageInfo->HotspotY, 
+						angle, ((Active*)instance)->GetXScale().GetDoubleValue(), ((Active*)instance)->GetYScale().GetDoubleValue(), instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
 				}
 			}
-		}
-		else if (instance->Type == 0) // Quick backdrop
-		{
-			int scrollXOffset = scrollX * layer.XCoefficient;
-			int scrollYOffset = scrollY * layer.YCoefficient;
-			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->GetX().GetIntValue() - scrollXOffset, instance->GetY().GetIntValue() - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
-		}
-		else if (instance->Type >= 32) // Extension
-		{
-			if (!((Extension*)instance)->Visible) continue;
-			((Extension*)instance)->Draw(scrollX, scrollY);
+			else if (instance->Type == 3) // Text
+			{
+				if (!((StringObject*)instance)->Visible) continue;
+
+				std::string text = ((StringObject*)instance)->GetText().GetStringValue();
+				Application::Instance().GetBackend()->graphics->DrawText(
+					FontBank::Instance().GetFont(((StringObject*)instance)->GetFont()),
+					instance->GetX().GetIntValue() - scrollX,
+					instance->GetY().GetIntValue() - scrollY,
+					((StringObject*)instance)->Width,
+					((StringObject*)instance)->Height,
+					((StringObject*)instance)->GetHorizontalAlignment(),
+					((StringObject*)instance)->GetVerticalAlignment(),
+					((StringObject*)instance)->GetColor(),
+					text,
+					instance->Handle,
+					instance->RGBCoefficient,
+					instance->Effect,
+					instance->GetBlendCoefficient().GetIntValue(),
+					instance->effectInstance
+				);
+			}
+			else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) // Score, Lives, Counter
+			{
+				CounterBase* counter = (CounterBase*)instance;
+				if (!counter->Visible) continue;
+				
+
+				//TODO: Add support for other display types
+				if (counter->DisplayType == 1) // Numbers
+				{				
+					DrawCounterNumbers(counter, counter->GetValue().GetIntValue(), instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY);
+				}
+				else if (counter->DisplayType == 2 || counter->DisplayType == 3) // Bar
+				{
+					Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY, (Counter*)counter);
+				}
+				else if (counter->DisplayType == 4) // Animation
+				{
+					if (instance->Type == 6) // Lives
+					{
+						int count = Application::Instance().GetAppData()->GetPlayerLives()[counter->Player];
+						int imageWidth = ImageBank::Instance().GetImage(counter->Frames[0])->Width;
+						int imageHeight = ImageBank::Instance().GetImage(counter->Frames[0])->Height;
+						int x = instance->GetX().GetIntValue() - scrollX;
+						int y = instance->GetY().GetIntValue() - scrollY;
+						for (int i = 0; i < count; i++)
+						{
+							if (counter->Width > 0 && (x - (instance->GetX().GetIntValue() - scrollX)) >= counter->Width)
+							{
+								x = instance->GetX().GetIntValue() - scrollX; 
+								y += imageHeight;
+							}
+
+							Application::Instance().GetBackend()->graphics->DrawTexture(counter->Frames[0], x, y, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
+							x += imageWidth;
+						}
+					}
+					else
+					{
+						int imageID = 0;
+						int frameIndex = 0;
+						int imageCount = counter->Frames.size();
+						
+						if (imageCount > 1)
+						{
+							int value = ((Counter*)instance)->GetValue().GetIntValue();
+							int minValue = ((Counter*)instance)->MinValue.GetIntValue();
+							int maxValue = ((Counter*)instance)->MaxValue.GetIntValue();
+
+							if (value >= maxValue)
+							{
+								frameIndex = imageCount - 1;
+							}
+							else
+							{
+								frameIndex = (value - minValue) * (imageCount - 1) / (maxValue - minValue);
+								frameIndex = std::clamp(frameIndex, 0, imageCount - 2);
+							}
+						}
+						
+						imageID = counter->Frames[frameIndex];
+
+						Application::Instance().GetBackend()->graphics->DrawTexture(imageID, instance->GetX().GetIntValue() - scrollX, instance->GetY().GetIntValue() - scrollY, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
+					}
+				}
+			}
+			else if (instance->Type == 0) // Quick backdrop
+			{
+				int scrollXOffset = scrollX * layer.XCoefficient;
+				int scrollYOffset = scrollY * layer.YCoefficient;
+				Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->GetX().GetIntValue() - scrollXOffset, instance->GetY().GetIntValue() - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
+			}
+			else if (instance->Type >= 32) // Extension
+			{
+				if (!((Extension*)instance)->Visible) continue;
+				((Extension*)instance)->Draw(scrollX, scrollY);
+			}
 		}
 	}
 }

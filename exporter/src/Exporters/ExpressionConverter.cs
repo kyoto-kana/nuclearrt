@@ -228,9 +228,9 @@ public class ExpressionConverter
 			case 17: // Get semi transparency ratio
 				{
 					if (UseInstance(expression, eventBase))
-						return stringBuilder.Append("instance->GetBlendCoefficient() / CValue(2)");
+						return stringBuilder.Append("(instance->GetBlendCoefficient() / CValue(255.0 / 128.0))");
 					else
-						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (*{objectSelector}.begin())->GetBlendCoefficient() / CValue(2) : 0)");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((*{objectSelector}.begin())->GetBlendCoefficient() / CValue(255.0 / 128.0)) : 0)");
 				}
 			case 45: // NSelectedObjects (number of selected objects)
 				return stringBuilder.Append($"CValue({objectSelector}.Count())");
