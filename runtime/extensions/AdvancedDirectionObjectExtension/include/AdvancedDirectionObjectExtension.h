@@ -2,7 +2,7 @@
 
 #include "Application.h"
 #include "Extension.h"
-#include "ObjectInstance.h"
+#include "ObjectSelector.h"
 #include <string>
 #include <vector>
 
@@ -16,13 +16,14 @@ public:
 
     //A
 	void SetNumDir(CValue numDir) { NumDir = numDir.GetIntValue(); }
-	void GetObjects(ObjectInstance* instance, CValue x, CValue y);
+	void GetObjects(ObjectInstance* instance, ObjectSelector* origin, int offsetX, int offsetY, bool actionPoint);
 	void AddObjects(ObjectInstance* instance);
+	void Reset() { CurrentObject = 0; };
     //C
     bool CompDist(CValue x1, CValue y1, CValue x2, CValue y2, CValue v);
     bool CompDir(CValue x1, CValue y1, CValue x2, CValue y2, CValue dir, CValue offset);
     //E
-	CValue GetNumDir() { return CValue(NumDir) };
+	CValue GetNumDir() { return CValue(NumDir); };
 	CValue Direction(CValue x1, CValue y1, CValue x2, CValue y2);
 	CValue getDistance(CValue x1, CValue y1, CValue x2, CValue y2);
 	CValue LongDir(CValue x1, CValue y1, CValue x2, CValue y2);

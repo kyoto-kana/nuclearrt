@@ -1,11 +1,37 @@
+#include "AdvancedDirectionObjectExtension.h"
+#include "Active.h"
 #include <cmath>
 #include <algorithm>
 #include <cstdlib>
 
 #pragma region Actions
 
-void AdvancedDirectionObjectExtension::GetObjects(ObjectInstance* instance, CValue x, CValue y)
+void AdvancedDirectionObjectExtension::GetObjects(ObjectInstance* instance, ObjectSelector* origin, int offsetX, int offsetY, bool actionPoint)
 {
+    int x = offsetX;
+    int y = offsetY;
+    if (origin != nullptr)
+    {
+        x = 0;
+        y = 0;
+        if (origin->Count() > 0)
+        {
+            ObjectInstance* parent = *origin->begin();
+            if (actionPoint && parent->Type == 2)
+            {
+                x = ((Active*)parent)->GetXActionPoint().GetIntValue();
+                y = ((Active*)parent)->GetYActionPoint().GetIntValue();
+            }
+            else
+            {
+                x = parent->GetX().GetIntValue();
+                y = parent->GetY().GetIntValue();
+            }
+            x += offsetX;
+            y += offsetY;
+        }
+    }
+    
     //resetting if another event
     if (EventCount != FrameCounter)
     {
@@ -13,10 +39,10 @@ void AdvancedDirectionObjectExtension::GetObjects(ObjectInstance* instance, CVal
         EventCount = FrameCounter;
     }
 
-    int x1 = x.GetIntValue();
-    int y1 = y.GetIntValue();
-    LastX = x.GetIntValue();
-    LastY = y.GetIntValue();
+    int x1 = x;
+    int y1 = y;
+    LastX = x;
+    LastY = y;
     int x2 = instance->GetX().GetIntValue();
     int y2 = instance->GetY().GetIntValue();
 
@@ -87,8 +113,6 @@ int AdvancedDirectionObjectExtension::lSMin(int v1, int v2, int v3) {
     return v3;
 }
 
-#pragma endregion Conditions
-
 bool AdvancedDirectionObjectExtension::CompDir(CValue x1, CValue y1, CValue x2, CValue y2, CValue dir, CValue offset)
 {
     int x1v = x1.GetIntValue();
@@ -125,6 +149,8 @@ bool AdvancedDirectionObjectExtension::CompDir(CValue x1, CValue y1, CValue x2, 
     }
     return false;
 }
+
+#pragma endregion Conditions
 
 #pragma region Expressions
 
@@ -287,7 +313,7 @@ CValue AdvancedDirectionObjectExtension::GetFixedObj(CValue p1)
     int r = 0;
     if (CurrentObject > 0)
     {
-        std::vector<int> Fixes;// = (long *)malloc(sizeof(long) * rdPtr->CurrentObject);
+        std::vector<bool> Fixes(CurrentObject, false);// = (long *)malloc(sizeof(long) * rdPtr->CurrentObject);
         for (int i = 0; i < CurrentObject; i++)
         {
             Fixes.push_back(Fixed[i]);
@@ -297,7 +323,7 @@ CValue AdvancedDirectionObjectExtension::GetFixedObj(CValue p1)
             int ClosestID = -1;
             for (int k = 0; k < CurrentObject; k++)
             {
-                if (Fixes[k] != null)
+                if (!Fixes[k])
                 {
                     if (ClosestID == -1)
                     {
@@ -316,7 +342,7 @@ CValue AdvancedDirectionObjectExtension::GetFixedObj(CValue p1)
             }
             if (ClosestID != -1)
             {
-                Fixes[ClosestID] = null;
+                Fixes[ClosestID] = true;
                 r = (int)Fixed[ClosestID];
             }
         }
@@ -334,7 +360,7 @@ CValue AdvancedDirectionObjectExtension::GetDistObj(CValue p1)
     long r = 0;
     if (CurrentObject > 0)
     {
-        std::vector<int> Fixes;// = (long *)malloc(sizeof(long) * rdPtr->CurrentObject);
+        std::vector<bool> Fixes(CurrentObject, false);// = (long *)malloc(sizeof(long) * rdPtr->CurrentObject);
         for (int i = 0; i < CurrentObject; i++)
         {
             Fixes.push_back(Fixed[i]);
@@ -344,7 +370,7 @@ CValue AdvancedDirectionObjectExtension::GetDistObj(CValue p1)
             int ClosestID = -1;
             for (int k = 0; k < CurrentObject; k++)
             {
-                if (Fixes[k] != null)
+                if (!Fixes[k])
                 {
                     if (ClosestID == -1)
                     {
@@ -363,7 +389,7 @@ CValue AdvancedDirectionObjectExtension::GetDistObj(CValue p1)
             }
             if (ClosestID != -1)
             {
-                Fixes[ClosestID] = null;
+                Fixes[ClosestID] = true;
                 r = (int)((float)Distance[ClosestID]);
             }
         }

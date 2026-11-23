@@ -6,6 +6,7 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class AdvencedDirectionObjectExporter : ExtensionExporter
 {
+	// Original extension made by Olle Fredriksson (Fodo)
 	public override string ObjectIdentifier => "CgnA";
 	public override string ExtensionName => "AdvDir";
 	public override string CppClassName => "AdvancedDirectionObjectExtension";
@@ -35,9 +36,9 @@ public class AdvencedDirectionObjectExporter : ExtensionExporter
 		ByteReader reader = new ByteReader(extensionData);
 
         int NumDir = 0;
-		file.Skip(8);
+		reader.Skip(8);
 		
-		string rawNumDir = file.ReadAscii(32).Split('\0')[0];
+		string rawNumDir = reader.ReadAscii(32).Split('\0')[0];
 		if (int.TryParse(rawNumDir, out int parsedDir))
 		{
 			NumDir = parsedDir;
@@ -77,19 +78,20 @@ public class AdvencedDirectionObjectExporter : ExtensionExporter
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->SetNumDir({EvaluateExpression(eventBase, 0)});");
 				break;
 			case ACT_GETOBJECTS:
+				string origin = ((Position)eventBase.Items[1].Loader).ObjectInfoParent == ushort.MaxValue ? "nullptr" : $"&{GetSelector((int)((Position)eventBase.Items[1].Loader).ObjectInfoParent, ((Position)eventBase.Items[1].Loader).TypeParent)}";
 				result.AppendLine($"for (ObjectIterator it({GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !it.end(); ++it) {{");
 				result.AppendLine($"    auto instance = *it;");
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->GetObjects(instance, {EvaluateExpression(eventBase, 0)}, {((Position)eventBase.Items[1].Loader).X}, {((Position)eventBase.Items[1].Loader).Y});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->GetObjects(instance, {origin}, {((Position)eventBase.Items[1].Loader).X}, {((Position)eventBase.Items[1].Loader).Y}, {((((Position)eventBase.Items[1].Loader).Flags & 0x2) != 0 ? "true" : "false")});");
 				result.AppendLine("}");
 				break;
 			case ACT_ADDOBJECTS:
 				result.AppendLine($"for (ObjectIterator it({GetSelector(((ParamObject)eventBase.Items[0].Loader).ObjectInfo, ((ParamObject)eventBase.Items[0].Loader).ObjectType)}); !it.end(); ++it) {{");
 				result.AppendLine($"    auto instance = *it;");
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->AddObjects(instance, {EvaluateExpression(eventBase, 0)});");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->AddObjects(instance);");
 				result.AppendLine("}");
 				break;
 			case ACT_RESET:
-				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->CurrentObject = 0;");
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->Reset();");
 				break;
 			default:
 				result.AppendLine($"// AdvDir action {actionNum} not implemented");
@@ -106,43 +108,43 @@ public class AdvencedDirectionObjectExporter : ExtensionExporter
 		switch (expression.Num)
 		{
 			case EXP_GETNUMDIR:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetNumDir()"
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetNumDir()";
 				break;
 			case EXP_DIRECTION:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->Direction("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->Direction(";
 				break;
 			case EXP_DISTANCE:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->getDistance("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->getDistance(";
 				break;
 			case EXP_DIRECTIONLONG:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->LongDir("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->LongDir(";
 				break;
-			case EXP_DISTANCELONG:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->LongDist("
+			case EXP_DISTANCELONG:;
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->LongDist(";
 				break;
 			case EXP_ROTATE:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->Rotate("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->Rotate(";
 				break;
 			case EXP_DIRDIFFABS:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->DirDiffAbs("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->DirDiffAbs(";
 				break;
 			case EXP_DIRDIFF:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->DirDiff("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->DirDiff(";
 				break;
 			case EXP_GETFIXEDOBJ:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetFixedObj("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetFixedObj(";
 				break;
 			case EXP_GETDISTOBJ:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetDistObj("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->GetDistObj(";
 				break;
 			case EXP_XMOV:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->XMov("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->XMov(";
 				break;
 			case EXP_YMOV:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->YMov("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->YMov(";
 				break;
 			case EXP_DIRBASE:
-				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->DirBase("
+				result = $"{GetExtensionInstance(expression.ObjectInfo, expression.ObjectType)}->DirBase(";
 				break;
 			default:
 				result = $"0 /* AdvDir expression {expression.Num} not implemented */";

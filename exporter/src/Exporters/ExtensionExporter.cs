@@ -28,7 +28,8 @@ public static class ExtensionExporterRegistry
 		new SecToHMSExporter(),
 		new KcRuntimeExporter(),
 		new storefloatExporter(),
-		new AdvencedDirectionObjectExporter()
+		new AdvencedDirectionObjectExporter(),
+		new SelectObjectExporter()
 	];
 
 	public static ExtensionExporter GetExporter(string extensionName)

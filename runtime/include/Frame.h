@@ -294,6 +294,11 @@ public:
 		return GetAlterableFlagValue(*(selector.begin()), index);
 	}
 
+	bool HasAlterableValues(ObjectInstance* instance) {
+		if (!instance) return false;
+		return instance->Type == 2 || instance->Type == 5 || instance->Type == 6 || instance->Type == 7;
+	}
+
 	struct LoopState {
 		bool running = false;
 		int index = 0;
