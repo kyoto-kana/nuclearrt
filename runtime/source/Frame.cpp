@@ -80,6 +80,8 @@ void Frame::Update()
 	GameTimer.ProcessNamedEvents([this](const std::string& eventName) {
 		OnTimerEvent(eventName);
 	});
+
+	CheckCollisions();
 }
 
 void Frame::DispatchTrueEvents()
@@ -1190,4 +1192,91 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 	int sampleX = ConvertScaledCoordToMaskCoord(localX, bounds.scaleX, width);
 	int sampleY = ConvertScaledCoordToMaskCoord(localY, bounds.scaleY, height);
 	return IsPixelSolid(*maskData, width, height, sampleX, sampleY);
+}
+
+void Frame::CheckCollisions()
+{
+	const std::vector<std::pair<unsigned int, unsigned int>> collisionPairs = GetCollisionPairs();
+
+	if (collisionPairs.empty())
+		return;
+
+	std::unordered_map<unsigned int, std::vector<ObjectInstance*>> instances;
+
+	instances.reserve(ObjectInstances.size());
+
+	// check if active/counter
+	for (auto& [handle, instance] : ObjectInstances) {
+		if (!instance)
+			continue;
+
+		if (instance->Type != 2 || instance->Type != 7)
+			continue;
+
+		instances[instance->ObjectInfoHandle].push_back(instance);
+		
+		for (auto qualifier : instance->Qualifiers)
+		{
+			// pack handle info
+			unsigned int qualifierHandle = (qualifier & 0x7FFF) | 0x8000 | (instance->Type << 16);
+			instances[qualifierHandle].push_back(instance);
+		}
+	}
+
+	std::unordered_set<uint64_t> checkedPairs;
+
+	for (const auto& [obj1, obj2] : collisionPairs)
+	{
+		auto first = instances.find(obj1);
+		auto second = instances.find(obj2);
+		
+		if (first == instances.end() || second == instances.end())
+			continue;
+		
+		for (ObjectInstance* a : first->second)
+		{
+			for (ObjectInstance* b : second->second)
+			{
+				if (a == b)
+				continue;
+				
+				if (obj1 == obj2 && a->Handle > b->Handle)
+					continue;
+
+				uint64_t key = (static_cast<uint64_t>(std::min(a->Handle, b->Handle)) << 32) | std::max(a->Handle, b->Handle);
+				
+				if (!checkedPairs.insert(key).second)
+					continue;
+				
+				if (IsColliding(a, b))
+				{
+					if (Collisions.insert(key).second)
+					{
+						GenerateEvent(a->Type, -14, a, b);
+						GenerateEvent(b->Type, -14, b, a);
+					}
+				}
+				else
+				{
+					Collisions.erase(key);
+				}
+			}
+		}
+	}
+	// remove stale collisions
+	for (auto it = Collisions.begin(); it != Collisions.end();)
+	{
+		auto firstHandle = static_cast<unsigned int>(*it >> 32);
+		auto secondHandle = static_cast<unsigned int>(*it);
+
+		if (ObjectInstances.find(firstHandle) == ObjectInstances.end()
+			|| ObjectInstances.find(secondHandle) == ObjectInstances.end())
+		{
+			it = Collisions.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }

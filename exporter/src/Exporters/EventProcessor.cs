@@ -481,7 +481,7 @@ public class EventProcessor
 	{
 		if (!HasAnyTrueEvents(frameIndex)) return "";
 
-		return "void GenerateEvent(int objectType, int conditionNum, ObjectInstance* source = nullptr) override;\n";
+		return "void GenerateEvent(int objectType, int conditionNum, ObjectInstance* source = nullptr, ObjectInstance* other = nullptr) override;\n";
 	}
 
 	private bool HasAnyLoopEvents(int frameIndex)
@@ -553,9 +553,10 @@ public class EventProcessor
 	string BuildGenerateEventFunction(int frameIndex)
 	{
 		var result = new StringBuilder();
-		result.AppendLine($"void GeneratedFrame{frameIndex}::GenerateEvent(int objectType, int conditionNum, ObjectInstance* source)");
+		result.AppendLine($"void GeneratedFrame{frameIndex}::GenerateEvent(int objectType, int conditionNum, ObjectInstance* source, ObjectInstance* other)");
 		result.AppendLine("{");
 		result.AppendLine("\ttrueEventSource = source;");
+		result.AppendLine("\ttrueEventOther = other;");
 
 		var groupStack = new List<int>();
 		var items = _exporter.GameData.Frames[frameIndex].events.Items;
@@ -611,6 +612,7 @@ public class EventProcessor
 		}
 
 		result.AppendLine("\ttrueEventSource = nullptr;");
+		result.AppendLine("\ttrueEventOther = nullptr;");
 		result.AppendLine("}");
 		result.AppendLine("");
 		return result.ToString();

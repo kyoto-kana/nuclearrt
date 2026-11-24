@@ -73,6 +73,10 @@ else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES})
 endif()
 
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+)
+
 # Set output directory
 if(PLATFORM_WEB)
     set_target_properties(${PROJECT_NAME} PROPERTIES

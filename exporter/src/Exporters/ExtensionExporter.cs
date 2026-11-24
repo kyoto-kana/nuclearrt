@@ -29,7 +29,10 @@ public static class ExtensionExporterRegistry
 		new KcRuntimeExporter(),
 		new storefloatExporter(),
 		new AdvencedDirectionObjectExporter(),
-		new SelectObjectExporter()
+		new SelectObjectExporter(),
+		new ListExporter(),
+		new EncryptionObjectExporter(),
+		new StringParserExporter()
 	];
 
 	public static ExtensionExporter GetExporter(string extensionName)

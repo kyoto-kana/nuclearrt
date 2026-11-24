@@ -79,6 +79,7 @@ public class FrameExporter : BaseExporter
 		frameCpp = frameCpp.Replace("{{ OBJECT_SELECTORS_INIT }}", BuildObjectSelectorsInit(frame));
 		frameCpp = frameCpp.Replace("{{ GROUP_ACTIVE }}", BuildGroupActive(frameIndex));
 		frameCpp = frameCpp.Replace("{{ SOUNDS_USED }}", BuildSoundsUsed(frame));
+		frameCpp = frameCpp.Replace("{{ COLLISION_PAIRS }}", BuildCollisionPairs(frame));
 
 		_eventProcessor.PreProcessFrame(frameIndex);
 
@@ -103,6 +104,39 @@ public class FrameExporter : BaseExporter
 		frameHeader = frameHeader.Replace("{{ ONLY_ONE_ACTION_WHEN_LOOP_CONDITION }}", _eventProcessor.BuildOneActionLoop(frameIndex));
 
 		return frameHeader;
+	}
+
+	uint GetCollisionHandle(int obj, int type)
+	{
+		uint handle = (uint)obj & 0xFFFFu;
+
+		if ((handle & 0x8000u) != 0)
+			handle |= (uint)type << 16;
+
+		return handle;
+	}
+
+	private string BuildCollisionPairs(Frame frame)
+	{
+		var pairs = new SortedSet<(uint, uint)>();
+		foreach (var evt in frame.events.Items)
+		{
+			foreach (var evtBase in evt.Conditions)
+			{
+				if (evtBase.Num != -14 || (evtBase.ObjectType != 2 && evtBase.ObjectType != 7) || evtBase.Items.Count == 0)
+					continue;
+
+				if (evtBase.Items[0].Loader is not ParamObject obj)
+					continue;
+
+				uint a = GetCollisionHandle(evtBase.ObjectInfo, evtBase.ObjectType);
+				uint b = GetCollisionHandle(obj.ObjectInfo, obj.ObjectType);
+
+				pairs.Add((Math.Min(a, b), Math.Max(a, b)));
+			}
+		}
+
+		return string.Join(", ", pairs.Select(p => $"{{{p.Item1}u, {p.Item2}u}}"));
 	}
 
 	private string BuildSoundsUsed(Frame frame)

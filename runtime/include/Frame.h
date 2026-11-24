@@ -98,6 +98,7 @@ public:
 	std::vector<unsigned int> GetImagesUsed();
 	std::vector<unsigned int> GetFontsUsed();
 	virtual std::vector<unsigned int> GetSoundsUsed() { return {}; }
+	virtual std::vector<std::pair<unsigned int, unsigned int>> GetCollisionPairs() { return {}; }
 
 	ObjectInstance* CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, bool postInitialize = false, ObjectInstance* parentInstance = nullptr);
 
@@ -368,12 +369,13 @@ public:
 
 	virtual void OnLoop(const std::string& loopName) {}
 	virtual void OnTimerEvent(const std::string& eventName) {}
-	virtual void GenerateEvent(int objectType, int conditionNum, ObjectInstance* source = nullptr) {}
+	virtual void GenerateEvent(int objectType, int conditionNum, ObjectInstance* source = nullptr, ObjectInstance* other = nullptr) {}
 
 	//Collision detection
 	CollisionInstanceBounds GetInstanceBounds(ObjectInstance* instance);
 	bool IsPointInRotatedBox(int worldX, int worldY, const CollisionInstanceBounds& bounds);
 	bool IsPixelSolid(const std::vector<uint8_t>& maskData, int width, int height, int x, int y);
+	void CheckCollisions();
 
 	bool IsCollidingWithBackground(ObjectInstance* instance);
 	bool IsColliding(ObjectInstance* instance1, ObjectInstance* instance2);
@@ -381,9 +383,12 @@ public:
 
 protected:
 	ObjectInstance* trueEventSource = nullptr;
+	ObjectInstance* trueEventOther = nullptr;
 
 	unsigned int updateCount = 0;
 private:
+	std::unordered_set<uint64_t> Collisions;
+
 	void DispatchTrueEvents();
 	void UpdateScrolling(int newX, int newY);
 

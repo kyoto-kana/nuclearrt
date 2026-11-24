@@ -309,9 +309,9 @@ public class ExpressionConverter
 			case 19: // AltStr (alterable string A-J by fixed index)
 				{
 					if (UseInstance(expression, eventBase))
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Strings.GetString({((ShortExp)expression.Loader).Value})");
+						return stringBuilder.Append($"CValue((({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Strings.GetString({((ShortExp)expression.Loader).Value}))");
 					else
-						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Strings.GetString({((ShortExp)expression.Loader).Value}) : CValue(\"\"))");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? CValue((({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Strings.GetString({((ShortExp)expression.Loader).Value})) : CValue(\"\"))");
 				}
 			case 16: // Alterable Value
 				{
@@ -394,6 +394,34 @@ public class ExpressionConverter
 						else
 							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->animations.GetCurrentDirection() : 0)");
 					}
+				case 7: // X Left
+					{
+						if (UseInstance(expression, eventBase))
+							return stringBuilder.Append("((Active*)instance)->GetXLeft()");
+						else
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->GetXLeft() : 0)");
+					}
+				case 8: // X Right
+					{
+						if (UseInstance(expression, eventBase))
+							return stringBuilder.Append("((Active*)instance)->GetXRight()");
+						else
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->GetXRight() : 0)");
+					}
+				case 9: // Y Top
+					{
+						if (UseInstance(expression, eventBase))
+							return stringBuilder.Append("((Active*)instance)->GetYTop()");
+						else
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->GetYTop() : 0)");
+					}
+				case 10: // Y Bottom
+					{
+						if (UseInstance(expression, eventBase))
+							return stringBuilder.Append("((Active*)instance)->GetYBottom()");
+						else
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? ((Active*)*({objectSelector}.begin()))->GetYBottom() : 0)");
+					}
 				case 14: // Anim Number
 					{
 						if (UseInstance(expression, eventBase))
@@ -449,6 +477,13 @@ public class ExpressionConverter
 		{
 			switch (expression.Num)
 			{
+				case 3: // Speed (real movement speed)
+					{
+						if (UseInstance(expression, eventBase))
+							return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->movements.GetCurrentMovement()->GetRealSpeed()");
+						else
+							return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->movements.GetCurrentMovement()->GetRealSpeed() : 0)");
+					}
 				case 80: // Value
 					{
 						// TODO: there is most likely something wrong with the way we check for instances,

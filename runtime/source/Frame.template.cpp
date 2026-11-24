@@ -35,6 +35,10 @@ std::vector<unsigned int> GeneratedFrame{{ FRAME_INDEX }}::GetSoundsUsed() {
 	return { {{ SOUNDS_USED }} };
 }
 
+std::vector<std::pair<unsigned int, unsigned int>> GeneratedFrame{{ FRAME_INDEX }}::GetCollisionPairs() {
+	return { {{ COLLISION_PAIRS }} };
+}
+
 void GeneratedFrame{{ FRAME_INDEX }}::Update() {
 	Frame::Update();
 

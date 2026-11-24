@@ -11,6 +11,7 @@ public:
 
 	void Initialize() override;
 	std::vector<unsigned int> GetSoundsUsed() override;
+	std::vector<std::pair<unsigned int, unsigned int>> GetCollisionPairs() override;
 	void Update() override;
 	void Draw() override;
 
