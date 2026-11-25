@@ -177,7 +177,7 @@ CValue ListExtension::GetLineData(CValue index)
 CValue ListExtension::GetLineText(CValue index)
 {
     int indexv = index.GetIntValue() + IndexOffset;
-    if ((indexv < 0) || (indexv >= Datas.size()))
+    if ((indexv < 0) || (indexv >= Strings.size()))
     {
         return CValue("");
     }

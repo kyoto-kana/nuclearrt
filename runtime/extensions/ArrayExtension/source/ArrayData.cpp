@@ -135,11 +135,8 @@ CValue ArrayData::GetValueAtXYZ(const CValue& x, const CValue& y, const CValue& 
     yInt -= GetBaseOffset();
     zInt -= GetBaseOffset();
 
-    if (xInt < 0 || yInt < 0 || zInt < 0)
-        return CValue(0);
-
-    if (xInt >= dimensionX || yInt >= dimensionY || zInt >= dimensionZ)
-        return CValue(0);
+    if (xInt < 0 || yInt < 0 || zInt < 0 || xInt >= dimensionX || yInt >= dimensionY || zInt >= dimensionZ)
+        return IsStringArray() ? CValue("") : CValue(0);
 
     if (IsNumberArray()) {
         return CValue(intData[(static_cast<size_t>(xInt) * dimensionY * dimensionZ) + (yInt * dimensionZ) + zInt]);
@@ -147,7 +144,7 @@ CValue ArrayData::GetValueAtXYZ(const CValue& x, const CValue& y, const CValue& 
         return CValue(ToNarrow(stringData[(static_cast<size_t>(xInt) * dimensionY * dimensionZ) + (yInt * dimensionZ) + zInt]));
     }
 
-    return CValue(0);
+    return IsStringArray() ? CValue("") : CValue(0);
 }
 
 void ArrayData::Save(const std::string& fileName)

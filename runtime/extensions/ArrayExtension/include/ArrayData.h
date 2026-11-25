@@ -29,10 +29,10 @@ public:
     void Save(const std::string& fileName);
     void Load(const std::string& fileName);
 
-    void WriteValueAtIndex(const CValue& value) { WriteXYZ(CValue(currentIndexX), CValue(currentIndexY), CValue(currentIndexZ), value); }
+    void WriteValueAtIndex(const CValue& value) { WriteXYZ(GetXIndex(), GetYIndex(), GetZIndex(), value); }
 
-    void WriteX(const CValue& x, const CValue& value) { WriteXYZ(x, CValue(currentIndexY), CValue(currentIndexZ), value); }
-    void WriteXY(const CValue& x, const CValue& y, const CValue& value) { WriteXYZ(x, y, CValue(currentIndexZ), value); }
+    void WriteX(const CValue& x, const CValue& value) { WriteXYZ(x, GetYIndex(), GetZIndex(), value); }
+    void WriteXY(const CValue& x, const CValue& y, const CValue& value) { WriteXYZ(x, y, GetZIndex(), value); }
     void WriteXYZ(const CValue& x, const CValue& y, const CValue& z, const CValue& value);
 
     bool IsXAtEnd() { return currentIndexX >= dimensionX - 1; }
@@ -43,10 +43,10 @@ public:
     int GetYIndex() { return currentIndexY + GetBaseOffset(); }
     int GetZIndex() { return currentIndexZ + GetBaseOffset(); }
 
-    CValue GetValueAtIndex() { return GetValueAtXYZ(currentIndexX, currentIndexY, currentIndexZ); }
+    CValue GetValueAtIndex() { return GetValueAtXYZ(GetXIndex(), GetYIndex(), GetZIndex()); }
 
-    CValue GetValueAtX(const CValue& x) { return GetValueAtXYZ(x, currentIndexY, currentIndexZ); }
-    CValue GetValueAtXY(const CValue& x, const CValue& y) { return GetValueAtXYZ(x, y, currentIndexZ); }
+    CValue GetValueAtX(const CValue& x) { return GetValueAtXYZ(x, GetYIndex(), GetZIndex()); }
+    CValue GetValueAtXY(const CValue& x, const CValue& y) { return GetValueAtXYZ(x, y, GetZIndex()); }
     CValue GetValueAtXYZ(const CValue& x, const CValue& y, const CValue& z);
 
     CValue GetXDimension() { return CValue(dimensionX); }

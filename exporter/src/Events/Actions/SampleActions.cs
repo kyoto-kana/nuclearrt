@@ -166,7 +166,7 @@ public class SetSampleVolume : ActionBase
 	public override int Num { get; set; } = 21;
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
-		return $"Application::Instance().GetBackend()->audio->SetSampleVolume(({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}).GetDoubleValue(), {CheckType.Check(eventBase)}, true);";
+		return $"Application::Instance().GetBackend()->audio->SetSampleVolume(({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}).GetDoubleValue(), {CheckType.Check(eventBase)}, false);";
 	}
 }
 public class PauseSpecificSample : ActionBase
