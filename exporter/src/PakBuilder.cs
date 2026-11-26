@@ -72,10 +72,10 @@ public class PakBuilder
 
 
 			// generate an image entry
-			CollisionMask collisionMask = GenerateCollisionMask(image, imageRawData);
+			CollisionPolygonData collisionPolygons = BuildCollisionPolygons(image, imageRawData);
 			
-			var maskEntry = new PakEntry { Path = $"images/masks/{collisionMask.Handle}.bin" };
-			MemoryStream maskStream = WriteCompressedMask(collisionMask);
+			var maskEntry = new PakEntry { Path = $"images/masks/{collisionPolygons.Handle}.bin" };
+			MemoryStream maskStream = WriteCompressedPolygon(collisionPolygons);
 			maskEntry.Size = (uint)maskStream.Length;
 			maskEntry.Data = maskStream.ToArray();
 			maskStream.Close();
@@ -270,7 +270,7 @@ public class PakBuilder
 		return new MemoryStream(comp, 0, encodedLength);
 	}
 
-	public static MemoryStream WriteCompressedMask(CollisionMask mask)
+	public static MemoryStream WriteCompressedPolygon(CollisionPolygonData mask)
 	{
 		byte[] uncomp = mask.Data;
 
@@ -288,13 +288,11 @@ public class PakBuilder
 		var ms = new MemoryStream();
 		var bw = new BinaryWriter(ms);
 
-		bw.Write((ushort)mask.Width);
-		bw.Write((ushort)mask.Height);
 		bw.Write(mask.Data.Length);
 		bw.Write(comp, 0, compressedSize);
 
-		bw.Flush(); 
-		ms.Position = 0; 
+		bw.Flush();
+		ms.Position = 0;
 
 		return ms;
 	}

@@ -1,0 +1,221 @@
+// Simple Collision 2D
+// A single header 2D collision library
+
+#ifndef SIMPLE_COLLISION_2D_H
+
+#define SIMPLE_COLLISION_2D_H 
+#include <stdbool.h>
+
+bool sc2d_check_point_rect(float px, float py, float rx, float ry, float rw, float rh);
+bool sc2d_check_rects(float p1x, float p1y, float r1w, float r1h, float p2x, float p2y, float r2w, float r2h);
+bool sc2d_check_poly2d(	float p1x, float p1y, float* p1_verts, int p1_count, 
+							float p2x, float p2y, float* p2_verts, int p2_count, 
+							float* overlap_x, float* overlap_y);
+bool sc2d_check_point_poly2d(float px, float py, float* poly_verts, int vert_count);
+bool sc2d_check_point_line(float px, float py, float start_x, float start_y, float end_x, float end_y, bool segment);
+
+#endif
+
+#ifdef SIMPLE_COLLISION_2D_IMPLEMENTATION
+
+#ifndef sc2d_hypotf
+#include "math.h"
+#define sc2d_hypotf hypotf
+#endif
+
+#ifndef sc2d_fabsf
+#include "math.h"
+#define sc2d_fabsf fabsf
+#endif
+
+#ifndef sc2d_min
+#include "math.h"
+#define sc2d_min fminf
+#endif
+
+#ifndef sc2d_max
+#include "math.h"
+#define sc2d_max fmaxf
+#endif
+
+#ifndef sc2d_atan2
+#include "math.h"
+#define sc2d_atan2 atan2
+#endif
+
+// Check for collision between a point and a rectangle (left x, top y, width, height) and return penetration by reference
+bool sc2d_check_point_rect(float px, float py, float rx, float ry, float rw, float rh) {
+	return px >= rx && px < rx + rw && py >= ry && py < ry + rh;
+}
+
+//Check for collision between to rectangles (left x, top y, width, height) and return overlap by reference
+bool sc2d_check_rects(float p1x, float p1y, float r1w, float r1h, float p2x, float p2y, float r2w, float r2h) {
+	return p1x < p2x + r2w && p1x + r1w > p2x && p1y < p2y + r2h && p1y + r1h > p2y;
+}
+
+// Project all points in polygon to 2D vector axis (dot product)
+static inline void project_poly2d_to_axis(float axis_x, float axis_y, float* poly_verts, int poly_vert_count, float* min, float* max) {
+	*min = *max = axis_x * poly_verts[0] + axis_y * poly_verts[1];
+	
+	for (int i = 1; i < poly_vert_count; i++) {
+		float dot = (axis_x * poly_verts[i * 2]) + (axis_y * poly_verts[i * 2 + 1]); // dot product
+
+		if (dot < *min) *min = dot;
+		if (dot > *max) *max = dot;
+	}
+}
+
+// Get vector from start index to next vertex in polygon
+
+static inline void get_poly2d_edge(float* poly_verts, int vert_count, int start_index, float* edge_x, float* edge_y) {
+#ifndef SIMPLE_COLLISION_2D_VECTOR2
+	typedef struct sc2d_v2 {float x, y;} sc2d_v2;
+#endif
+	int end_index = (start_index + 1);
+
+	if (end_index == vert_count)
+		end_index = 0;
+
+	*edge_x = poly_verts[end_index * 2] - poly_verts[start_index * 2];
+	*edge_y = poly_verts[end_index * 2 + 1] - poly_verts[start_index * 2 + 1];
+}
+
+// Get clockwise or counterclockwise normal of 2D vector
+static void v2_normal(float* x, float* y, bool clockwise) {
+	float temp;
+
+	temp = *x;
+	*x   = *y    * (float)(1 - (2 * (int)(!clockwise)));
+	*y   = temp  * (float)(1 - (2 * (int)(clockwise) ));
+}
+
+// Normalize 2d vector
+static void v2_normalize(float* x, float* y) {
+	float magnitude;
+
+	magnitude = sc2d_hypotf(*x, *y);
+	*x /= magnitude;
+	*y /= magnitude;
+}
+
+// Check for collision between two convex polygons and return shortest axis overlap by reference
+// p1_count and p2_count: The number of x/y pairs (or custom sc2d_v2 structs) in poly_verts
+//
+// Structs with format other than {float x,y} can be supported by defining a custom sc2d_v2 type and
+// setting SIMPLE_COLLISION_2D_VECTOR2
+// e.g.:
+// #ifndef SIMPLE_COLLISION_2D_VECTOR2
+// typedef struct v3 {float x, y, z} sc2d_v2;
+// #define SIMPLE_COLLISION_2D_VECTOR2
+// #endif
+bool sc2d_check_poly2d(	float p1x, float p1y, float* p1_verts, int p1_count, 
+						float p2x, float p2y, float* p2_verts, int p2_count, 
+						float* overlap_x, float* overlap_y) {
+	
+	bool result = true;
+	float p1_min, p1_max, p2_min, p2_max;
+	float axis_x, axis_y;
+
+	float delta_x = p2x - p1x;
+	float delta_y = p2y - p1y;
+	float offset = 0;
+
+	// First polygon
+	for (int i = 0; i < p1_count; i++) {
+		get_poly2d_edge(p1_verts, p1_count, i, &axis_x, &axis_y); // Get vector pointing from curent vertex to next vertex (edge)
+		v2_normal(&axis_x, &axis_y, false); // Get the normal of the edge (vector perpendicular to the edge)
+		offset = (axis_x * delta_x) + (axis_y * delta_y); // project the the vector between polygon positions to the axis (dot product)
+
+		project_poly2d_to_axis(axis_x, axis_y, p1_verts, p1_count, &p1_min, &p1_max); // project ever y vertex in first polygon to current axis
+		project_poly2d_to_axis(axis_x, axis_y, p2_verts, p2_count, &p2_min, &p2_max); // project ever y vertex in scond polygon to current axis
+		
+		p1_min -= offset; // Add position offset to projection
+		p1_max -= offset;
+		
+		if ( (p1_min >= p2_max) || (p1_max <= p2_min)) { // If the ranges do not overlap, polygons are not touching
+			return false;
+		}
+	}
+
+	// Project all vertices to all axes of the second polygon
+	for (int i = 0; i < p2_count; i++) {
+		get_poly2d_edge(p2_verts, p2_count, i, &axis_x, &axis_y);
+		v2_normal(&axis_x, &axis_y, false);
+		offset = (axis_x * delta_x) + (axis_y * delta_y);
+
+		project_poly2d_to_axis(axis_x, axis_y, p1_verts, p1_count, &p1_min, &p1_max);
+		project_poly2d_to_axis(axis_x, axis_y, p2_verts, p2_count, &p2_min, &p2_max);
+		
+		p1_min -= offset;
+		p1_max -= offset;
+		
+		if ( (p1_min >= p2_max) || (p1_max <= p2_min)) {
+			return false;
+		}
+	}
+
+	return result;
+}
+
+// Check for collision between point and convex polygon
+// poly_count: The number of x/y pairs (or custom sc2d_v2 structs) in poly_verts
+bool sc2d_check_point_poly2d(float px, float py, float* poly_verts, int vert_count) {
+	bool result = false;
+
+#ifndef SIMPLE_COLLISION_2D_VECTOR2
+	typedef struct sc2d_v2 {float x, y;} sc2d_v2;
+#endif
+
+	sc2d_v2* v2_verts = (sc2d_v2*)poly_verts;
+	for (int i = 0, j = vert_count - 1; i < vert_count; i++) {
+		if ( (v2_verts[i].y > py) != (v2_verts[j].y > py) &&
+			 (px < (v2_verts[j].x - v2_verts[i].x) * (py - v2_verts[i].y) / (v2_verts[j].y - v2_verts[i].y) + v2_verts[i].x)
+			) {
+			
+			result = !result;
+		}
+
+		j = i;
+	}
+
+	return result;
+}
+
+// Check for collision between point and line or line segment
+bool sc2d_check_point_line(float px, float py, float start_x, float start_y, float end_x, float end_y, bool segment) {
+
+	bool result = false;
+
+	// Vector pointing from line start to line end
+	float line_x = end_x - start_x;
+	float line_y = end_y - start_y;
+	float line_length = sc2d_hypotf(line_y, line_x);
+
+	// Vector point from line start to point
+	float point_delta_x = px - start_x;
+	float point_delta_y = py - start_y;
+	float distance_to_point = sc2d_hypotf(point_delta_x, point_delta_y);
+
+	// If the angles of both vectors are equal,
+	// then the point is on the ray starting at start
+	if (sc2d_atan2(line_y, line_x) == sc2d_atan2(point_delta_y, point_delta_x)) {
+		// if the distance to the point is less than or equal to line length,
+		// then the point is on the segment start -> end
+		if (segment && (distance_to_point <= line_length) ) {
+			result = true;
+		// Else start -> end describes an (infinite) line or a ray
+		} else {
+			result = true;
+		}
+	// If the angle of the line pointing in the opposite direction is equal
+	// angle from start to the point,
+	// then the point is still on the (infinite) line defined by start and end
+	// but not the segment or ray defined by start and end
+	} else if (!segment && (sc2d_atan2(-line_x, -line_y) == sc2d_atan2(point_delta_y, point_delta_x)) ) {
+		result = true;
+	}
+
+	return result;
+}
+
+#endif

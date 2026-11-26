@@ -2,7 +2,9 @@ using CTFAK.CCN;
 using CTFAK.Core.CCN.Chunks.Banks.ImageBank;
 using CTFAK.FileReaders;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
+using System.Runtime.InteropServices;
 using static CollisionMaskBuilder;
 
 public class CollisionMaskBuilder
@@ -15,108 +17,128 @@ public class CollisionMaskBuilder
 		public byte[] Data;
 	}
 
-	private const int ALPHA_THRESHOLD = 128; //TODO: verify if this is accurate
-
-	public static List<CollisionMask> BuildCollisionMask(GameData gameData)
+	public struct CollisionPolygon
 	{
-		var collisionMasks = new List<CollisionMask>();
+		public List<System.Drawing.Point> Points;
+	}
 
-		foreach (var image in gameData.Images.Items.Values)
+	public struct CollisionPolygonData
+	{
+		public int Handle;
+		public byte[] Data;
+	}
+	private const int ALPHA_THRESHOLD = 128; //TODO: verify if this is accurate
+	private static bool[] BuildAlphaMask(Bitmap bitmap)
+	{
+		int width = bitmap.Width;
+		int height = bitmap.Height;
+		var opaque = new bool[width * height];
+		var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+		try
 		{
-			var collisionMask = new CollisionMask { Handle = image.Handle, Width = image.Width, Height = image.Height };
-			Bitmap bitmap = image.bitmap;
-			int rowStride = (image.Width + 7) / 8;
-			var data = new byte[rowStride * image.Height];
-			
-			for (int y = 0; y < image.Height; y++)
+			var row = new byte[width * 4];
+
+			for (int y = 0; y < height; y++)
 			{
-				for (int x = 0; x < image.Width; x += 8)
+				Marshal.Copy(IntPtr.Add(data.Scan0, y * data.Stride), row, 0, row.Length);
+
+				for (int x = 0; x < width; x++)
 				{
-					byte mask = 0;
-					for (int i = 0; i < 8; i++)
+					opaque[y * width + x] = row[x * 4 + 3] > ALPHA_THRESHOLD;
+				}
+			}
+		}
+		finally
+		{
+			bitmap.UnlockBits(data);
+		}
+
+		return opaque;
+	}
+
+	private static List<CollisionPolygon> GreedyCollision(bool[] alpha, int width, int height)
+	{
+		var polygons = new List<CollisionPolygon>();
+
+		int n = 0;
+		for (int y = 0; y < height; y++)
+		{
+			for (int x = 0; x < width;)
+			{
+				if (alpha[n])
+				{
+					int w = 1;
+					while (x + w < width && alpha[n + w])
 					{
-						if (x + i < image.Width)
+						w++;
+					}
+
+					int h = 1;
+					bool done = false;
+					while (y + h < height)
+					{
+						for (int k = 0; k < w; k++)
 						{
-							bool isSolid = bitmap.GetPixel(x + i, y).A > ALPHA_THRESHOLD;
-							if (isSolid)
+							if (!alpha[n + k + h * width])
 							{
-								mask |= (byte)(1 << (7 - i));
+								done = true;
+								break;
 							}
 						}
+						if (done) break;
+						h++;
 					}
-					data[(y * rowStride) + (x / 8)] = mask;
-				}
-			}
+					polygons.Add(new CollisionPolygon { Points = new List<System.Drawing.Point> { new(x, y), new(x + w, y + h) } });
 
-			collisionMask.Data = data;
-			collisionMasks.Add(collisionMask);
-		}
-
-		return collisionMasks;
-	}
-
-	public static CollisionMask GenerateCollisionMask(FusionImage image)
-	{
-		var collisionMask = new CollisionMask { Handle = image.Handle, Width = image.Width, Height = image.Height };
-		Bitmap bitmap = image.bitmap;
-		int rowStride = (image.Width + 7) / 8;
-		var data = new byte[rowStride * image.Height];
-
-
-		for (int y = 0; y < image.Height; y++)
-		{
-			for (int x = 0; x < image.Width; x += 8)
-			{
-				byte mask = 0;
-				for (int i = 0; i < 8; i++)
-				{
-					if (x + i < image.Width)
+					for (int l = 0; l < h; l++)
 					{
-						bool isSolid = bitmap.GetPixel(x + i, y).A > ALPHA_THRESHOLD;
-						if (isSolid)
+						for (int k = 0; k < w; k++)
 						{
-							mask |= (byte)(1 << (7 - i));
+							alpha[n + k + l * width] = false;
 						}
 					}
+
+					x += w;
+					n += w;
 				}
-				data[(y * rowStride) + (x / 8)] = mask;
-			}
-		}
-
-		collisionMask.Data = data;
-		return collisionMask;
-	}
-
-	// NOTE: imageData is expected to be in Format32bppArgb format
-	public static CollisionMask GenerateCollisionMask(FusionImage image, byte[] imageData)
-	{
-		var collisionMask = new CollisionMask { Handle = image.Handle, Width = image.Width, Height = image.Height };
-		int rowStride = (image.Width + 7) / 8;
-		var data = new byte[rowStride * image.Height];
-
-
-		for (int y = 0; y < image.Height; y++)
-		{
-			for (int x = 0; x < image.Width; x += 8)
-			{
-				byte mask = 0;
-				for (int i = 0; i < 8; i++)
+				else
 				{
-					if (x + i < image.Width)
-					{
-						bool isSolid = imageData[((y * image.Width + (x + i)) * 4) + 3] > ALPHA_THRESHOLD;
-						if (isSolid)
-						{
-							mask |= (byte)(1 << (7 - i));
-						}
-					}
+					x++;
+					n++;
 				}
-				data[(y * rowStride) + (x / 8)] = mask;
+			}
+		}
+		return polygons;
+	}
+
+	public static CollisionPolygonData BuildCollisionPolygons(FusionImage image, byte[] imageData)
+	{
+		var bitmap = image.bitmap;
+
+		var opaque = BuildAlphaMask(bitmap);
+
+		var polygons = GreedyCollision(opaque, bitmap.Width, bitmap.Height);
+
+		using var ms = new MemoryStream();
+		using var writer = new BinaryWriter(ms);
+
+		writer.Write(polygons.Count);
+
+		foreach (var polygon in polygons)
+		{
+			writer.Write(polygon.Points.Count);
+
+			foreach (var point in polygon.Points)
+			{
+				writer.Write(point.X);
+				writer.Write(point.Y);
 			}
 		}
 
-		collisionMask.Data = data;
-		return collisionMask;
+		return new CollisionPolygonData
+		{
+			Handle = image.Handle,
+			Data = ms.ToArray()
+		};
 	}
-
 }

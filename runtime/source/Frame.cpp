@@ -1006,6 +1006,59 @@ static int ConvertScaledCoordToMaskCoord(int scaledCoord, float scale, int maskS
 	return (int)std::floor(scaledCoord / scale);
 }
 
+static inline void BuildQuad(const CollisionInstanceBounds& bounds, float sinAngle, float cosAngle, float* vertices)
+{
+	float left = -bounds.hotspotX;
+	float top = -bounds.hotspotY;
+	float right = left + bounds.width;
+	float bottom = top + bounds.height;
+	const Vector2D verts[4] = { { left, top }, { right, top }, {right, bottom}, {left, bottom} };
+	float x = bounds.centerX - bounds.scrollX;
+	float y = bounds.centerY - bounds.scrollY;
+	for (int i = 0; i < 4; i++)
+	{
+		vertices[i * 2] = verts[i].x * cosAngle - verts[i].y * sinAngle + x;
+		vertices[i * 2 + 1] =  verts[i].x * sinAngle + verts[i].y * cosAngle + y;
+	}
+}
+
+static inline void BuildRect(const CollisionInstanceBounds& bounds, float* vertices)
+{
+	vertices[0] = bounds.centerX - bounds.scrollX - bounds.hotspotX;
+	vertices[1] = bounds.centerY - bounds.scrollY - bounds.hotspotY;
+	vertices[2] = bounds.width;
+	vertices[3] = bounds.height;
+}
+
+static inline void BuildQuadFromPolygon(const Polygon& polygon, const CollisionInstanceBounds& bounds, float sinAngle, float cosAngle, float* vertices, bool local = false)
+{
+	const Vector2D& min = polygon.vertices[0];
+	const Vector2D& max = polygon.vertices[1];
+
+	const Vector2D verts[4] = { { min.x, min.y }, { max.x, min.y }, { max.x, max.y}, { min.x, max.y } };
+
+	for (int i = 0; i < 4; i++)
+	{
+		Vector2D pos = verts[i];
+		if (!local)
+			pos = ConvertVertexToWorldSpace(verts[i], bounds, sinAngle, cosAngle);
+
+		vertices[i * 2] = pos.x;
+		vertices[i * 2 + 1] = pos.y;
+	}
+}
+
+static inline void BuildRectFromPolygon(const Polygon& polygon, const CollisionInstanceBounds& bounds, float* vertices)
+{
+	const Vector2D& min = polygon.vertices[0];
+	const Vector2D& max = polygon.vertices[1];
+
+	vertices[0] = min.x * bounds.scaleX - bounds.hotspotX + bounds.centerX - bounds.scrollX;
+	vertices[1] = min.y * bounds.scaleY - bounds.hotspotY + bounds.centerY - bounds.scrollY;
+	vertices[2] = (max.x - min.x) * bounds.scaleX;
+	vertices[3] = (max.y - min.y) * bounds.scaleY;
+}
+
 bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 {
 	// Check if the objects are on the same layer
@@ -1013,116 +1066,182 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 
 	CollisionInstanceBounds bounds1 = GetInstanceBounds(instance1);
 	CollisionInstanceBounds bounds2 = GetInstanceBounds(instance2);
+
+	if( bounds1.scaleX <= 0.0f || bounds1.scaleY <= 0.0f || bounds2.scaleX <= 0.0f || bounds2.scaleY <= 0.0f ) return false;
 	
-	if (bounds1.maxX - bounds1.scrollX < bounds2.minX - bounds2.scrollX || bounds1.minX - bounds1.scrollX > bounds2.maxX - bounds2.scrollX ||
-		bounds1.maxY - bounds1.scrollY < bounds2.minY - bounds2.scrollY || bounds1.minY - bounds1.scrollY > bounds2.maxY - bounds2.scrollY)
+	if (bounds1.maxX - bounds1.scrollX <= bounds2.minX - bounds2.scrollX || bounds1.minX - bounds1.scrollX >= bounds2.maxX - bounds2.scrollX ||
+		bounds1.maxY - bounds1.scrollY <= bounds2.minY - bounds2.scrollY || bounds1.minY - bounds1.scrollY >= bounds2.maxY - bounds2.scrollY)
 		return false;
-
-	unsigned int imageId1 = 0, imageId2 = 0;
 	
-	if (instance1->Type == 0) {
-		imageId1 = ((QuickBackdrop*)instance1)->shape.Image;
-	} else if (instance1->Type == 1) {
-		imageId1 = ((Backdrop*)instance1)->Image;
-	} else if (instance1->Type == 3 || instance1->Type == 5 || instance1->Type == 6 || instance1->Type == 7) {
-		imageId1 = -1;
-	} else {
-		imageId1 = ((Active*)instance1)->animations.GetCurrentImageHandle();
-	}
-
-	if (instance2->Type == 0) {
-		imageId2 = ((QuickBackdrop*)instance2)->shape.Image;
-	} else if (instance2->Type == 1) {
-		imageId2 = ((Backdrop*)instance2)->Image;
-	} else if (instance2->Type == 3 || instance2->Type == 5 || instance2->Type == 6 || instance2->Type == 7) {
-		imageId2 = -1;
-	} else {
-		imageId2 = ((Active*)instance2)->animations.GetCurrentImageHandle();
-	}
-	
+	bool useMask1 = (instance1->Type == 1 || (instance1->Type == 2 && ((Active*)instance1)->FineDetection));
+	bool useMask2 = (instance2->Type == 1 || (instance2->Type == 2 && ((Active*)instance2)->FineDetection));
+	const PolygonCollisionData *polygonData1 = nullptr;
+	const PolygonCollisionData *polygonData2 = nullptr;
 	Backend* backend = Application::Instance().GetBackend().get();
-	const std::vector<uint8_t> *maskData1 = (unsigned int)imageId1 != -1 ? backend->platform->GetCollisionMaskData(imageId1) : nullptr;
-	const std::vector<uint8_t> *maskData2 = (unsigned int)imageId2 != -1 ? backend->platform->GetCollisionMaskData(imageId2) : nullptr;
+	if (useMask1)
+		polygonData1 = backend->platform->GetCollisionPolygonData(bounds1.imageId);
+	if (useMask2)
+		polygonData2 = backend->platform->GetCollisionPolygonData(bounds2.imageId);
 
-	bool useMask1 = maskData1 && !maskData1->empty() && (instance1->Type == 1 || (instance1->Type == 2 && ((Active*)instance1)->FineDetection));
-	bool useMask2 = maskData2 && !maskData2->empty() && (instance2->Type == 1 || (instance2->Type == 2 && ((Active*)instance2)->FineDetection));
-	
-	auto imageInfo1 = ImageBank::Instance().GetImage(imageId1);
-	auto imageInfo2 = ImageBank::Instance().GetImage(imageId2);
-	if (!imageInfo1 || !imageInfo2) {
-		int overlapMinX = std::max(bounds1.minX - bounds1.scrollX, bounds2.minX - bounds2.scrollX);
-		int overlapMinY = std::max(bounds1.minY - bounds1.scrollY, bounds2.minY - bounds2.scrollY);
-		int overlapMaxX = std::min(bounds1.maxX - bounds1.scrollX, bounds2.maxX - bounds2.scrollX);
-		int overlapMaxY = std::min(bounds1.maxY - bounds1.scrollY, bounds2.maxY - bounds2.scrollY);
-		for (int py = overlapMinY; py <= overlapMaxY; py++)
-			for (int px = overlapMinX; px <= overlapMaxX; px++)
-				if (IsPointInRotatedBox(px, py, bounds1) && IsPointInRotatedBox(px, py, bounds2))
-					return true;
-		return false;
-	}
-	
-	int width1 = bounds1.maskWidth;
-	int height1 = bounds1.maskHeight;
-	int width2 = bounds2.maskWidth;
-	int height2 = bounds2.maskHeight;
-	if (instance1->Type == 0) {
-		width1 = ((QuickBackdrop*)instance1)->Width;
-		height1 = ((QuickBackdrop*)instance1)->Height;
-	}
-	if (instance2->Type == 0) {
-		width2 = ((QuickBackdrop*)instance2)->Width;
-		height2 = ((QuickBackdrop*)instance2)->Height;
-	}
-	
-	int hotspotX1 = bounds1.hotspotX, hotspotY1 = bounds1.hotspotY;
-	int hotspotX2 = bounds2.hotspotX, hotspotY2 = bounds2.hotspotY;
-	
+	useMask1 = polygonData1 != nullptr;
+	useMask2 = polygonData2 != nullptr;
+
 	float cos1 = 1.0f, sin1 = 0.0f;
 	float cos2 = 1.0f, sin2 = 0.0f;
 	if (bounds1.angle != 0) {
-		float radians = -(360.0f - bounds1.angle) * (PI / 180.0f);
+		float radians = -bounds1.angle * (PI / 180.0f);
 		cos1 = cos(radians);
 		sin1 = sin(radians);
 	}
 	if (bounds2.angle != 0) {
-		float radians = -(360.0f - bounds2.angle) * (PI / 180.0f);
+		float radians = -bounds2.angle * (PI / 180.0f);
 		cos2 = cos(radians);
 		sin2 = sin(radians);
 	}
-	
-	int overlapMinX = std::max(bounds1.minX - bounds1.scrollX, bounds2.minX - bounds2.scrollX);
-	int overlapMinY = std::max(bounds1.minY - bounds1.scrollY, bounds2.minY - bounds2.scrollY);
-	int overlapMaxX = std::min(bounds1.maxX - bounds1.scrollX, bounds2.maxX - bounds2.scrollX);
-	int overlapMaxY = std::min(bounds1.maxY - bounds1.scrollY, bounds2.maxY - bounds2.scrollY);
-	
-	for (int py = overlapMinY; py <= overlapMaxY; py++) {
-		for (int px = overlapMinX; px <= overlapMaxX; px++) {
-			float dx1 = px - bounds1.centerX + bounds1.scrollX, dy1 = py - bounds1.centerY + bounds1.scrollY;
-			if (bounds1.angle != 0) {
-				float nx = dx1 * cos1 - dy1 * sin1, ny = dx1 * sin1 + dy1 * cos1;
-				dx1 = nx; dy1 = ny;
+	// Skip polygon calculations if there's no rotation present
+	if (bounds1.angle == 0 && bounds2.angle == 0)
+	{
+		// Polygon to polygon
+		if(useMask1 && useMask2)
+		{
+			for(int i = 0; i < polygonData1->Polygons.size(); i++)
+			{
+				const Polygon& polygon = polygonData1->Polygons[i];
+				float rect[4];
+				BuildRectFromPolygon(polygon, bounds1, rect);
+				for(int k = 0; k < polygonData2->Polygons.size(); k++)
+				{
+					const Polygon& polygon2 = polygonData2->Polygons[k];
+					float rect2[4];
+					BuildRectFromPolygon(polygon2, bounds2, rect2);
+					//sc2d_check_rects
+					if(sc2d_check_rects(rect[0],rect[1],rect[2],rect[3],rect2[0],rect2[1],rect2[2],rect2[3]))
+					{
+						return true;
+					}
+				}
 			}
-			int lx1 = (int)(dx1 + hotspotX1), ly1 = (int)(dy1 + hotspotY1);
-			int sampleX1 = ConvertScaledCoordToMaskCoord(lx1, bounds1.scaleX, width1);
-			int sampleY1 = ConvertScaledCoordToMaskCoord(ly1, bounds1.scaleY, height1);
-			bool solid1 = useMask1 ? IsPixelSolid(*maskData1, width1, height1, sampleX1, sampleY1)
-				: (lx1 >= 0 && lx1 < bounds1.width && ly1 >= 0 && ly1 < bounds1.height);
-
-			float dx2 = px - bounds2.centerX + bounds2.scrollX, dy2 = py - bounds2.centerY + bounds2.scrollY;
-			if (bounds2.angle != 0) {
-				float nx = dx2 * cos2 - dy2 * sin2, ny = dx2 * sin2 + dy2 * cos2;
-				dx2 = nx; dy2 = ny;
-			}
-			int lx2 = (int)(dx2 + hotspotX2), ly2 = (int)(dy2 + hotspotY2);
-			int sampleX2 = ConvertScaledCoordToMaskCoord(lx2, bounds2.scaleX, width2);
-			int sampleY2 = ConvertScaledCoordToMaskCoord(ly2, bounds2.scaleY, height2);
-			bool solid2 = useMask2 ? IsPixelSolid(*maskData2, width2, height2, sampleX2, sampleY2)
-				: (lx2 >= 0 && lx2 < bounds2.width && ly2 >= 0 && ly2 < bounds2.height);
-
-			if (solid1 && solid2)
-				return true;
 		}
+		
+		// Polygon to bbox
+		else if(useMask1 && !useMask2)
+		{
+			float rect[4];
+			BuildRect(bounds2, rect);
+			for(int i = 0; i < polygonData1->Polygons.size(); i++)
+			{
+				const Polygon& polygon = polygonData1->Polygons[i];
+				float rect2[4];
+				BuildRectFromPolygon(polygon, bounds1, rect2);
+				if(sc2d_check_rects(rect[0],rect[1],rect[2],rect[3],rect2[0],rect2[1],rect2[2],rect2[3]))
+				{
+					return true;
+				}
+				
+			}
+		}
+		
+		// bbox to Polygon
+		else if(!useMask1 && useMask2)
+		{
+			float rect[4];
+			BuildRect(bounds1, rect);
+			for(int i = 0; i < polygonData2->Polygons.size(); i++)
+			{
+				const Polygon& polygon = polygonData2->Polygons[i];
+				float rect2[4];
+				BuildRectFromPolygon(polygon, bounds2, rect2);
+				if(sc2d_check_rects(rect[0],rect[1],rect[2],rect[3],rect2[0],rect2[1],rect2[2],rect2[3]))
+				{
+					return true;
+				}
+			}
+		}
+
+		else if(!useMask1 && !useMask2)
+		{
+			float rect[4];
+			BuildRect(bounds1, rect);
+			float rect2[4];
+			BuildRect(bounds2, rect2);
+			return (sc2d_check_rects(rect[0],rect[1],rect[2],rect[3],rect2[0],rect2[1],rect2[2],rect2[3]));
+		}
+		return false;
 	}
+	else
+	{
+		// Polygon to polygon
+		if(useMask1 && useMask2)
+		{
+			for(int i = 0; i < polygonData1->Polygons.size(); i++)
+			{
+				const Polygon& polygon = polygonData1->Polygons[i];
+				float quad[8];
+				BuildQuadFromPolygon(polygon, bounds1, sin1, cos1, quad);
+				for(int k = 0; k < polygonData2->Polygons.size(); k++)
+				{
+					const Polygon& polygon2 = polygonData2->Polygons[k];
+					float quad2[8];
+					BuildQuadFromPolygon(polygon2, bounds2, sin2, cos2, quad2);
+					float outX, outY;
+					if(sc2d_check_poly2d(0.0f,0.0f, quad, 4, 0.0f,0.0f, quad2, 4, &outX, &outY))
+					{
+						return true;
+					}
+				}
+			}
+		}
+		
+		// Polygon to bbox
+		else if(useMask1 && !useMask2)
+		{
+			float quad[8];
+			BuildQuad(bounds2, sin2, cos2, quad);
+			for(int i = 0; i < polygonData1->Polygons.size(); i++)
+			{
+				const Polygon& polygon = polygonData1->Polygons[i];
+				float quad2[8];
+				BuildQuadFromPolygon(polygon, bounds1, sin1, cos1, quad2);
+				float outX, outY;
+				if(sc2d_check_poly2d(0.0f,0.0f, quad2, 4, 0.0f,0.0f, quad, 4, &outX, &outY))
+				{
+					return true;
+				}
+				
+			}
+		}
+		
+		// bbox to Polygon
+		else if(!useMask1 && useMask2)
+		{
+			float quad[8];
+			BuildQuad(bounds1, sin1, cos1, quad);
+			for(int i = 0; i < polygonData2->Polygons.size(); i++)
+			{
+				const Polygon& polygon = polygonData2->Polygons[i];
+				float quad2[8];
+				BuildQuadFromPolygon(polygon, bounds2, sin2, cos2, quad2);
+				float outX, outY;
+				if(sc2d_check_poly2d(0.0f,0.0f, quad2, 4, 0.0f,0.0f, quad, 4, &outX, &outY))
+				{
+					return true;
+				}
+			}
+		}
+
+		else if(!useMask1 && !useMask2)
+		{
+			float quad1[8];
+			BuildQuad(bounds1, sin1, cos1, quad1);
+			float quad2[8];
+			BuildQuad(bounds2, sin2, cos2, quad2);
+			float outX, outY;
+			return (sc2d_check_poly2d(0.0f,0.0f, quad1, 4, 0.0f,0.0f, quad2, 4, &outX, &outY));
+		}
+		
+			
+	}
+	
 	return false;
 }
 
@@ -1136,54 +1255,57 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 	if (x < bounds.minX - bounds.scrollX || x > bounds.maxX - bounds.scrollX || y < bounds.minY - bounds.scrollY || y > bounds.maxY - bounds.scrollY)
 		return false;
 
-	unsigned int imageId = 0;
+	if (bounds.scaleX <= 0.0f || bounds.scaleY <= 0.0f)
+		return false;
+
+	unsigned int imageId = bounds.imageId;
 	bool fineDetection = false;
-	
-	if (instance->Type == 0) {
-		imageId = ((QuickBackdrop*)instance)->shape.Image;
-	} else if (instance->Type == 1) {
-		imageId = ((Backdrop*)instance)->Image;
-		fineDetection = true;
-	}
-	if (instance->Type == 3 || instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
-		imageId = -1;
-		fineDetection = false;
-	}
-	else {
-		imageId = ((Active*)instance)->animations.GetCurrentImageHandle();
-		fineDetection = ((Active*)instance)->FineDetection;
-	}
-	if (!fineDetection)
-		return IsPointInRotatedBox(x, y, bounds);
-	
-	const std::vector<uint8_t>* maskData = Application::Instance().GetBackend().get()->platform->GetCollisionMaskData(imageId);
-	if (!maskData || maskData->empty())
-		return IsPointInRotatedBox(x, y, bounds);
 
-	auto imageInfo = ImageBank::Instance().GetImage(imageId);
-	if (!imageInfo) return IsPointInRotatedBox(x, y, bounds);
+	const PolygonCollisionData *polygonData1 = nullptr;
 
-	int width = bounds.maskWidth;
-	int height = bounds.maskHeight;
-	if (instance->Type == 0) {
-		width = ((QuickBackdrop*)instance)->Width;
-		height = ((QuickBackdrop*)instance)->Height;
-	}
+	fineDetection = (instance->Type == 1 || (instance->Type == 2 && ((Active*)instance)->FineDetection));
 
-	float dx = x - bounds.centerX + bounds.scrollX;
-	float dy = y - bounds.centerY + bounds.scrollY;
+	Backend* backend = Application::Instance().GetBackend().get();
+	if (fineDetection)
+		polygonData1 = backend->platform->GetCollisionPolygonData(bounds.imageId);
+
+	fineDetection = polygonData1 != nullptr;
+
+	float cos1 = 1.0f, sin1 = 0.0f;
 	if (bounds.angle != 0) {
-		float radians = -(360.0f - bounds.angle) * (PI / 180.0f);
-		float cosA = cos(radians);
-		float sinA = sin(radians);
-		float newX = dx * cosA - dy * sinA;
-		float newY = dx * sinA + dy * cosA;
-		dx = newX;
-		dy = newY;
+		float radians = -bounds.angle * (PI / 180.0f);
+		cos1 = cos(radians);
+		sin1 = sin(radians);
 	}
-	int localX = (int)(dx + bounds.hotspotX);
-	int localY = (int)(dy + bounds.hotspotY);
-	int sampleX = ConvertScaledCoordToMaskCoord(localX, bounds.scaleX, width);
-	int sampleY = ConvertScaledCoordToMaskCoord(localY, bounds.scaleY, height);
-	return IsPixelSolid(*maskData, width, height, sampleX, sampleY);
+
+	// Polygon
+	if(fineDetection)
+	{
+		Vector2D Position = ConvertVertexToLocalSpace(Vector2D{static_cast<float>(x),static_cast<float>(y)}, bounds, sin1, cos1);
+		for(int i = 0; i < polygonData1->Polygons.size(); i++)
+		{
+			const Polygon& polygon = polygonData1->Polygons[i];
+
+			const Vector2D& min = polygon.vertices[0];
+			const Vector2D& max = polygon.vertices[1];
+
+			if (Position.x >= min.x && Position.x < max.x && Position.y >= min.y && Position.y < max.y) return true;
+		}
+	}
+	else
+	{
+		if (bounds.angle == 0)
+		{
+			float rect[4];
+			BuildRect(bounds, rect);
+
+			return sc2d_check_point_rect(x, y, rect[0], rect[1], rect[2], rect[3]);
+		}
+
+		float quad[8];
+		BuildQuad(bounds, sin1, cos1, quad);
+
+		return sc2d_check_point_poly2d(x, y, quad, 4);
+	}
+	return false;
 }
